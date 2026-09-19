@@ -13,10 +13,12 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="description" content="دكّان — دفتر الصندوق والمخزون والديون لمحلك الصغير">
 <link rel="stylesheet" href="css/style.css">
+<script src="js/themes.js"></script>
+<script>if (window.DEK) window.DEK.Themes.restore();</script>
 </head>
 <body>
 
-<!-- ================= PC sidebar (DaliDeck style) ================= -->
+<!-- ================= PC sidebar (bookmark rail) ================= -->
 <aside class="sidebar" id="sidebar">
   <div class="brand">
     <span class="logo">د</span>
@@ -89,7 +91,7 @@
     </div>
 
     <div class="card stack basket">
-      <div class="row gr"><h3 data-i18n="basket.title">السلة</h3><span id="basketCount" class="pill red">0</span></div>
+      <div class="row gr"><h3 data-i18n="basket.title">السلة</h3><span id="basketCount" class="pill acc">0</span></div>
       <div id="basketList"></div>
       <div class="row gap" id="discountRow">
         <label><span data-i18n="disc.pct">خصم %</span><input type="number" id="discPct" min="0" max="100" placeholder="0"></label>
@@ -164,7 +166,7 @@
       <h2 data-i18n="report.title">تقرير اليوم</h2>
       <p data-i18n="report.sub">القصة الكاملة للفلوس</p>
     </div>
-    <div class="grid2" id="reportChips"></div>
+    <div class="card till" id="tillCard"></div>
     <div class="card" id="cashCheckPanel">
       <h3 data-i18n="report.check">عدّ الصندوق</h3>
       <p class="muted" id="cashCheckExpected"></p>
@@ -178,30 +180,39 @@
       <h3 data-i18n="report.movements">حركة اليوم</h3>
       <div id="entriesList"></div>
     </div>
+    <div class="grid3" id="reportChips"></div>
   </section>
 
   <!-- SETTINGS -->
   <section id="page-settings" class="page">
     <div class="pageHead">
       <h2 data-i18n="settings.title">الإعدادات</h2>
-      <p data-i18n="settings.sub">المحل، اللغة، خيارات اليوم</p>
+      <p data-i18n="settings.sub">المحل، المظهر، اللغة، خيارات اليوم</p>
     </div>
     <div class="stack">
+      <p class="sect" data-i18n="settings.sect.shop">المحل</p>
       <div class="card">
         <label><span data-i18n="settings.shopName">اسم المحل</span><input type="text" id="cfgShopName"></label>
         <label><span data-i18n="settings.startCash">فلوس بداية اليوم</span><input type="number" id="cfgStartCash" min="0"></label>
-        <button class="btn" id="btnSaveCfg" data-i18n="common.save">حفظ</button>
+        <div class="row end"><button class="btn primary" id="btnSaveCfg" data-i18n="common.save">حفظ</button></div>
         <p class="muted small" data-i18n="settings.startCashHint">بداية اليوم تُغيّر عند فتح صندوق جديد (إغلاق اليوم).</p>
       </div>
 
+      <p class="sect" data-i18n="settings.sect.look">المظهر</p>
       <div class="card">
-        <h3 data-i18n="settings.language">لغة الواجهة</h3>
+        <h3 data-i18n="settings.theme">شكل الدكان</h3>
+        <div class="themes" id="themeGrid"></div>
+      </div>
+
+      <p class="sect" data-i18n="settings.sect.lang">اللغة</p>
+      <div class="card">
         <div class="seg">
           <button class="segbtn" id="langAr">العربية</button>
           <button class="segbtn" id="langEn">English</button>
         </div>
       </div>
 
+      <p class="sect" data-i18n="settings.sect.behave">السلوك</p>
       <div class="card row between">
         <span><b data-i18n="settings.discount">الخصم مسموح</b><small class="muted" data-i18n="settings.discountHint">تظهر حقول الخصم في البيع</small></span>
         <label class="switch"><input type="checkbox" id="cfgDiscount"><span></span></label>
@@ -211,9 +222,19 @@
         <label class="switch"><input type="checkbox" id="cfgRefund"><span></span></label>
       </div>
 
-      <div class="card row">
+      <p class="sect" data-i18n="settings.sect.day">إدارة اليوم</p>
+      <div class="card row between">
         <button class="btn" id="btnCloseDay" data-i18n="settings.closeDay">إغلاق يوم اليوم</button>
         <button class="btn ghost" id="btnExport" data-i18n="settings.export">حفظ نسخة (JSON)</button>
+      </div>
+
+      <p class="sect" data-i18n="settings.sect.about">عن التطبيق</p>
+      <div class="card">
+        <div class="dlist">
+          <div><span class="n" data-i18n="settings.version">النسخة</span><b class="b" id="appVersion">0.4.0</b></div>
+          <div><span class="n" data-i18n="settings.storage">المساحة المستعملة</span><b class="b" id="storageUsed">—</b></div>
+        </div>
+        <p class="muted small" data-i18n="settings.autosave">الحفظ تلقائي على كل عملية. النسخة الاحتياطية مزدوجة داخل المتصفح.</p>
       </div>
       <div class="card row">
         <button class="btn danger" id="btnReset" data-i18n="settings.reset">مسح كل شيء وإعادة البدء</button>

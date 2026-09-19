@@ -1,7 +1,8 @@
-/* DEKKAN — the shop webapp (v2: DaliDeck skin + AR/EN).
+/* DEKKAN — the shop webapp (v4: theme engine + till-style report).
  * UI layer ONLY: renders state, calls the core (window.Dekkan), persists.
  * Every business rule lives in core/dekkan-core.js.
  * Every user-visible string goes through T.t() (js/lang.js).
+ * Every color comes from a theme token (js/themes.js) — no hardcoded colors here.
  */
 'use strict';
 (function () {
@@ -9,6 +10,7 @@
   const T = window.T;
   const LS_KEY = 'dekkan.v1';
   const BK_KEY = 'dekkan.backup';
+  const A_VERSION = '0.4.0';
 
   // ---------- state ----------
   let state = load();
@@ -208,29 +210,34 @@
   // ----- REPORT -----
   function renderReport() {
     const r = D.stats(state);
+
+    // the till: one big number, read from across the shop
+    $('tillCard').innerHTML =
+      '<div class="tilth">' + T.t('report.chip.now') + '</div>'
+      + '<div class="tillnum">' + money(r.cash) + '</div>'
+      + '<div class="tillsub">' + T.t('report.chip.start') + ' <b>' + money(r.startCash) + '</b>'
+      + ' · ' + T.t('report.chip.profit')
+      + ' <b class="' + (r.dayProfit >= 0 ? 'ok' : 'bad') + '">' + money(r.dayProfit) + '</b></div>';
+
     const chips = [
-      [T.t('report.chip.start'), money(r.startCash), ''],
-      [T.t('report.chip.now'), money(r.cash), ''],
-      [T.t('report.chip.sales'), money(r.daySales), ''],
+      [T.t('report.chip.inventory'), money(r.inventoryValue), ''],
+      [T.t('report.chip.debts'), money(r.debts.total), r.debts.count ? 'bad' : ''],
+      [T.t('report.chip.sales'), money(r.daySales), 'good'],
       [T.t('report.chip.refunds'), money(r.dayRefunds), ''],
       [T.t('report.chip.expenses'), money(r.dayExpenses), ''],
       [T.t('report.chip.buys'), money(r.dayBuys), ''],
-      [T.t('report.chip.profit'), money(r.dayProfit), r.dayProfit >= 0 ? 'good' : 'bad'],
-      [T.t('report.chip.inventory'), money(r.inventoryValue), ''],
-      [T.t('report.chip.debts'), money(r.debts.total), '']
+      [T.t('report.chip.low'), String(r.lowStock.length), r.lowStock.length ? 'bad' : 'good']
     ];
     $('reportChips').innerHTML = chips.map(function (c) {
       return '<div class="metric"><span class="lab">' + c[0] + '</span>'
-        + '<span class="val">' + c[1] + '</span>'
-        + (c[2] ? '<span class="edge ' + c[2] + '"></span>' : '')
-        + '</div>';
+        + '<span class="val ' + c[2] + '">' + c[1] + '</span></div>';
     }).join('');
 
     $('cashCheckExpected').textContent = T.t('report.expected') + money(r.cash);
 
     let ch = '';
     r.checks.slice().reverse().forEach(function (c) {
-      ch += '<div class="entry"><span class="e-kind">' + T.t('kind.check') + '</span>'
+      ch += '<div class="entry"><span class="e-kind k-check">' + T.t('kind.check') + '</span>'
         + '<span class="growx">' + entryTime(c.at) + '</span>'
         + '<span class="' + (c.ok ? 'check-ok' : 'check-bad') + '">'
         + (c.ok ? T.t('report.matched') + ' ✓' : (T.t('report.diff') + (c.diff > 0 ? '+' : '') + fmt(c.diff) + ' ' + T.t('curr'))) + '</span></div>';
@@ -239,10 +246,10 @@
 
     let eh = '';
     r.entries.slice().reverse().forEach(function (e) {
-      const cls = e.amount > 0 ? 'in' : (e.amount < 0 ? 'out' : '');
+      const cls = e.amount > 0 ? 'in' : (e.amount < 0 ? 'out' : 'none');
       const amt = e.amount === 0 ? '—' : money(e.amount);
       eh += '<div class="entry">'
-        + '<span class="e-kind">' + (kindLabel(e.kind)) + '</span>'
+        + '<span class="e-kind k-' + e.kind + '">' + kindLabel(e.kind) + '</span>'
         + '<span class="growx"><span class="e-time">' + entryTime(e.at) + '</span>'
         + (e.note ? '<span class="e-note">' + esc(e.note) + '</span>' : '') + '</span>'
         + '<span class="e-amt ' + cls + '">' + amt + '</span>'
@@ -267,10 +274,50 @@
     $('cfgRefund').checked = !!state.settings.allowRefund;
     $('langAr').classList.toggle('active', T.lang === 'ar');
     $('langEn').classList.toggle('active', T.lang === 'en');
+    if ($('appVersion')) $('appVersion').textContent = A_VERSION;
+    renderThemes();
+    updateStorage();
+  }
+
+  // ----- THEMES (colors live in js/themes.js — the app just asks) -----
+  function themes() { return window.DEK && window.DEK.Themes; }
+
+  function renderThemes() {
+    const TH = themes();
+    if (!TH || !$('themeGrid')) return;
+    const cur = TH.current().id;
+    $('themeGrid').innerHTML = TH.all().map(function (th) {
+      return '<button type="button" class="theme-sw' + (th.id === cur ? ' active' : '') + '" data-theme="' + th.id + '">'
+        + '<span class="dots">' + th.preview.map(function (c) {
+          return '<i style="background:' + c + '"></i>';
+        }).join('') + '</span>'
+        + '<b>' + T.t(th.nameKey) + '</b></button>';
+    }).join('');
+  }
+
+  let storageRead = false;
+  function updateStorage() {
+    const el = $('storageUsed');
+    if (!el || storageRead) return;
+    if (!(navigator.storage && navigator.storage.estimate)) return;
+    storageRead = true;
+    navigator.storage.estimate().then(function (est) {
+      const mb = (est.usage || 0) / 1048576;
+      el.textContent = (mb < 0.1 ? '<0.1' : (mb < 10 ? mb.toFixed(1) : String(Math.round(mb)))) + ' MB';
+    }).catch(function () { /* stays — */ });
   }
 
   // ---------- events (bound once) ----------
   document.addEventListener('click', function (ev) {
+    const sw = ev.target.closest('[data-theme]');
+    if (sw) {
+      const TH = themes();
+      if (TH && TH.set(sw.getAttribute('data-theme'))) {
+        renderThemes();
+        toast(T.t('toast.themeOk'));
+      }
+      return;
+    }
     const el = ev.target.closest('[data-action]');
     if (!el) return;
     const act = el.getAttribute('data-action');
@@ -470,6 +517,7 @@
   $('langAr').addEventListener('click', function () { T.set('ar'); });
   $('langEn').addEventListener('click', function () { T.set('en'); });
   window.addEventListener('dekkan:lang', render);
+  document.addEventListener('dekkan:theme', renderThemes);
 
   // navigation (sidebar + bottom bar)
   const tabs = document.querySelectorAll('.tab, .navitem');

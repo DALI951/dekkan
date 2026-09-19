@@ -61,6 +61,8 @@ function createShop(opts) {
     },
     // every customer name ever used (sales + notebook) — the counter's memory
     customers: [],
+    // cash-box categories: sources for money IN, purposes for money OUT
+    categories: { in: [], out: [] },
     products: [],
     debts: [],
     days: [],
@@ -508,18 +510,45 @@ function refundFree(state, opts) {
 }
 
 // Shop expenses (rent, electricity, coffee for the owner...). Cash out.
+//   note = WHY (the purpose); category = a reusable purpose-category name.
 function expense(state, opts) {
   state = rollover(clone(state));
   if (!opts || !Number.isFinite(opts.amount) || opts.amount <= 0) throw new Error('expense amount must be positive');
-  pushEntry(state, 'expense', -money(opts.amount), null, opts.note || null);
+  pushEntry(state, 'expense', -money(opts.amount), null, opts.note || null, { cat: opts.category || null });
   return state;
 }
 
 // Money you put INTO the cash box from outside (your pocket, a loan). Cash in.
+//   note = WHERE it came from (the source); category = a reusable source-category name.
 function income(state, opts) {
   state = rollover(clone(state));
   if (!opts || !Number.isFinite(opts.amount) || opts.amount <= 0) throw new Error('income amount must be positive');
-  pushEntry(state, 'income', money(opts.amount), null, opts.note || null);
+  pushEntry(state, 'income', money(opts.amount), null, opts.note || null, { cat: opts.category || null });
+  return state;
+}
+
+// ---------- cash-box categories (reusable sources / purposes) ----------
+
+function addCategory(state, opts) {
+  state = rollover(clone(state));
+  if (!opts || opts.side !== 'in' && opts.side !== 'out') throw new Error('category side must be "in" or "out"');
+  const name = String(opts.name || '').trim();
+  if (!name) throw new Error('category name is required');
+  const pool = state.categories[opts.side];
+  if (pool.some(function (c) { return c.name.toLowerCase() === name.toLowerCase(); })) {
+    throw new Error('category already exists');
+  }
+  pool.push({ id: uid(), name: name });
+  return state;
+}
+
+function removeCategory(state, opts) {
+  state = rollover(clone(state));
+  if (!opts || opts.side !== 'in' && opts.side !== 'out') throw new Error('category side must be "in" or "out"');
+  const pool = state.categories[opts.side];
+  const idx = pool.findIndex(function (c) { return c.id === opts.id; });
+  if (idx === -1) throw new Error('category not found');
+  pool.splice(idx, 1);
   return state;
 }
 
@@ -743,7 +772,7 @@ const api = {
   ensureCustomer, customerNames,
   salesToday, nextClientNo, clientNoOf,
   updateShop, setSettings,
-  checkCash, stats, dayReport, cash, closeDay, rollover, todayStr
+  checkCash, stats, dayReport, cash, closeDay, rollover, todayStr, addCategory, removeCategory
 };
 
 if (typeof module !== 'undefined' && module.exports) module.exports = api;

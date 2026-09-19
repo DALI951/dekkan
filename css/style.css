@@ -432,15 +432,43 @@ select option{background:var(--inbg);color:var(--txt);}
 }
 
 /* ============ tickets vault + facture printing ============ */
-.chip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);
-  background:var(--panel);color:var(--dim);border-radius:999px;padding:4px 12px;font-size:12px;
-  cursor:pointer;margin:2px;}
-.chip.on{background:var(--acc);color:var(--ink);border-color:var(--acc);font-weight:700;}
 button.trow{width:100%;display:flex;align-items:center;gap:10px;background:transparent;
   border:none;border-bottom:1px solid var(--line);padding:10px 4px;cursor:pointer;
   color:var(--txt);text-align:start;}
 button.trow:hover{background:var(--accbg);}
 button.trow b{color:var(--acc2);}
+.e-ticket{color:var(--acc);font-size:14px;font-weight:800;flex:none;}
+
+/* ============ report metric boxes (tap for the detail) ============ */
+button.metric{background:var(--panel);border:1px solid var(--line);border-radius:var(--rads);
+  padding:12px 14px;display:flex;flex-direction:column;gap:6px;cursor:pointer;
+  border-inline-start:3px solid var(--acc);text-align:start;color:var(--txt);}
+button.metric:hover{background:var(--accbg);border-color:var(--accborder);}
+button.metric .lab{font-size:12px;color:var(--dim);}
+button.metric .val{font-size:20px;font-weight:800;}
+button.metric .val.bad{color:var(--dangerhi);}
+button.metric .val.good{color:var(--okhi);}
+
+/* ============ cash box (income/expense with categories) ============ */
+.catgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media (max-width:599px){.catgrid{grid-template-columns:1fr;}}
+.catgrid h4{font-size:12px;color:var(--dim);margin:0 0 8px;font-weight:600;}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+.chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);
+  background:var(--panel);color:var(--txt);border-radius:999px;padding:4px 12px;font-size:12px;}
+.chip-x{background:transparent;border:none;color:var(--dangerhi);cursor:pointer;
+  font-size:14px;line-height:1;padding:2px 4px;}
+.chip-x:hover{color:var(--danger);}
+
+/* selects: never the OS-default look — always the shop's theme */
+select{background:var(--panel);color:var(--txt);border:1px solid var(--line);
+  border-radius:var(--rads);padding:10px 12px;font-size:14px;font-family:inherit;cursor:pointer;}
+select:focus-visible{outline:2px solid var(--acc);outline-offset:2px;}
+.row.wrap{flex-wrap:wrap;}
+.row.wrap > *{flex:1 1 130px;}
+
+/* the metric panel is a lightbox like the receipt */
+#metricPanel .receipt-card{max-height:80vh;overflow-y:auto;}
 
 @media print{
   /* the facture: ONLY the white receipt paper prints */

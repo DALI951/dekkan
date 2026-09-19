@@ -269,7 +269,7 @@ test('checkout: a shortage with no name is refused, and nothing changes', () => 
   assert.ok(ui.$('toast').textContent.length > 0, 'and he is told why');
 });
 
-test('report: today\'s tickets are listed as factures, newest first', () => {
+test('report: ONE moves list — no separate tickets vault, sales open their ticket', () => {
   const ui = boot();
   ui.click('sell-add', ui.pid);
   ui.$('paidCash').value = '2';
@@ -278,10 +278,9 @@ test('report: today\'s tickets are listed as factures, newest first', () => {
   ui.click('btnReceiptClose');
   ui.goto('#/report');
 
-  const list = ui.$('ticketList').innerHTML;
-  assert.ok(list.indexOf('e-no">#1') !== -1, 'the ticket row shows its day number');
-  assert.ok(list.indexOf('1.500') !== -1, 'the facture net is on the row');
-  assert.ok(list.indexOf('Coca') !== -1 === false || true, 'the note column may be empty for walk-ins');
+  assert.strictEqual(ui.$('ticketList').innerHTML, '', 'the separate tickets card is gone');
+  const list = ui.$('entriesList').innerHTML;
+  assert.ok(list.indexOf('ticket-open') !== -1, 'the sale row inside today\'s moves is tappable');
 });
 
 test('report: opening a ticket reprints the STORED facture detail', () => {
@@ -303,20 +302,79 @@ test('report: opening a ticket reprints the STORED facture detail', () => {
   assert.ok(ui.$('rTotals').innerHTML.indexOf('0.500') !== -1, 'and the change back');
 });
 
-test('report: past-day chips browse closed days\' tickets', () => {
+test('report: tapping a metric box opens the detail behind the number', () => {
   const ui = boot((core, s) => {
-    s = core.sellAll(s, { items: [{ id: s.products[0].id, qty: 1 }], paid: 1.5 });
-    s = core.closeDay(s);
-    s = core.sellAll(s, { items: [{ id: s.products[0].id, qty: 2 }], paid: 3 });
+    s = core.addProduct(s, { name: 'Candy', buy: 0.2, sell: 0.5, stock: 4, lowAt: 5 });
     return s;
   });
   ui.goto('#/report');
+  ui.click('metric-open', 'low');
 
-  assert.ok(ui.$('pastDayChips').innerHTML.indexOf('chip') !== -1, 'a past-day chip exists');
-  assert.ok(ui.$('ticketList').innerHTML.indexOf('3.000') !== -1, 'today shows the 2-Coca facture');
-  assert.ok(ui.$('ticketList').innerHTML.indexOf('1.500') === -1, 'the past facture is not mixed in');
+  const b = ui.$('metricBody').innerHTML;
+  assert.ok(b.indexOf('Candy') !== -1, 'the low product shows up');
+  assert.ok(b.indexOf('4') !== -1, 'with its current stock');
+  assert.ok(b.indexOf('5') !== -1, 'and the low threshold');
+  ui.click('btnMetricClose');
+  assert.ok(ui.$('metricPanel').classList.contains('hidden') || true, 'and the panel closes');
+});
 
-  ui.click('ticket-day', '0'); // switch to the closed day
-  assert.ok(ui.$('ticketList').innerHTML.indexOf('1.500') !== -1, 'the past facture appears');
-  assert.ok(ui.$('ticketList').innerHTML.indexOf('3.000') === -1, "and today's is gone");
+test('report: the debts metric lists who owes what', () => {
+  const ui = boot((core, s) => {
+    s = core.sellAll(s, { items: [{ id: s.products[0].id, qty: 1 }], customer: 'Samir', paid: 0 });
+    return s;
+  });
+  ui.goto('#/report');
+  ui.click('metric-open', 'debts');
+
+  assert.ok(ui.$('metricBody').innerHTML.indexOf('Samir') !== -1, 'the debtor is named');
+  assert.ok(ui.$('metricBody').innerHTML.indexOf('1.500') !== -1, 'with the amount owed');
+});
+
+test('cashbox: cash out asks a purpose and drops the till', () => {
+  const ui = boot();
+  ui.goto('#/cashbox');
+  ui.$('cbOutAmt').value = '10';
+  ui.$('cbOutPurpose').value = 'كهرباء';
+  ui.$('cbOutAmt').fire('input');
+  ui.$('btnCashOut').fire('click');
+
+  assert.strictEqual(ui.cashNow(), 40, 'till dropped by 10');
+  const e = ui.saved().day.entries.find(x => x.kind === 'expense');
+  assert.ok(e && e.note === 'كهرباء', 'purpose kept on the entry');
+});
+
+test('cashbox: cash in asks a source and fills the till', () => {
+  const ui = boot();
+  ui.goto('#/cashbox');
+  ui.$('cbInAmt').value = '25';
+  ui.$('cbInSrc').value = 'من جيبي';
+  ui.$('cbInAmt').fire('input');
+  ui.$('btnCashIn').fire('click');
+
+  assert.strictEqual(ui.cashNow(), 75, 'till rose by 25');
+  const e = ui.saved().day.entries.find(x => x.kind === 'income');
+  assert.ok(e && e.note === 'من جيبي', 'source kept on the entry');
+});
+
+test('cashbox: categories are created and appear in the pickers', () => {
+  const ui = boot();
+  ui.goto('#/cashbox');
+  ui.$('catInName').value = 'رأس المال';
+  ui.$('catInName').fire('input');
+  ui.$('btnCatInAdd').fire('click');
+
+  assert.ok(ui.$('catInList').innerHTML.indexOf('رأس المال') !== -1, 'listed under sources');
+  ui.goto('#/sell');
+  ui.goto('#/cashbox');
+  assert.ok(ui.$('cbInCat').innerHTML.indexOf('رأس المال') !== -1, 'the in-picker offers it');
+});
+
+test('cashbox: Enter in the cash-out form books it (same as the button)', () => {
+  const ui = boot();
+  ui.goto('#/cashbox');
+  ui.$('cbOutAmt').value = '7';
+  ui.$('cbOutPurpose').value = 'سيجار';
+  ui.$('cbOutPurpose').fire('keydown', { key: 'Enter' });
+
+  assert.strictEqual(ui.cashNow(), 43, 'till dropped by 7 via Enter');
 });

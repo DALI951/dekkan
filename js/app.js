@@ -10,7 +10,7 @@
   const T = window.T;
   const LS_KEY = 'dekkan.v1';
   const BK_KEY = 'dekkan.backup';
-  const A_VERSION = '0.7.0';
+  const A_VERSION = '0.8.0';
 
   // ---------- state ----------
   let state = load();
@@ -46,6 +46,9 @@
     if (!s || !Array.isArray(s.customers)) {
       if (!s) s = {};
       s.customers = [];
+    }
+    if (!s.categories || !Array.isArray(s.categories.in) || !Array.isArray(s.categories.out)) {
+      s.categories = { in: [], out: [] };
     }
     return s;
   }
@@ -96,6 +99,7 @@
     renderStock();
     renderDebts();
     renderReport();
+    renderCashBox();
     renderSettings();
   }
 
@@ -288,17 +292,18 @@
       + ' <b class="' + (r.dayProfit >= 0 ? 'ok' : 'bad') + '">' + money(r.dayProfit) + '</b></div>';
 
     const chips = [
-      [T.t('report.chip.inventory'), money(r.inventoryValue), ''],
-      [T.t('report.chip.debts'), money(r.debts.total), r.debts.count ? 'bad' : ''],
-      [T.t('report.chip.sales'), money(r.daySales), 'good'],
-      [T.t('report.chip.refunds'), money(r.dayRefunds), ''],
-      [T.t('report.chip.expenses'), money(r.dayExpenses), ''],
-      [T.t('report.chip.buys'), money(r.dayBuys), ''],
-      [T.t('report.chip.low'), String(r.lowStock.length), r.lowStock.length ? 'bad' : 'good']
+      [T.t('report.chip.inventory'), money(r.inventoryValue), '', 'inventory'],
+      [T.t('report.chip.debts'), money(r.debts.total), r.debts.count ? 'bad' : '', 'debts'],
+      [T.t('report.chip.sales'), money(r.daySales), 'good', 'sales'],
+      [T.t('report.chip.refunds'), money(r.dayRefunds), '', 'refunds'],
+      [T.t('report.chip.expenses'), money(r.dayExpenses), '', 'expenses'],
+      [T.t('report.chip.buys'), money(r.dayBuys), '', 'buys'],
+      [T.t('report.chip.low'), String(r.lowStock.length), r.lowStock.length ? 'bad' : 'good', 'low']
     ];
     $('reportChips').innerHTML = chips.map(function (c) {
-      return '<div class="metric"><span class="lab">' + c[0] + '</span>'
-        + '<span class="val ' + c[2] + '">' + c[1] + '</span></div>';
+      return '<button class="metric" data-action="metric-open" data-metric="' + c[3] + '">'
+        + '<span class="lab">' + c[0] + '</span>'
+        + '<span class="val ' + c[2] + '">' + c[1] + '</span></button>';
     }).join('');
 
     $('cashCheckExpected').textContent = T.t('report.expected') + money(r.cash);
@@ -316,53 +321,18 @@
     r.entries.slice().reverse().forEach(function (e) {
       const cls = e.amount > 0 ? 'in' : (e.amount < 0 ? 'out' : 'none');
       const amt = e.amount === 0 ? '—' : money(e.amount);
-      eh += '<div class="entry">'
-        + '<span class="e-kind k-' + e.kind + '">' + kindLabel(e.kind) + '</span>'
+      const guts = '<span class="e-kind k-' + e.kind + '">' + kindLabel(e.kind) + '</span>'
         + (e.no ? '<span class="e-no">#' + e.no + '</span>' : '')
         + '<span class="growx"><span class="e-time">' + entryTime(e.at) + '</span>'
         + (e.note ? '<span class="e-note">' + esc(e.note) + '</span>' : '') + '</span>'
-        + '<span class="e-amt ' + cls + '">' + amt + '</span>'
-        + '</div>';
+        + '<span class="e-amt ' + cls + '">' + amt + '</span>';
+      // a sale row IS a ticket: tap it to reopen the facture
+      eh += e.kind === 'sale'
+        ? '<button class="entry trow" data-action="ticket-open" data-id="' + e.id + '" data-i="' + e.no + '">'
+          + guts + '<span class="e-ticket">‹</span></button>'
+        : '<div class="entry">' + guts + '</div>';
     });
     $('entriesList').innerHTML = eh || '<div class="empty">' + T.t('report.noMoves') + '</div>';
-
-    renderTickets();
-  }
-
-  let ticketDay = null; // tickets report: null = today's open day, else an index into state.days (history)
-
-  // the tickets vault: every day's sales as factures, newest ticket first.
-  // past-day chips let the shopkeeper browse closed days too.
-  function renderTickets() {
-    const day = ticketDay === null ? state.day : state.days[ticketDay];
-
-    let chips = '';
-    if (state.days.length) {
-      chips = '<button class="chip' + (ticketDay === null ? ' on' : '') + '" data-action="ticket-day" data-id="-1">'
-        + T.t('report.today') + '</button>'
-        + state.days.map(function (d, i) {
-          const n = d.entries.filter(function (e) { return e.kind === 'sale'; }).length;
-          return '<button class="chip' + (ticketDay === i ? ' on' : '') + '" data-action="ticket-day" data-id="' + i + '">'
-            + String(d.date).slice(0, 10) + ' · ' + n + '</button>';
-        }).join('');
-      chips = '<span class="muted">' + T.t('report.past') + '</span> ' + chips;
-    }
-    $('pastDayChips').innerHTML = chips;
-
-    if (!day) { $('ticketList').innerHTML = '<div class="empty">' + T.t('report.noTickets') + '</div>'; return; }
-    const list = [];
-    day.entries.forEach(function (e) { if (e.kind === 'sale') list.push(e); });
-    let rows = '';
-    for (let i = list.length; i > 0; i--) {
-      const e = list[i - 1];
-      const bill = e.bill;
-      rows += '<button class="entry trow" data-action="ticket-open" data-id="' + e.id + '" data-i="' + i + '">'
-        + '<span class="e-no">#' + i + '</span>'
-        + '<span class="growx"><span class="e-time">' + entryTime(e.at) + '</span>'
-        + (e.note ? '<span class="e-note">' + esc(e.note) + '</span>' : '') + '</span>'
-        + '<b>' + money(bill ? bill.net : e.amount) + '</b></button>';
-    }
-    $('ticketList').innerHTML = rows || '<div class="empty">' + T.t('report.noTickets') + '</div>';
   }
 
   // reopen a stored sale as a facture. legacy sales (no bill, pre-facture days)
@@ -379,6 +349,101 @@
       change: bill ? bill.change : 0,
       when: e.at
     });
+  }
+
+  // ---------- the report metric boxes: tap one to see what the number MEANS ----------
+  function openMetric(m) {
+    const r = D.stats(state);
+    let rows = '';
+    const line = function (a, b, cls) {
+      return '<div class="entry"><span class="growx">' + a + '</span><b class="e-amt ' + (cls || 'in') + '">' + b + '</b></div>';
+    };
+    if (m === 'low') {
+      r.lowStock.forEach(function (p) {
+        rows += line(esc(p.name) + ' <span class="e-note">' + T.t('stock.lowAt') + ' ' + money(p.lowAt) + '</span>',
+          money(p.stock), 'bad');
+      });
+      $('metricTitle').textContent = T.t('report.chip.low');
+    } else if (m === 'inventory') {
+      state.products.forEach(function (p) {
+        rows += line(esc(p.name) + ' <span class="e-note">×' + p.stock + '</span>',
+          money(p.stock * p.buy), p.stock <= p.lowAt ? 'bad' : 'in');
+      });
+      $('metricTitle').textContent = T.t('report.chip.inventory');
+    } else if (m === 'debts') {
+      state.debts.forEach(function (d) {
+        rows += line(esc(d.name) + (d.note ? ' <span class="e-note">' + esc(d.note) + '</span>' : ''),
+          money(d.total - d.paid), 'bad');
+      });
+      $('metricTitle').textContent = T.t('report.chip.debts');
+    } else {
+      const kind = { sales: 'sale', refunds: 'refund', expenses: 'expense', buys: 'buy' }[m];
+      r.entries.forEach(function (e) {
+        if (e.kind !== kind) return;
+        rows += line(kindLabel(e.kind)
+          + (e.no ? ' <span class="e-no">#' + e.no + '</span>' : '')
+          + (e.note ? ' <span class="e-note">' + esc(e.note) + '</span>' : ''),
+          money(Math.abs(e.amount)), e.amount > 0 ? 'in' : 'bad');
+      });
+      $('metricTitle').textContent = T.t('report.chip.' + m);
+    }
+    $('metricBody').innerHTML = rows || '<div class="empty">' + T.t('report.noMoves') + '</div>';
+    $('metricPanel').classList.remove('hidden');
+    if (document.body) document.body.classList.add('no-scroll');
+  }
+
+  // ---------- the cash box: money in with a SOURCE, money out with a PURPOSE ----------
+  function renderCashBox() {
+    const r = D.stats(state);
+    let inToday = 0, outToday = 0;
+    state.day.entries.forEach(function (e) {
+      if (e.kind === 'income') inToday += e.amount;
+      if (e.kind === 'expense') outToday += -e.amount;
+    });
+    $('cbTill').innerHTML = '<div class="tilth">' + T.t('cashbox.now') + '</div>'
+      + '<div class="tillnum">' + money(r.cash) + '</div>'
+      + '<div class="tillsub">' + T.t('cashbox.inToday') + ' <b class="ok">' + money(inToday) + '</b>'
+      + ' · ' + T.t('cashbox.outToday') + ' <b class="bad">' + money(outToday) + '</b></div>';
+    $('cbInCat').innerHTML = catOptions(state.categories.in);
+    $('cbOutCat').innerHTML = catOptions(state.categories.out);
+    $('catInList').innerHTML = catChips(state.categories.in, 'in');
+    $('catOutList').innerHTML = catChips(state.categories.out, 'out');
+  }
+  function catOptions(pool) {
+    return '<option value="">—</option>'
+      + pool.map(function (c) { return '<option value="' + esc(c.name) + '">' + esc(c.name) + '</option>'; }).join('');
+  }
+  function catChips(pool, side) {
+    return pool.map(function (c) {
+      return '<span class="chip">' + esc(c.name)
+        + '<button class="chip-x" data-action="cat-del" data-id="' + c.id + '" data-i="' + side + '">×</button></span>';
+    }).join('') || '<span class="muted">' + T.t('cashbox.noCats') + '</span>';
+  }
+  function addCat(side) {
+    const inp = side === 'in' ? 'catInName' : 'catOutName';
+    const v = $(inp).value.trim();
+    if (!v) return;
+    try {
+      state = D.addCategory(state, { name: v, side: side });
+      save();
+      $(inp).value = '';
+      render();
+      toast(T.t('toast.catAdded'));
+    } catch (err) {
+      toast(T.t('toast.catDup'), true);
+    }
+  }
+  function bookCash(side) {
+    const amt = parseFloat(side === 'in' ? $('cbInAmt').value : $('cbOutAmt').value);
+    const note = (side === 'in' ? $('cbInSrc').value : $('cbOutPurpose').value).trim();
+    const cat = (side === 'in' ? $('cbInCat').value : $('cbOutCat').value) || null;
+    const opts = { amount: amt };
+    if (note) opts.note = note;
+    if (cat) opts.category = cat;
+    run(function (s) { return side === 'in' ? D.income(s, opts) : D.expense(s, opts); },
+      T.t(side === 'in' ? 'toast.cashIn' : 'toast.cashOut'));
+    if (side === 'in') { $('cbInAmt').value = ''; $('cbInSrc').value = ''; }
+    else { $('cbOutAmt').value = ''; $('cbOutPurpose').value = ''; }
   }
 
   function kindLabel(k) {
@@ -483,14 +548,15 @@
     }
     if (act === 'debt-del') run(function (s) { return D.removeDebt(s, id); }, T.t('toast.debtDeleted'));
 
-    if (act === 'ticket-day') {
-      ticketDay = parseInt(id, 10) === -1 ? null : parseInt(id, 10);
-      render();
-    }
+    if (act === 'ticket-day') { /* removed: past-day browsing merged into the open day */ }
     if (act === 'ticket-open') {
-      const day = ticketDay === null ? state.day : state.days[ticketDay];
-      const e = (day.entries || []).find(function (x) { return x.id === id; });
+      const e = (state.day.entries || []).find(function (x) { return x.id === id; });
       if (e) openTicket(e, parseInt(i, 10) || 1);
+    }
+    if (act === 'metric-open') openMetric(id);
+    if (act === 'cat-del') {
+      try { state = D.removeCategory(state, { side: i, id: id }); save(); } catch (err) { /* already gone */ }
+      render();
     }
   });
 
@@ -525,14 +591,23 @@
   }
 
   $('btnReceiptClose').addEventListener('click', hideReceipt);
+  $('btnReceiptClose2').addEventListener('click', hideReceipt);
   $('btnReceiptPrint').addEventListener('click', function () {
     if (window.print) window.print(); // the print CSS turns the overlay into a clean facture
+  });
+  $('btnMetricClose').addEventListener('click', function () { $('metricPanel').classList.add('hidden'); if (document.body) document.body.classList.remove('no-scroll'); });
+  $('metricPanel').addEventListener('click', function (ev) {
+    if (ev.target === $('metricPanel')) { $('metricPanel').classList.add('hidden'); if (document.body) document.body.classList.remove('no-scroll'); }
   });
   $('receipt').addEventListener('click', function (ev) {
     if (ev.target === $('receipt')) hideReceipt();
   });
   document.addEventListener('keydown', function (ev) {
-    if (ev.key === 'Escape' && !$('receipt').classList.contains('hidden')) hideReceipt();
+    if (ev.key !== 'Escape') return;
+    if (!$('receipt').classList.contains('hidden')) { hideReceipt(); return; }
+    if (!$('metricPanel').classList.contains('hidden')) { $('metricPanel').classList.add('hidden'); if (document.body) document.body.classList.remove('no-scroll'); return; }
+    const pf = $('payForm');
+    if (pf && !pf.classList.contains('hidden')) pf.classList.add('hidden');
   });
 
   $('btnSell').addEventListener('click', function () {
@@ -711,6 +786,16 @@
   enterRuns(['payAmount'], function () { press('btnDoPay'); });
   enterRuns(['dName', 'dAmount', 'dPhone', 'dNote'], function () { press('btnSaveDebt'); });
   enterRuns(['pName', 'pBuy', 'pSell', 'pStock', 'pLow'], function () { press('btnSaveProduct'); });
+
+  // cash box
+  $('btnCashIn').addEventListener('click', function () { bookCash('in'); });
+  $('btnCashOut').addEventListener('click', function () { bookCash('out'); });
+  $('btnCatInAdd').addEventListener('click', function () { addCat('in'); });
+  $('btnCatOutAdd').addEventListener('click', function () { addCat('out'); });
+  enterRuns(['cbInAmt', 'cbInSrc'], function () { press('btnCashIn'); });
+  enterRuns(['cbOutAmt', 'cbOutPurpose'], function () { press('btnCashOut'); });
+  enterRuns(['catInName'], function () { press('btnCatInAdd'); });
+  enterRuns(['catOutName'], function () { press('btnCatOutAdd'); });
 
   // report
   $('btnCheckCash').addEventListener('click', doCheckCash);

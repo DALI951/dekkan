@@ -33,6 +33,7 @@
     <button class="navitem" data-hash="#/stock"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 10h16M4 15h16M12 10v9" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.stock">المخزون</span></button>
     <button class="navitem" data-hash="#/debts"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 10h18M8 6v13" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.debts">الديون</span></button>
     <button class="navitem" data-hash="#/report"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-8M21 20H3" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.report">التقرير</span></button>
+    <button class="navitem" data-hash="#/cashbox"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 7l2 5M18 7l-2 5" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.cashbox">الخزينة</span></button>
     <button class="navitem" data-hash="#/settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3 1a7 7 0 0 0-2-1.2L14.3 3h-4l-.3 2.7a7 7 0 0 0-2 1.2l-2.3-1-2 3.4 2 1.5A7 7 0 0 0 5.6 12a7 7 0 0 0 .1 1.2l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 2 1.2l.3 2.7h4l.3-2.7a7 7 0 0 0 2-1.2l2.3 1 2-3.4-2-1.5A7 7 0 0 0 19 12z" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.settings">الإعدادات</span></button>
   </nav>
 
@@ -65,6 +66,7 @@
   <button class="tab" data-hash="#/stock"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 10h16M4 15h16M12 10v9" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.stock">المخزون</span></button>
   <button class="tab" data-hash="#/debts"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 10h18M8 6v13" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.debts">الديون</span></button>
   <button class="tab" data-hash="#/report"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-8M21 20H3" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.report">التقرير</span></button>
+  <button class="tab" data-hash="#/cashbox"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 7l2 5M18 7l-2 5" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.cashbox">الخزينة</span></button>
   <button class="tab" data-hash="#/settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3 1a7 7 0 0 0-2-1.2L14.3 3h-4l-.3 2.7a7 7 0 0 0-2 1.2l-2.3-1-2 3.4 2 1.5A7 7 0 0 0 5.6 12a7 7 0 0 0 .1 1.2l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 2 1.2l.3 2.7h4l.3-2.7a7 7 0 0 0 2-1.2l2.3 1 2-3.4-2-1.5A7 7 0 0 0 19 12z" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.settings">الإعدادات</span></button>
 </nav>
 
@@ -197,12 +199,55 @@
       <h3 data-i18n="report.movements">حركة اليوم</h3>
       <div id="entriesList"></div>
     </div>
-    <div class="card">
-      <h3 data-i18n="report.tickets">فواتير اليوم</h3>
-      <p class="muted" id="pastDayChips"></p>
-      <div id="ticketList" class="rows"></div>
-    </div>
     <div class="grid3" id="reportChips"></div>
+  </section>
+
+  <!-- CASH BOX -->
+  <section id="page-cashbox" class="page">
+    <div class="pageHead">
+      <h2 data-i18n="cashbox.title">الخزينة</h2>
+      <p data-i18n="cashbox.sub">فلوس تدخل الصندوق وفلوس تخرج</p>
+    </div>
+    <div class="card till" id="cbTill"></div>
+    <div class="card">
+      <h3 data-i18n="cashbox.inTitle">إيداع فلوس</h3>
+      <div class="row gap wrap">
+        <input type="number" id="cbInAmt" inputmode="decimal" data-i18n-ph="cashbox.amount">
+        <input type="text" id="cbInSrc" data-i18n-ph="cashbox.inSrc">
+        <select id="cbInCat"></select>
+        <button class="btn primary" id="btnCashIn" data-i18n="cashbox.inGo">إيداع</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3 data-i18n="cashbox.outTitle">سحب فلوس</h3>
+      <div class="row gap wrap">
+        <input type="number" id="cbOutAmt" inputmode="decimal" data-i18n-ph="cashbox.amount">
+        <input type="text" id="cbOutPurpose" data-i18n-ph="cashbox.outPurpose">
+        <select id="cbOutCat"></select>
+        <button class="btn primary" id="btnCashOut" data-i18n="cashbox.outGo">سحب</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3 data-i18n="cashbox.cats">الفئات</h3>
+      <div class="catgrid">
+        <div>
+          <h4 data-i18n="cashbox.catsIn">فئات المصدر</h4>
+          <div class="row gap">
+            <input type="text" id="catInName" data-i18n-ph="cashbox.catPh">
+            <button class="btn" id="btnCatInAdd" data-i18n="cashbox.catAdd">إضافة</button>
+          </div>
+          <div class="chips" id="catInList"></div>
+        </div>
+        <div>
+          <h4 data-i18n="cashbox.catsOut">فئات الغرض</h4>
+          <div class="row gap">
+            <input type="text" id="catOutName" data-i18n-ph="cashbox.catPh">
+            <button class="btn" id="btnCatOutAdd" data-i18n="cashbox.catAdd">إضافة</button>
+          </div>
+          <div class="chips" id="catOutList"></div>
+        </div>
+      </div>
+    </div>
   </section>
 
   <!-- SETTINGS -->
@@ -281,6 +326,21 @@
     <div class="r-lines" id="rLines"></div>
     <div class="r-totals" id="rTotals"></div>
     <p class="r-thanks" data-i18n="receipt.thanks">شكراً لزيارتكم</p>
+    <button class="btn primary full" id="btnReceiptClose2" data-i18n="receipt.close">تمام</button>
+  </div>
+</div>
+
+<!-- ================= metric panel (the detail behind each report box) ================= -->
+<div id="metricPanel" class="receipt hidden" role="dialog" aria-modal="true">
+  <div class="receipt-card">
+    <div class="r-head">
+      <div class="r-brand">
+        <span class="r-logo">د</span>
+        <div><b id="metricTitle"></b></div>
+      </div>
+      <button class="btn ghost" id="btnMetricClose" data-i18n="receipt.close">تمام</button>
+    </div>
+    <div class="r-lines" id="metricBody"></div>
   </div>
 </div>
 

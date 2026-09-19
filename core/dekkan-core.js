@@ -379,6 +379,16 @@ function debtsOwed(state) {
   return money(total);
 }
 
+// Remove a settled debt from the notebook (records-keeping: you can't delete what's owed).
+function removeDebt(state, debtId) {
+  state = rollover(clone(state));
+  const d = getDebt(state, debtId);
+  if (!d) throw new Error('debt not found');
+  if (d.total - d.paid > 0) throw new Error('debt still has an open balance (use payDebt)');
+  state.debts = state.debts.filter(function (x) { return x.id !== d.id; });
+  return state;
+}
+
 // ---------- CASH CHECK: shopkeeper counts the drawer, we compare ----------
 
 // counted = the real money physically in the drawer right now.
@@ -392,6 +402,43 @@ function checkCash(state, opts) {
   const diff = money(counted - expected);
   state.day.checks.push({ at: new Date().toISOString(), counted: counted, expected: expected, diff: diff, ok: diff === 0 });
   pushEntry(state, 'check', 0, null, 'counted ' + counted + ', diff ' + (diff >= 0 ? '+' : '') + diff);
+  return state;
+}
+
+// ---------- shop identity & options (the small-print settings) ----------
+
+// Rename the shop / set the day's starting cash.
+//   startCash can ONLY change while the day is empty (no entries yet) —
+//   otherwise the cash identity (startCash + sum of moves) would be corrupted retroactively.
+function updateShop(state, opts) {
+  state = clone(state);
+  if (!opts) return state;
+  if (opts.name != null) {
+    if (typeof opts.name !== 'string' || !opts.name.trim()) throw new Error('shop name invalid');
+    state.shop.name = opts.name.trim();
+  }
+  if (opts.startCash != null) {
+    if (!Number.isFinite(opts.startCash) || opts.startCash < 0) throw new Error('start cash invalid');
+    if (state.day.entries.length > 0 || state.day.soldCost > 0) {
+      throw new Error('day already has movement — start cash is locked for today');
+    }
+    state.day.startCash = money(opts.startCash);
+  }
+  return state;
+}
+
+// Turn shop options on/off (allowDiscount, allowRefund). UI shows/hides them.
+function setSettings(state, patch) {
+  state = clone(state);
+  if (!patch) return state;
+  if ('allowDiscount' in patch) {
+    if (typeof patch.allowDiscount !== 'boolean') throw new Error('allowDiscount must be boolean');
+    state.settings.allowDiscount = patch.allowDiscount;
+  }
+  if ('allowRefund' in patch) {
+    if (typeof patch.allowRefund !== 'boolean') throw new Error('allowRefund must be boolean');
+    state.settings.allowRefund = patch.allowRefund;
+  }
   return state;
 }
 
@@ -482,7 +529,8 @@ function idTrusted(state, id) {
 const api = {
   createShop, addProduct, setProduct, removeProduct, getProduct,
   buyStock, sell, sellFree, refund, refundFree, expense, income,
-  addDebt, payDebt, getDebt, getDebtByName, debtsOwed,
+  addDebt, payDebt, getDebt, getDebtByName, debtsOwed, removeDebt,
+  updateShop, setSettings,
   checkCash, stats, dayReport, cash, closeDay, rollover, todayStr
 };
 

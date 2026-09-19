@@ -337,3 +337,57 @@ test('closed days are frozen history; new day starts from endCash', () => {
   assert.equal(s.days[0].endCash, 53);                  // yesterday closed at 53
   assert.equal(s.days[0].entries.length, 1);            // its own entry stays there
 });
+
+// ==== shop identity & options (the small-print settings) ====
+test('updateShop renames the shop anytime', () => {
+  const s = shop();
+  const s2 = D.updateShop(s, { name: 'بن علي' });
+  assert.equal(s2.shop.name, 'بن علي');
+  assert.equal(s.shop.name, 'Cafe Ben Arous'); // immutability: old state untouched
+});
+
+test('updateShop changes startCash only while the day is empty', () => {
+  let s = shop(); // day 1, empty
+  s = D.updateShop(s, { startCash: 30 });
+  assert.equal(D.cash(s), 30);
+  // once the day has movement, startCash is locked
+  s = D.sell(s, { items: [{ id: s.products[0].id, qty: 1 }] }); // coca 1.5 -> 31.5
+  assert.throws(() => D.updateShop(s, { startCash: 99 }), /locked/);
+  assert.equal(D.cash(s), 31.5); // unchanged by the failed attempt
+});
+
+test('updateShop validates name and start cash', () => {
+  assert.throws(() => D.updateShop(shop(), { name: '   ' }), /name/);
+  assert.throws(() => D.updateShop(shop(), { startCash: -5 }), /start cash/);
+});
+
+test('setSettings toggles allowDiscount and allowRefund', () => {
+  let s = shop();
+  s = D.setSettings(s, { allowDiscount: false });
+  assert.equal(s.settings.allowDiscount, false);
+  assert.throws(() => D.sell(s, { items: [{ id: s.products[0].id, qty: 1 }], discount: { percent: 10 } }), /discounts are turned off/);
+  s = D.setSettings(s, { allowRefund: false });
+  assert.throws(() => D.refund(s, { items: [{ id: s.products[0].id, qty: 1 }] }), /refunds are turned off/);
+  // back on: both work again
+  s = D.setSettings(s, { allowDiscount: true, allowRefund: true });
+  s = D.sell(s, { items: [{ id: s.products[0].id, qty: 1 }], discount: { percent: 10 } });
+  s = D.refund(s, { items: [{ id: s.products[0].id, qty: 1 }] });
+  assert.equal(s.day.entries.filter(e => e.kind === 'refund').length, 1);
+});
+
+test('setSettings rejects non-boolean values', () => {
+  assert.throws(() => D.setSettings(shop(), { allowDiscount: 'yes' }), /boolean/);
+});
+
+test('removeDebt deletes only settled (fully paid) debts', () => {
+  let s = shop();
+  s = D.addDebt(s, { name: 'ali', amount: 5 });
+  // can't delete while money is owed
+  assert.throws(() => D.removeDebt(s, s.debts[0].id), /open balance/);
+  assert.equal(s.debts.length, 1);
+  // after full payment it can be deleted
+  s = D.payDebt(s, s.debts[0].id, { amount: 5 });
+  s = D.removeDebt(s, s.debts[0].id);
+  assert.equal(s.debts.length, 0);
+  assert.throws(() => D.removeDebt(s, 'nope'), /not found/);
+});

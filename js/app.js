@@ -10,7 +10,7 @@
   const T = window.T;
   const LS_KEY = 'dekkan.v1';
   const BK_KEY = 'dekkan.backup';
-  const A_VERSION = '0.6.1';
+  const A_VERSION = '0.6.2';
 
   // ---------- state ----------
   let state = load();
@@ -620,6 +620,29 @@
     payDebtId = null;
     $('payForm').classList.add('hidden');
   });
+
+  // ----- Enter = the button on every form (the till never needs a mouse) -----
+  // press a button in both worlds: real browser .click(), stub DOM .fire('click')
+  function press(id) {
+    const el = $(id);
+    if (typeof el.click === 'function') el.click();
+    else el.fire('click');
+  }
+  function enterRuns(ids, action) {
+    ids.forEach(function (id) {
+      $(id).addEventListener('keydown', function (ev) {
+        if (ev && ev.key === 'Enter') {
+          if (ev.preventDefault) ev.preventDefault();
+          action();
+        }
+      });
+    });
+  }
+  enterRuns(['freeName', 'freePrice', 'freeQty'], function () { press('btnAddFree'); });
+  enterRuns(['creditName', 'discPct', 'discAmt', 'paidCash'], function () { press('btnSell'); });
+  enterRuns(['payAmount'], function () { press('btnDoPay'); });
+  enterRuns(['dName', 'dAmount', 'dPhone', 'dNote'], function () { press('btnSaveDebt'); });
+  enterRuns(['pName', 'pBuy', 'pSell', 'pStock', 'pLow'], function () { press('btnSaveProduct'); });
 
   // report
   $('btnCheckCash').addEventListener('click', doCheckCash);

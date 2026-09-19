@@ -179,6 +179,64 @@ test('debts: paying exactly the balance works and settles the debt', () => {
   assert.strictEqual(d.settled, true, 'settled');
 });
 
+test('till: Enter in the paid field runs the sale (same as pressing the button)', () => {
+  const ui = boot();
+  ui.click('sell-add', ui.pid);            // 1.500 in the basket
+  ui.$('paidCash').value = '2';
+  ui.$('paidCash').fire('input');
+  ui.$('paidCash').fire('keydown', { key: 'Enter' });
+
+  assert.strictEqual(ui.cashNow(), 51.5, 'the sale went through (overpay keeps the net)');
+  assert.ok(ui.$('rTotals').innerHTML.indexOf('0.500') !== -1, 'the receipt shows the change');
+  assert.match(ui.$('basketTotal').textContent, /^0\.000/, 'the basket reset');
+});
+
+test('till: Enter in the free-item row adds the line (no checkout)', () => {
+  const ui = boot();
+  ui.click('sell-add', ui.pid);            // 1.500
+  ui.$('freeName').value = 'Cafe';
+  ui.$('freePrice').value = '2';
+  ui.$('freeQty').value = '3';
+  ui.$('freePrice').fire('keydown', { key: 'Enter' });
+
+  assert.strictEqual(ui.$('basketTotal').textContent, '7.500 د.ت', '1.500 + 2x3 are on the till together');
+});
+
+test('debts: Enter in the pay box settles the debt (same as the pay button)', () => {
+  const ui = boot((core, s) => core.addDebt(s, { name: 'Samir', amount: 3.5 }));
+  const debt = ui.saved().debts[0];
+  ui.click('debt-pay', debt.id);
+  ui.$('payAmount').value = '3.5';
+  ui.$('payAmount').fire('keydown', { key: 'Enter' });
+
+  assert.strictEqual(ui.cashNow(), 53.5, 'the balance entered the box');
+  assert.strictEqual(ui.saved().debts[0].settled, true, 'settled');
+});
+
+test('debts: Enter in the new-debt form books it (same as the save button)', () => {
+  const ui = boot();
+  ui.$('dName').value = 'Karim';
+  ui.$('dAmount').value = '4';
+  ui.$('dName').fire('keydown', { key: 'Enter' });
+
+  const d = ui.saved().debts.find(x => x.name === 'Karim');
+  assert.ok(d && d.total === 4, 'Karim owes 4 on the notebook');
+});
+
+test('stock: Enter in the product form adds the product (same as save)', () => {
+  const ui = boot();
+  ui.$('btnAddProduct').fire('click');     // open the form (like the real page)
+  ui.$('pName').value = 'Candy';
+  ui.$('pBuy').value = '0.1';
+  ui.$('pSell').value = '0.25';
+  ui.$('pStock').value = '10';
+  ui.$('pSell').fire('keydown', { key: 'Enter' });
+
+  const p = ui.saved().products.find(x => x.name === 'Candy');
+  assert.ok(p, 'Candy is in the book');
+  assert.strictEqual(p.sell, 0.25, 'at 0.250 sell');
+});
+
 test('checkout: paying too much shows the change and never inflates the box', () => {
   const ui = boot();
   ui.click('sell-add', ui.pid);

@@ -21,7 +21,8 @@ function el(id) {
     addEventListener(type, fn) { (e._h[type] = e._h[type] || []).push(fn); },
     fire(type, ev) { (e._h[type] || []).forEach(fn => fn(ev || {})); },
     closest() { return null; }, querySelectorAll() { return []; },
-    setAttribute() {}, getAttribute(k) { return e[k]; }
+    setAttribute() {}, getAttribute(k) { return e[k]; },
+    scrollIntoView() { e._scrolled = true; }
   };
   return e;
 }
@@ -377,4 +378,46 @@ test('cashbox: Enter in the cash-out form books it (same as the button)', () => 
   ui.$('cbOutPurpose').fire('keydown', { key: 'Enter' });
 
   assert.strictEqual(ui.cashNow(), 43, 'till dropped by 7 via Enter');
+});
+
+test('stock: the edit label is invisible by default and only appears on action', () => {
+  const ui = boot();
+  ui.goto('#/stock');
+  assert.strictEqual(ui.$('productFormTitle').textContent, '',
+    'the label stays hidden BEFORE any action');
+  assert.strictEqual(ui.$('productForm')._scrolled, undefined, 'nothing scrolled yet');
+
+  ui.click('stock-edit', ui.pid); // pressing edit on the product...
+  assert.ok(ui.$('productFormTitle').textContent.indexOf('تعديل') !== -1,
+    'now the EDIT label is spelled out');
+  assert.strictEqual(ui.$('productForm')._scrolled, true,
+    'and the page scrolls so the label is actually visible');
+});
+
+test('stock: a sold-out product cannot be added to the basket', () => {
+  const ui = boot((core, s) => {
+    s = core.addProduct(s, { name: 'Choco', buy: 1, sell: 2, stock: 0, lowAt: 3 });
+    return s;
+  });
+  const choco = ui.saved().products.find(p => p.name === 'Choco');
+  const before = ui.$('basketList').innerHTML;
+  ui.click('sell-add', choco.id);
+  assert.strictEqual(ui.$('basketList').innerHTML, before,
+    'the basket did not change');
+  assert.ok(ui.$('toast').textContent.length > 0, 'and he is told why');
+});
+
+test('stock: the + never takes the basket over what is in stock', () => {
+  const ui = boot((core, s) => {
+    s = core.addProduct(s, { name: 'Biscuit', buy: 0.4, sell: 0.9, stock: 4, lowAt: 0 });
+    return s;
+  });
+  const b = ui.saved().products.find(p => p.name === 'Biscuit');
+  // fill the basket up to the limit, then try to go beyond
+  for (let i = 0; i < 4; i++) ui.click('basket-plus', b.id);
+  assert.ok(ui.$('basketList').innerHTML.indexOf('x4') !== -1, 'basket holds 4');
+
+  ui.click('basket-plus', b.id); // the 5th — refused
+  assert.ok(ui.$('basketList').innerHTML.indexOf('x4') !== -1, 'still 4, not 5');
+  assert.ok(ui.$('toast').textContent.length > 0, 'and he is told why');
 });

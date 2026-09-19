@@ -227,12 +227,14 @@ select option{background:var(--inbg);color:var(--txt);}
 }
 .sell-tile:hover{border-color:var(--accborder);background:var(--panel2);transform:translateY(-1px);}
 .sell-tile:active{transform:scale(.97);}
+.sell-tile.out{opacity:.45;cursor:not-allowed;border-style:dashed;}
+.sell-tile.out:hover{transform:none;background:var(--panel);border-color:var(--line);}
+.sell-tile.out .t-stock{color:var(--dangerhi);font-weight:700;}
+.sell-tile.out .t-price{background:var(--dangerbg);color:var(--dangerhi);}
 .sell-tile .t-name{font-weight:800;font-size:13.5px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .sell-tile .t-price{font-weight:800;color:var(--acc2);font-variant-numeric:tabular-nums;direction:ltr;font-size:12.5px;background:var(--accbg);border-radius:999px;padding:2px 10px;}
 .sell-tile .t-stock{font-size:11px;color:var(--dim);}
 .sell-tile .t-stock.low{color:var(--dangerhi);font-weight:800;}
-.sell-tile.out{opacity:.55;border-style:dashed;}
-.sell-tile.out .t-price{background:var(--dangerbg);color:var(--dangerhi);}
 .sell-tile.refundable{border-color:var(--danger);box-shadow:0 0 0 2px var(--dangerbg);}
 
 /* empty state */

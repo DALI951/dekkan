@@ -10,7 +10,7 @@
   const T = window.T;
   const LS_KEY = 'dekkan.v1';
   const BK_KEY = 'dekkan.backup';
-  const A_VERSION = '0.8.0';
+  const A_VERSION = '0.8.1';
 
   // ---------- state ----------
   let state = load();
@@ -120,7 +120,7 @@
     state.products.forEach(function (p) {
       const low = p.lowAt > 0 && p.stock <= p.lowAt;
       const out = p.stock <= 0;
-      html += '<button class="sell-tile' + (out ? ' out' : '') + '" data-id="' + p.id + '" data-action="sell-add">'
+      html += '<button class="sell-tile' + (out ? ' out' : '') + '" data-id="' + p.id + '"' + (out ? ' disabled' : '') + ' data-action="sell-add">'
         + '<span class="t-name">' + esc(p.name) + '</span>'
         + '<span class="t-price">' + money(p.sell) + '</span>'
         + '<span class="t-stock' + (low ? ' low' : '') + '">' + stockLeft(p.stock) + '</span>'
@@ -228,8 +228,13 @@
   }
 
   function addToBasket(id) {
+    const p = D.getProduct(state, id);
+    if (!p) return;
+    if (p.stock <= 0) return toast(T.t('toast.noStock'), true); // sold out — the tile is disabled too
     const hit = basket.find(function (b) { return b.id === id; });
-    if (hit) hit.qty++;
+    const qty = (hit ? hit.qty : 0) + 1;
+    if (qty > p.stock) return toast(T.t('toast.maxStock') + p.stock, true); // never more than on the shelf
+    if (hit) hit.qty = qty;
     else basket.push({ id: id, qty: 1 });
     render();
   }
@@ -514,7 +519,7 @@
 
     if (act === 'sell-add') addToBasket(id);
 
-    if (act === 'basket-plus') { const b = basket.find(function (x) { return x.id === id; }); if (b) b.qty++; render(); }
+    if (act === 'basket-plus') addToBasket(id); // same guard as the tiles: never over the stock
     if (act === 'basket-minus') {
       const b = basket.find(function (x) { return x.id === id; });
       if (!b) return;
@@ -536,6 +541,7 @@
       $('pName').value = p.name; $('pBuy').value = p.buy; $('pSell').value = p.sell;
       $('pStock').value = p.stock; $('pLow').value = p.lowAt;
       $('productForm').classList.remove('hidden');
+      revealProductForm(); // the label only exists NOW — make sure it is actually on screen
     }
     if (act === 'stock-restock') run(function (s) { return D.buyStock(s, id, 10, D.getProduct(s, id).buy); }, T.t('toast.restock'));
 
@@ -710,7 +716,13 @@
     $('productFormTitle').textContent = T.t('stock.new');
     $('pName').value = ''; $('pBuy').value = ''; $('pSell').value = ''; $('pStock').value = '0'; $('pLow').value = '3';
     $('productForm').classList.remove('hidden');
+    revealProductForm();
   });
+  // the edit label must land on screen — it lives below the product list
+  function revealProductForm() {
+    const f = $('productForm');
+    if (f && f.scrollIntoView) f.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
   $('btnCancelProduct').addEventListener('click', function () {
     editProductId = null;
     $('productForm').classList.add('hidden');

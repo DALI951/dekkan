@@ -191,10 +191,42 @@ function buyStock(state, productId, qty, unitBuy) {
   return state;
 }
 
+// How a sale gets paid — ONE place, so cash and debts can never disagree:
+//   no paid, no creditTo -> plain cash sale (the till takes the whole net)
+//   creditTo only        -> full credit (no cash moves, the whole net is debt)
+//   paid = X (X < net)   -> PARTIAL: the till takes X, the rest (net - X) is
+//                           debt on creditTo (a name is required for the rest).
+//   paid = X (X > net)   -> the till only ever keeps net; the extra is CHANGE
+//                           the shop gives back, it never enters the cash box.
+function applyPayment(state, net, opts, refText) {
+  const hasPaid = opts.paid !== undefined && opts.paid !== null && opts.paid !== '';
+  if (!hasPaid) {
+    if (opts.creditTo) {
+      pushEntry(state, 'sale', 0, refText, 'credit: ' + opts.creditTo);
+      return addDebt(state, { name: opts.creditTo, phone: opts.phone, amount: net, note: opts.note || refText });
+    }
+    pushEntry(state, 'sale', net, refText, opts.note || null);
+    return state;
+  }
+  const paid = money(Number(opts.paid));
+  if (!Number.isFinite(paid) || paid < 0) throw new Error('paid must be zero or more');
+  const cashIn = money(Math.min(paid, net));
+  const left = money(net - cashIn);
+  if (left > 0) {
+    const name = String(opts.creditTo || '').trim();
+    if (!name) throw new Error('the unpaid rest needs a customer name');
+    pushEntry(state, 'sale', cashIn, refText, opts.note || name);
+    return addDebt(state, { name: name, phone: opts.phone, amount: left, note: opts.note || refText });
+  }
+  pushEntry(state, 'sale', cashIn, refText, opts.note || null);
+  return state;
+}
+
 // One sale, possibly many products at once (full basket at checkout).
 //   items: [{ id, qty, price? }]   price = override if you sold above/below the normal price.
 //   discount: { percent: 0..100 }  OR  { amount: TND }  (gated by settings)
 //   creditTo: customer name -> sale goes to their DEBT instead of cash.
+//   paid: cash handed over -> partial sale (rest becomes debt) or change.
 function sell(state, opts) {
   state = rollover(clone(state));
   const items = (opts && opts.items) || [];
@@ -217,13 +249,7 @@ function sell(state, opts) {
   state.day.soldCost += money(cost);
   const net = money(revenue - discountOff(state, revenue, opts.discount));
 
-  if (opts.creditTo) {
-    // Credit sale: no cash moves, the customer OWES us now.
-    pushEntry(state, 'sale', 0, refs.join(', '), 'credit: ' + opts.creditTo);
-    state = addDebt(state, { name: opts.creditTo, phone: opts.phone, amount: net, note: opts.note || (refs.join(', ')) });
-  } else {
-    pushEntry(state, 'sale', net, refs.join(', '), opts.note || null);
-  }
+  state = applyPayment(state, net, opts, refs.join(', '));
   return clone(state);
 }
 
@@ -235,12 +261,7 @@ function sellFree(state, opts) {
   if (!Number.isFinite(qty) || qty <= 0) throw new Error('qty must be positive');
   const total = money((opts.price || 0) * qty);
   const net = money(total - discountOff(state, total, opts.discount));
-  if (opts.creditTo) {
-    pushEntry(state, 'sale', 0, opts.name + 'x' + qty, 'credit: ' + opts.creditTo);
-    state = addDebt(state, { name: opts.creditTo, phone: opts.phone, amount: net, note: opts.note || opts.name });
-  } else {
-    pushEntry(state, 'sale', net, opts.name + 'x' + qty, opts.note || null);
-  }
+  state = applyPayment(state, net, opts, opts.name + 'x' + qty);
   return clone(state);
 }
 

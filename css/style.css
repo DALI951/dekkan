@@ -104,7 +104,7 @@ span>small{display:block;}
   .sidebar .sideCash::before{content:"";position:absolute;inset-inline-start:-22px;top:-22px;width:60px;height:60px;border-radius:50%;background:radial-gradient(circle,var(--accglow),transparent 70%);}
   .sidebar .sideCash span{font-size:10.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--dim);display:block;}
   .sidebar .sideCash strong{font-size:21px;font-weight:800;color:var(--acc2);font-variant-numeric:tabular-nums;}
-  .topbar,.tabbar{display:none;}
+  .topbar,.topnav{display:none;}
   #view{margin-inline-start:244px;overflow-y:auto;padding:30px 36px 70px;}
   #view .page{max-width:1080px;margin:0 auto;}
 }
@@ -317,35 +317,51 @@ select option{background:var(--inbg);color:var(--txt);}
 .toast.err{border-color:var(--danger);box-shadow:0 10px 28px var(--dangerbg);}
 @media (min-width:900px){.toast{inset-block-end:24px;}}
 
-/* ============ mobile bottom tabs ============ */
-.tabbar{
-  position:fixed;inset-block-end:0;inset-inline:0;z-index:30;display:flex;justify-content:space-around;
-  background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(10px);
-  border-top:1px solid var(--line2);padding:6px 6px calc(6px + env(safe-area-inset-bottom));
+/* ============ mobile nav — a strip on TOP (bottom tabs are gone) ============ */
+.topnav{
+  position:sticky;inset-block-start:0;z-index:31;display:none;gap:2px;overflow-x:auto;
+  background:color-mix(in srgb,var(--bg) 94%,transparent);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line2);padding:0 8px;scrollbar-width:none;
 }
-@supports not (background:color-mix(in srgb,#fff 0%,#000)){.tabbar{background:var(--bg);}}
+.topnav::-webkit-scrollbar{display:none;}
+@supports not (background:color-mix(in srgb,#fff 0%,#000)){.topnav{background:var(--bg);}}
 .tab{
-  position:relative;flex:1;max-width:110px;height:50px;border:none;background:none;cursor:pointer;color:var(--dim);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
-  font-family:inherit;font-size:10.5px;font-weight:700;transition:color .15s ease;
+  position:relative;flex:1 0 auto;border:none;background:none;cursor:pointer;color:var(--dim);
+  display:flex;align-items:center;gap:7px;padding:12px 13px 13px;white-space:nowrap;
+  font-family:inherit;font-size:12.5px;font-weight:800;transition:color .15s ease;
 }
-.tab svg{width:21px;height:21px;}
+.tab svg{width:18px;height:18px;flex:none;}
 .tab:hover{color:var(--mut);}
 .tab.active{color:var(--acc2);}
 .tab.active::before{
-  content:"";position:absolute;inset-inline:26%;inset-block-start:0;height:3px;border-radius:0 0 3px 3px;
+  content:"";position:absolute;inset-inline:8px;inset-block-end:0;height:3px;border-radius:3px 3px 0 0;
   background:var(--acc);box-shadow:0 0 10px var(--accglow);
 }
 
+/* ============ the till line: change to give / rest on the customer ============ */
+.chg{
+  display:flex;align-items:center;gap:8px;border-radius:var(--rads);padding:10px 13px;
+  font-size:13.5px;font-weight:800;font-variant-numeric:tabular-nums;
+  background:var(--panel3);border:1px dashed var(--line2);color:var(--mut);
+}
+.chg::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--dim);flex:none;}
+.chg.ok{background:var(--okbg);border-color:var(--ok);color:var(--okhi);}
+.chg.ok::before{background:var(--okhi);}
+.chg.bad{background:var(--dangerbg);border-color:var(--danger);color:var(--dangerhi);}
+.chg.bad::before{background:var(--dangerhi);}
+.chg.warn{background:var(--accbg);border-color:var(--accborder);color:var(--acc2);}
+.chg.warn::before{background:var(--acc2);}
+
 /* ============ responsive / print ============ */
 @media (max-width:899px){
-  #view{overflow-y:auto;padding-bottom:74px;}
+  #view{overflow-y:auto;padding-bottom:24px;}
+  .topnav{display:flex;}
 }
 @media (prefers-reduced-motion:reduce){
   *{animation:none!important;transition:none!important;}
 }
 @media print{
-  .sidebar,.topbar,.tabbar,.toast{display:none!important;}
+  .sidebar,.topbar,.topnav,.toast{display:none!important;}
   #view{margin-inline-start:0!important;padding:0!important;}
   body{background:#fff;color:#000;font-size:12px;}
   .card,.till,.metric,.entry{background:#fff;border-color:#ccc;box-shadow:none;color:#000;}
@@ -354,6 +370,7 @@ select option{background:var(--inbg);color:var(--txt);}
   .till .tillnum::before{display:none;}
   .metric .lab,.pageHead p,.e-time,.e-note{color:#666;}
   .btn{display:none;}
+  .chg{background:#fff;border-color:#ccc;color:#000;}
   .e-amt.in,.check-ok{color:#177a3d;}
   .e-amt.out,.check-bad{color:#b3261e;}
 }

@@ -90,12 +90,37 @@ ok(s.debts[0].settled === false, 'Ahmed still has an open debt (5 left)');
 
 console.log('-- notebook: 2 customers on credit, Ahmed paid most of his');
 
+// --- PARTIAL PAYMENT at the counter: Samir hands over 1.00 on a 3.00 bill ---
+s = D.sell(s, { items: [{ id: s.products[0].id, qty: 2 }], paid: 1, creditTo: 'Samir' }); // 2 colas = 3.00
+cashLine += 1;
+ok(D.cash(s) === cashLine, 'partial pay: only the 1.00 handed over enters the box');
+ok(D.debtsOwed(s) === 9, 'partial pay: the 2.00 rest sits on Samir (7 + 2)');
+ok(s.day.entries.filter(function (e) { return e.kind === 'sale' && e.amount === 1; }).length === 1,
+  'partial pay: the ledger shows the 1.00, not the 3.00');
+
+// another customer overpays: the box keeps the price, the extra is change to hand back
+let cashBefore = D.cash(s);
+s = D.sell(s, { items: [{ id: s.products[1].id, qty: 2 }], paid: 5 }); // 2 pains = 2.00
+cashLine += 2;
+ok(D.cash(s) === cashLine, 'overpay: the box takes 2.00, the 3.00 extra is change (never cash-in)');
+ok(D.debtsOwed(s) === 9, 'overpay: paying too much never creates a debt');
+ok(D.cash(s) === cashBefore + 2, 'overpay: cash rose by the price only');
+
+// Samir settles the 2.00 rest the next trip
+const samir = s.debts.filter(function (d) { return d.name === 'Samir'; })[0];
+s = D.payDebt(s, samir.id, { amount: 2 });
+cashLine += 2;
+ok(D.cash(s) === cashLine, 'Samir pays the rest: cash in');
+ok(D.debtsOwed(s) === 7, 'notebook back to 7 (Rami 2 + Ahmed 5)');
+
+console.log('-- till: a part-paid sale, an overpaid sale with change, and the rest paid later');
+
 // --- refunds: bad bottle ---
 s = D.refund(s, { items: [{ id: s.products[0].id, qty: 1 }], reason: 'bad bottle' }); // -1.5
 cashLine -= 1.5;
 ok(D.cash(s) === cashLine, 'refund: 1.50 back to the customer');
-// 30 - 5 (first sell) - 4 (discount table) - 2 (Ahmed credit) + 1 (refund) = 20
-ok(D.getProduct(s, s.products[0].id).stock === 20, 'cola shelf re-checked after refund (30-5-4-2+1=20)');
+// 30 - 5 (first sell) - 4 (discount table) - 2 (Ahmed credit) - 2 (Samir part-pay) + 1 (refund) = 18
+ok(D.getProduct(s, s.products[0].id).stock === 18, 'cola shelf re-checked after refund (30-5-4-2-2+1=18)');
 
 // credit refund: Ahmed returns one of his couscous — his debt shrinks
 s = D.refund(s, { items: [{ id: s.products[2].id, qty: 1 }], creditTo: 'Ahmed' });
@@ -127,7 +152,7 @@ const r = D.dayReport(s);
 ok(r.startCash === 80, 'report: day started with 80');
 ok(r.cash === cashLine, 'report: cash now matches the running story');
 const entryCount = r.entries.length;
-ok(entryCount === 13, 'report: all ' + entryCount + ' money moves are listed');
+ok(entryCount === 16, 'report: all ' + entryCount + ' money moves are listed');
 ok(r.totals.refunds === 1.5, 'report: refunds total 1.50');
 ok(near(r.dayProfit, r.netSales - r.costOfSold - r.dayBuys - r.dayExpenses), 'report: profit = money in - money out');
 ok(r.debts.total === 2, 'report: open debts = 2 TND');

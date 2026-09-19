@@ -391,3 +391,112 @@ test('removeDebt deletes only settled (fully paid) debts', () => {
   assert.equal(s.debts.length, 0);
   assert.throws(() => D.removeDebt(s, 'nope'), /not found/);
 });
+
+// ==== PARTIAL PAYMENT at the till (paid < net = debt, paid > net = change) ====
+test('partial pay: the till takes what was handed over, the rest is the customer debt', () => {
+  let s = shop();
+  const coca = s.products[0].id;                 // sells at 1.5
+  const before = D.cash(s);                      // 50
+  s = D.sell(s, { items: [{ id: coca, qty: 2 }], paid: 1, creditTo: 'Samir' }); // net 3, paid 1
+  assert.equal(D.cash(s), before + 1, 'only the money handed over enters the box');
+  assert.equal(s.debts.length, 1);
+  assert.equal(s.debts[0].name, 'Samir');
+  assert.equal(s.debts[0].total, 2, 'the rest (3 - 1) is owed');
+  assert.equal(s.debts[0].paid, 0);
+  assert.equal(s.day.entries.filter(e => e.kind === 'sale')[0].amount, 1);
+});
+
+test('partial pay: paying MORE than the price keeps the box honest (the extra is change)', () => {
+  let s = shop();
+  const coca = s.products[0].id;                 // 1.5
+  const before = D.cash(s);                      // 50
+  s = D.sell(s, { items: [{ id: coca, qty: 2 }], paid: 5 }); // net 3, gave 5
+  assert.equal(D.cash(s), before + 3, 'cash takes the price, never the change');
+  assert.equal(s.debts.length, 0, 'overpaying never creates a debt');
+  assert.equal(s.day.entries.filter(e => e.kind === 'sale')[0].amount, 3);
+});
+
+test('partial pay: exact money is a normal cash sale (no debt, no leftover)', () => {
+  let s = shop();
+  s = D.sell(s, { items: [{ id: s.products[0].id, qty: 2 }], paid: 3 });
+  assert.equal(D.cash(s), 53);
+  assert.equal(s.debts.length, 0);
+});
+
+test('partial pay: the unpaid rest NEEDS a name, and a failed sale changes nothing', () => {
+  let s = shop();
+  const before = D.cash(s);
+  assert.throws(
+    () => D.sell(s, { items: [{ id: s.products[0].id, qty: 2 }], paid: 1 }),
+    /needs a customer name/
+  );
+  assert.equal(D.cash(s), before);
+  assert.equal(s.debts.length, 0);
+  assert.equal(D.getProduct(s, s.products[0].id).stock, 10, 'stock not touched by the refused sale');
+});
+
+test('partial pay: a second trip to the same customer merges into the same open debt', () => {
+  let s = shop();
+  const coca = s.products[0].id;
+  s = D.sell(s, { items: [{ id: coca, qty: 2 }], paid: 1, creditTo: 'Samir' }); // owes 2
+  s = D.sell(s, { items: [{ id: coca, qty: 2 }], paid: 1, creditTo: 'Samir' }); // owes 2 more
+  assert.equal(s.debts.length, 1);
+  assert.equal(s.debts[0].total, 4);
+  assert.equal(D.cash(s), 52, 'each visit put 1 in the box');
+});
+
+test('partial pay: a discount changes both halves (cash and rest)', () => {
+  let s = shop();
+  s = D.setSettings(s, { allowDiscount: true });
+  const coca = s.products[0].id;
+  s = D.sell(s, { items: [{ id: coca, qty: 2 }], discount: { percent: 50 }, paid: 1, creditTo: 'Rami' });
+  assert.equal(D.cash(s), 51);          // 3 -> net 1.5, paid 1
+  assert.equal(s.debts[0].total, 0.5);  // the rest
+});
+
+test('partial pay: free items (no stock) split the same way', () => {
+  let s = shop();
+  s = D.sellFree(s, { name: 'Cafe', price: 2, qty: 2, paid: 1, creditTo: 'Nadia' }); // net 4
+  assert.equal(D.cash(s), 51);
+  assert.equal(s.debts[0].total, 3);
+});
+
+test('partial pay: a refund on the paid part still only moves real cash', () => {
+  let s = shop();
+  const coca = s.products[0].id;
+  s = D.sell(s, { items: [{ id: coca, qty: 2 }], paid: 1, creditTo: 'Samir' }); // cash 51, owes 2
+  s = D.refund(s, { items: [{ id: coca, qty: 1 }] });                           // gives 1.5 back
+  assert.equal(D.cash(s), 49.5);
+  assert.equal(s.debts[0].total, 2, 'the debt is untouched by a normal refund');
+});
+
+// The webapp pays for a mixed cart with SEVERAL core calls (stock sale + free-item
+// sales). It must spread the one cash handout across them; this is that contract.
+function spreadCart(s, paid, creditName, stockNet, freeNets) {
+  let left = paid;
+  const take = (net) => { const t = Math.min(left, net); left = Math.round((left - t) * 1000) / 1000; return t; };
+  const p1 = take(stockNet);
+  s = D.sell(s, { items: [{ id: s.products[0].id, qty: 2 }], paid: p1, creditTo: p1 < stockNet ? creditName : undefined });
+  freeNets.forEach(function (net) {
+    const p = take(net);
+    s = D.sellFree(s, { name: 'Cafe', price: 1, qty: net, paid: p, creditTo: p < net ? creditName : undefined });
+  });
+  return { state: s, left: left };
+}
+
+test('a mixed cart with one handout: cash = min(paid, net), debt = the rest (never double-counted)', () => {
+  const cases = [
+    { paid: 2, cash: 52, owed: 3 },   // short: 2 in the box, 3 on Samir
+    { paid: 5, cash: 55, owed: 0 },   // exact
+    { paid: 7, cash: 55, owed: 0 },   // over: the box keeps the price, 2 is change
+    { paid: 4, cash: 54, owed: 1 }
+  ];
+  cases.forEach(function (c) {
+    let s = shop();                                  // coca 1.5x2 = 3.000, cafe 1.000x2 = 2.000
+    const r = spreadCart(s, c.paid, 'Samir', 3, [2]);
+    assert.equal(D.cash(r.state), c.cash, 'paid ' + c.paid + ' -> cash');
+    const owed = r.state.debts.reduce(function (a, d) { return a + (d.total - d.paid); }, 0);
+    assert.equal(owed, c.owed, 'paid ' + c.paid + ' -> owed');
+    assert.equal(r.left, Math.max(0, c.paid - 5), 'left unallocated');
+  });
+});

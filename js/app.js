@@ -57,13 +57,13 @@
   function fmt(n) { return Number(n).toFixed(3); }
   function money(n) { return fmt(n) + ' ' + T.t('curr'); }
   function $(id) { return document.getElementById(id); }
-  function toast(msg, isErr) {
+  function toast(msg, isErr, ms) {
     const t = $('toast');
     t.textContent = msg;
     t.classList.toggle('err', !!isErr);
     t.classList.remove('hidden');
     clearTimeout(t._h);
-    t._h = setTimeout(function () { t.classList.add('hidden'); }, 2600);
+    t._h = setTimeout(function () { t.classList.add('hidden'); }, ms || 2600);
   }
   function entryTime(iso) {
     const d = new Date(iso);
@@ -151,8 +151,37 @@
     const pct = parseFloat($('discPct').value) || 0;
     const amt = parseFloat($('discAmt').value) || 0;
     const disc = amt > 0 ? Math.min(amt, subtotal) : Math.min(subtotal * pct / 100, subtotal);
-    $('basketTotal').textContent = money(Math.max(0, subtotal - disc));
     $('discountRow').classList.toggle('hidden', !state.settings.allowDiscount);
+    const net = money(Math.max(0, subtotal - disc));
+    $('basketTotal').textContent = money(net);
+    renderChange(net);
+  }
+
+  // Live till line: what the customer handed over vs what they owe / get back.
+  function renderChange(net) {
+    const el = $('changeLine');
+    if (!el) return;
+    const raw = $('paidCash').value.trim();
+    const name = $('creditName').value.trim();
+    let txt = '', cls = 'chg';
+    if (raw === '') {
+      if (net > 0 && name) { txt = T.t('sell.onCredit') + ' ' + name; cls += ' warn'; }
+    } else {
+      const paid = parseFloat(raw);
+      if (!Number.isFinite(paid) || paid < 0) {
+        txt = T.t('toast.paidBad'); cls += ' bad';
+      } else if (paid >= net) {
+        const back = money(paid - net);
+        if (back > 0) { txt = T.t('sell.change') + ' ' + money(back); cls += ' ok'; }
+        else { txt = T.t('sell.exact'); cls += ' ok'; }
+      } else {
+        txt = T.t('sell.rest') + ' ' + money(net - paid) + ' — '
+          + (name || T.t('sell.restNeedName'));
+        cls += ' bad';
+      }
+    }
+    el.className = txt ? cls : 'chg hidden';
+    el.textContent = txt;
   }
 
   function addToBasket(id) {
@@ -372,17 +401,55 @@
     const items = basket.map(function (b) { return { id: b.id, qty: b.qty }; });
     if (items.length === 0 && freeItems.length === 0) return toast(T.t('basket.empty'), true);
 
+    const paidRaw = $('paidCash').value.trim();
+    const paid = paidRaw === '' ? null : parseFloat(paidRaw);
+    if (paid !== null && (!Number.isFinite(paid) || paid < 0)) return toast(T.t('toast.paidBad'), true);
+
+    // net of the whole till (stock items + free items, minus the discount)
+    const stockSubtotal = basket.reduce(function (a, b) {
+      const p = D.getProduct(state, b.id);
+      return a + (p ? p.sell * b.qty : 0);
+    }, 0);
+    const freeSubtotal = freeItems.reduce(function (a, f) { return a + f.price * f.qty; }, 0);
+    const stockDisc = discAmt > 0
+      ? Math.min(discAmt, stockSubtotal)
+      : Math.min(stockSubtotal * discPct / 100, stockSubtotal);
+    const stockNet = money(Math.max(0, stockSubtotal - stockDisc));
+    const tillNet = money(stockNet + freeSubtotal);
+
+    if (paid !== null && paid < tillNet && !creditName) return toast(T.t('toast.restName'), true);
+
+    // Spread what was handed over across the calls, so cash NEVER counts money twice.
+    // left = still unallocated cash; each sale takes min(left, its own net).
+    let left = paid;
+    function withPaid(net, extra) {
+      if (left === null) {
+        return Object.assign({ creditTo: creditName || undefined }, extra);
+      }
+      const take = money(Math.min(left, net));
+      left = money(left - take);
+      return Object.assign({ paid: take, creditTo: (take < net ? creditName : '') || undefined }, extra);
+    }
+
     try {
       if (items.length) {
-        state = D.sell(state, { items: items, creditTo: creditName || undefined, discount: discount });
+        state = D.sell(state, withPaid(stockNet, { items: items, discount: discount }));
       }
       freeItems.forEach(function (f) {
-        state = D.sellFree(state, { name: f.name, price: f.price, qty: f.qty, creditTo: creditName || undefined });
+        state = D.sellFree(state, withPaid(money(f.price * f.qty), { name: f.name, price: f.price, qty: f.qty }));
       });
+      const change = paid !== null ? money(Math.max(0, paid - tillNet)) : 0;
       save(); basket = []; freeItems = [];
-      $('discPct').value = ''; $('discAmt').value = ''; $('creditName').value = '';
+      $('discPct').value = ''; $('discAmt').value = ''; $('creditName').value = ''; $('paidCash').value = '';
       render();
-      toast(creditName ? T.t('toast.saleCredit') + creditName : T.t('toast.saleOk'));
+      if (change > 0) {
+        // the one number the shopkeeper must act on right now
+        toast(T.t('toast.change') + ' ' + money(change) + ' ' + T.t('curr'), false, 9000);
+      } else if (paid !== null && paid < tillNet) {
+        toast(T.t('toast.saleRest') + ' ' + money(tillNet - paid) + ' — ' + creditName);
+      } else {
+        toast(creditName ? T.t('toast.saleCredit') + creditName : T.t('toast.saleOk'));
+      }
     } catch (e) { toast(e.message, true); }
   });
 
@@ -396,12 +463,15 @@
     render();
   });
 
+  // the till: what was handed over + who owes the rest (live, before the sale is recorded)
+  $('paidCash').addEventListener('input', function () { renderSell(); });
+  $('creditName').addEventListener('input', function () { renderSell(); });
+
   $('btnRefundMode').addEventListener('click', function () {
     refundMode = !refundMode;
     refundProductId = null;
     render();
-  });
-  $('btnDoRefund').addEventListener('click', function () {
+  });  $('btnDoRefund').addEventListener('click', function () {
     if (!refundProductId) return toast(T.t('toast.refundPick'), true);
     const qty = parseFloat($('refundQty').value) || 1;
     const reason = $('refundReason').value.trim();

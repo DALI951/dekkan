@@ -1,0 +1,9 @@
+{
+  "name": "dekkan",
+  "version": "0.1.0",
+  "description": "Dekkan — Arabic-first small-shop kit. Cash box, stock, debts, profit. (The algorithm, tested.)",
+  "private": true,
+  "scripts": {
+    "test": "node --test"
+  }
+}

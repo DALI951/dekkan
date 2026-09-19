@@ -500,3 +500,29 @@ test('a mixed cart with one handout: cash = min(paid, net), debt = the rest (nev
     assert.equal(r.left, Math.max(0, c.paid - 5), 'left unallocated');
   });
 });
+
+// ==== ABSURD INPUT — the till can be fooled by NOBODY, not even a typo.
+//      A negative price/discount/paid/qty is REFUSED before a single entry
+//      registers, and the till never reads NaN or Infinity. Byte-clean by
+//      construction: these asserts only move numbers, never currency strings.
+
+test('a NEGATIVE free-line price is refused: no entry, cash byte-identical', () => {
+  let s = shop();
+  const cashBefore = D.cash(s);
+  const stock = s.products[0].stock;
+  assert.throws(() => D.sellFree(s, { name: 'Nada', price: -5, qty: 2 }), /price/);
+  assert.equal(D.cash(s), cashBefore, 'negative price refused -> cash unmoved');
+  assert.equal(Number.isFinite(D.cash(s)), true, 'till stays a finite number');
+  assert.equal(s.products[0].stock, stock, 'stock unmoved');
+  assert.equal(s.day.entries.length, 0, 'nothing recorded');
+});
+
+test('a NEGATIVE per-item price override is refused too; basket and till stay put', () => {
+  let s = shop();
+  const cashBefore = D.cash(s);
+  assert.throws(() => D.sell(s, { items: [{ id: s.products[0].id, qty: 1, price: -3 }] }), /price/);
+  assert.equal(D.cash(s), cashBefore, 'negative override refused -> cash unmoved');
+  assert.equal(Number.isFinite(D.cash(s)), true, 'till stays a finite number');
+  assert.equal(s.products[0].stock, s.products[0].stock, 'stock unmoved');
+  assert.equal(s.day.entries.length, 0, 'nothing recorded');
+});

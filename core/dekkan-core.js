@@ -235,6 +235,7 @@ function sell(state, opts) {
   let revenue = 0, cost = 0, refs = [];
   for (const it of items) {
     if (!Number.isFinite(it.qty) || it.qty <= 0) throw new Error('qty must be positive');
+    if (it.price != null && (!Number.isFinite(it.price) || it.price < 0)) throw new Error('price must be zero or more');
     const p = getProduct(state, it.id);
     if (!p) throw new Error('product not found');
     if (p.stock < Math.floor(it.qty)) {
@@ -259,7 +260,9 @@ function sellFree(state, opts) {
   if (!opts || !opts.name || !opts.name.trim()) throw new Error('need an item name');
   const qty = Math.floor(opts.qty || 1);
   if (!Number.isFinite(qty) || qty <= 0) throw new Error('qty must be positive');
-  const total = money((opts.price || 0) * qty);
+  const price = opts.price != null ? opts.price : 0;
+  if (!Number.isFinite(price) || price < 0) throw new Error('price must be zero or more');
+  const total = money(price * qty);
   const net = money(total - discountOff(state, total, opts.discount));
   state = applyPayment(state, net, opts, opts.name + 'x' + qty);
   return clone(state);

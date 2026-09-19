@@ -27,7 +27,8 @@ function el(id) {
 }
 
 // boot a fresh page with one product (Coca, sells at 1.500) already in the book
-function boot() {
+// optional seed(s): mutate the state (with real core calls) BEFORE the page boots
+function boot(seed) {
   const els = {};
   const doc = {
     documentElement: { style: {} },
@@ -65,6 +66,7 @@ function boot() {
   const core = require(path.join(ROOT, 'core', 'dekkan-core.js'));
   let s = core.createShop({ name: 'Test', startCash: 50 });
   s = core.addProduct(s, { name: 'Coca', buy: 0.8, sell: 1.5, stock: 10, lowAt: 3 });
+  if (seed) s = seed(core, s);
   store['dekkan.v1'] = JSON.stringify(s);
 
   ['core/dekkan-core.js', 'js/themes.js', 'js/lang.js', 'js/app.js'].forEach(f => {
@@ -143,6 +145,38 @@ test('checkout: a part payment puts the rest on the customer', () => {
   // the stub DOM writes receipt lines/totals via innerHTML, so read innerHTML here
   assert.ok(ui.$('rTotals').innerHTML.indexOf('0.500') !== -1, 'the paper spells out the rest');
   assert.match(ui.$('basketTotal').textContent, /^0\.000/, 'the basket resets');
+});
+
+test('debts: paying MORE than the balance is refused at the till — nothing moves', () => {
+  const ui = boot((core, s) => core.addDebt(s, { name: 'Samir', amount: 3.5 }));
+  const debt = ui.saved().debts[0];
+
+  ui.click('debt-pay', debt.id);                 // open the pay form
+  ui.$('payAmount').value = '10';                // he hands too much…
+  ui.$('btnDoPay').fire('click');
+
+  assert.strictEqual(ui.cashNow(), 50, 'the till takes NOTHING');
+  const d = ui.saved().debts[0];
+  assert.strictEqual(d.total, 3.5, 'the debt is untouched');
+  assert.strictEqual(d.paid, 0, 'not a dinar was counted off');
+  assert.strictEqual(d.settled, false, 'still open');
+  assert.strictEqual(ui.saved().day.entries.length, 0, 'no debt-pay entry was written');
+  const t = ui.$('toast').textContent;
+  assert.ok(t.length > 0 && t.indexOf('تم السداد') === -1, 'he is told it was NOT accepted');
+});
+
+test('debts: paying exactly the balance works and settles the debt', () => {
+  const ui = boot((core, s) => core.addDebt(s, { name: 'Samir', amount: 3.5 }));
+  const debt = ui.saved().debts[0];
+
+  ui.click('debt-pay', debt.id);
+  ui.$('payAmount').value = '3.5';
+  ui.$('btnDoPay').fire('click');
+
+  assert.strictEqual(ui.cashNow(), 53.5, 'the full balance enters the box');
+  const d = ui.saved().debts[0];
+  assert.strictEqual(d.paid, 3.5, 'fully paid');
+  assert.strictEqual(d.settled, true, 'settled');
 });
 
 test('checkout: paying too much shows the change and never inflates the box', () => {

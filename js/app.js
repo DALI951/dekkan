@@ -10,7 +10,7 @@
   const T = window.T;
   const LS_KEY = 'dekkan.v1';
   const BK_KEY = 'dekkan.backup';
-  const A_VERSION = '0.6.0';
+  const A_VERSION = '0.6.1';
 
   // ---------- state ----------
   let state = load();
@@ -612,6 +612,10 @@
   $('btnDoPay').addEventListener('click', function () {
     const amount = parseFloat($('payAmount').value) || 0;
     if (amount <= 0) return toast(T.t('toast.amount'), true);
+    // the only honest cap: you can never take more than the open balance
+    const debt = state.debts.find(function (d) { return d.id === payDebtId; });
+    const remaining = debt ? n3(debt.total - debt.paid) : 0;
+    if (amount > remaining) return toast(T.t('toast.payOver') + money(remaining), true);
     run(function (s) { return D.payDebt(s, payDebtId, { amount: amount }); }, T.t('toast.payOk'));
     payDebtId = null;
     $('payForm').classList.add('hidden');

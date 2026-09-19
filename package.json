@@ -6,6 +6,7 @@
   "scripts": {
     "test": "node --test",
     "test:sim": "node scripts/simulate.js",
-    "check": "node --test && node scripts/simulate.js"
+    "test:i18n": "node scripts/check-i18n.js",
+    "check": "node --test && node scripts/simulate.js && node scripts/check-i18n.js"
   }
 }

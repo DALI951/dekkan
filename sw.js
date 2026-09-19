@@ -2,13 +2,14 @@
  * Bump SW_VERSION to force a refresh of the shell after a deploy. */
 'use strict';
 
-const SW_VERSION = 'v1';
+const SW_VERSION = 'v2';
 const SHELL = [
   './',
   './index.html',
   './manifest.webmanifest',
   './css/style.css',
   './js/app.js',
+  './js/lang.js',
   './core/dekkan-core.js',
   './icon/icon.svg',
   './icon/icon-192.png',

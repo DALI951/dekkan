@@ -1,17 +1,14 @@
-/* DEKKAN — the shop webapp (prototype v1).
+/* DEKKAN — the shop webapp (v2: DaliDeck skin + AR/EN).
  * UI layer ONLY: renders state, calls the core (window.Dekkan), persists.
- * Every rule lives in core/dekkan-core.js — the app never decides business logic.
+ * Every business rule lives in core/dekkan-core.js.
+ * Every user-visible string goes through T.t() (js/lang.js).
  */
 'use strict';
 (function () {
   const D = window.Dekkan;
+  const T = window.T;
   const LS_KEY = 'dekkan.v1';
   const BK_KEY = 'dekkan.backup';
-
-  const AR = {
-    sale: 'بيع', 'debt-pay': 'سداد', refund: 'استرجاع',
-    buy: 'شراء مخزون', expense: 'مصروف', income: 'إيراد', check: 'عدّ الصندوق'
-  };
 
   // ---------- state ----------
   let state = load();
@@ -21,6 +18,7 @@
   let refundProductId = null;
   let editProductId = null;
   let payDebtId = null;
+  let newDebtFlag = false;
 
   // ---------- persistence ----------
   function save() {
@@ -29,7 +27,7 @@
       localStorage.setItem(LS_KEY, json);
       localStorage.setItem(BK_KEY, json);
     } catch (e) {
-      toast('تعذّر الحفظ', true);
+      toast(T.t('toast.couldntSave'), true);
     }
   }
   function load() {
@@ -39,7 +37,7 @@
       const b = localStorage.getItem(BK_KEY);
       if (b) return JSON.parse(b);
     } catch (e) { /* fresh start below */ }
-    return D.createShop({ name: 'متجري' });
+    return D.createShop({ name: T.t('app.name') });
   }
   window.addEventListener('pagehide', save);
 
@@ -55,6 +53,7 @@
     }
   }
   function fmt(n) { return Number(n).toFixed(3); }
+  function money(n) { return fmt(n) + ' ' + T.t('curr'); }
   function $(id) { return document.getElementById(id); }
   function toast(msg, isErr) {
     const t = $('toast');
@@ -73,6 +72,10 @@
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
+  function stockLeft(n) {
+    const ar = T.lang === 'ar';
+    return ar ? n + ' ' + T.t('stock.left') : n + ' ' + T.t('stock.leftEn');
+  }
 
   // ---------- render ----------
   function render() {
@@ -86,8 +89,10 @@
 
   function renderHeader() {
     $('shopName').textContent = state.shop.name;
-    $('cashNow').textContent = fmt(D.cash(state)) + ' د.ت';
-    $('todayLine').textContent = 'اليوم: ' + D.todayStr();
+    const cash = money(D.cash(state));
+    $('cashNow').textContent = cash;
+    if ($('cashNow2')) $('cashNow2').textContent = cash;
+    $('todayLine').textContent = T.t('today') + D.todayStr();
   }
 
   // ----- SELL -----
@@ -95,30 +100,27 @@
     $('btnRefundMode').classList.toggle('on', refundMode);
     $('refundPanel').classList.toggle('hidden', !refundMode);
 
-    // product tiles
     let html = '';
     state.products.forEach(function (p) {
       const low = p.lowAt > 0 && p.stock <= p.lowAt;
       const out = p.stock <= 0;
       html += '<button class="sell-tile' + (out ? ' out' : '') + '" data-id="' + p.id + '" data-action="sell-add">'
         + '<span class="t-name">' + esc(p.name) + '</span>'
-        + '<span class="t-price">' + fmt(p.sell) + ' د.ت</span>'
-        + '<span class="t-stock' + (low ? ' low' : '') + '">' + p.stock + ' متبقية</span>'
+        + '<span class="t-price">' + money(p.sell) + '</span>'
+        + '<span class="t-stock' + (low ? ' low' : '') + '">' + stockLeft(p.stock) + '</span>'
         + '</button>';
     });
-    $('sellGrid').innerHTML = html || '<div class="empty">لا منتجات بعد — أضفها من تبويب المخزون</div>';
+    $('sellGrid').innerHTML = html || '<div class="empty">' + T.t('sell.none') + '</div>';
 
-    // refund tiles (same products, select one)
     let rh = '';
     state.products.forEach(function (p) {
       rh += '<button class="sell-tile' + (refundProductId === p.id ? ' refundable' : '') + '" data-id="' + p.id + '" data-action="refund-pick">'
         + '<span class="t-name">' + esc(p.name) + '</span>'
-        + '<span class="t-stock">' + p.stock + ' متبقية</span>'
+        + '<span class="t-stock">' + stockLeft(p.stock) + '</span>'
         + '</button>';
     });
-    $('refundGrid').innerHTML = rh;
+    $('refundGrid').innerHTML = rh || '<div class="empty">' + T.t('sell.none') + '</div>';
 
-    // basket
     const count = basket.reduce(function (a, b) { return a + b.qty; }, 0) +
       freeItems.reduce(function (a, b) { return a + b.qty; }, 0);
     $('basketCount').textContent = count;
@@ -126,21 +128,19 @@
     let bh = '';
     basket.forEach(function (b) {
       const p = D.getProduct(state, b.id);
-      const sub = fmt(b.qty * p.sell);
+      if (!p) return;
       bh += '<div class="basket-line"><span>' + esc(p.name) + ' <span class="q">x' + b.qty + '</span></span>'
-        + '<span class="sub">' + sub + ' د.ت</span>'
-        + '<span><button class="btn ghost" data-action="basket-minus" data-id="' + b.id + '">-</button> '
+        + '<span class="sub">' + money(b.qty * p.sell) + '</span>'
+        + '<span class="row gap"><button class="btn ghost" data-action="basket-minus" data-id="' + b.id + '">−</button> '
         + '<button class="btn ghost" data-action="basket-plus" data-id="' + b.id + '">+</button></span></div>';
     });
     freeItems.forEach(function (f, i) {
-      const sub = fmt(f.qty * f.price);
       bh += '<div class="basket-line"><span>' + esc(f.name) + ' <span class="q">x' + f.qty + '</span></span>'
-        + '<span class="sub">' + sub + ' د.ت</span>'
+        + '<span class="sub">' + money(f.qty * f.price) + '</span>'
         + '<button class="btn ghost" data-action="basket-free-del" data-i="' + i + '">✕</button></div>';
     });
-    $('basketList').innerHTML = bh || '<div class="empty">السلة فارغة— اضغط على منتج</div>';
+    $('basketList').innerHTML = bh || '<div class="empty">' + T.t('basket.empty') + '</div>';
 
-    // totals + discount
     const subtotal = basket.reduce(function (a, b) {
       const p = D.getProduct(state, b.id);
       return a + (p ? p.sell * b.qty : 0);
@@ -149,7 +149,7 @@
     const pct = parseFloat($('discPct').value) || 0;
     const amt = parseFloat($('discAmt').value) || 0;
     const disc = amt > 0 ? Math.min(amt, subtotal) : Math.min(subtotal * pct / 100, subtotal);
-    $('basketTotal').textContent = fmt(Math.max(0, subtotal - disc)) + ' د.ت';
+    $('basketTotal').textContent = money(Math.max(0, subtotal - disc));
     $('discountRow').classList.toggle('hidden', !state.settings.allowDiscount);
   }
 
@@ -165,18 +165,14 @@
     let html = '';
     state.products.forEach(function (p) {
       const low = p.lowAt > 0 && p.stock <= p.lowAt;
-      html += '<div class="stock-card">'
-        + '<span><span class="s-name">' + esc(p.name) + '</span>'
-        + '<span class="s-meta">اشتراء ' + fmt(p.buy) + ' • بيع ' + fmt(p.sell) + ' • تنبيه ' + p.lowAt + '</span></span>'
-        + '<span class="s-stock' + (low ? ' low' : '') + '">' + p.stock + '</span>'
-        + '<span class="row gap">'
-        + '<button class="btn ghost" data-action="stock-edit" data-id="' + p.id + '">تعديل</button>'
-        + '<button class="btn ghost" data-action="stock-restock" data-id="' + p.id + '">+10</button>'
-        + '</span></div>';
+      html += '<div class="stock-card"><span>'
+        + '<span class="s-name">' + esc(p.name) + '</span>'
+        + '<span class="s-meta">' + T.t('stock.buy') + ' ' + money(p.buy) + ' • ' + T.t('stock.sell') + ' ' + money(p.sell) + '</span></span>'
+        + '<span class="row gap"><span class="s-stock' + (low ? ' low' : '') + '">' + p.stock + '</span>'
+        + '<button class="btn ghost" data-action="stock-edit" data-id="' + p.id + '">' + T.t('stock.edit') + '</button>'
+        + '<button class="btn ghost" data-action="stock-restock" data-id="' + p.id + '">+10</button></span></div>';
     });
-    $('stockList').innerHTML = html || '<div class="empty">لا منتجات — أضف أول منتج</div>';
-
-    $('productForm').classList.toggle('hidden', !editProductId || editProductId === 'new');
+    $('stockList').innerHTML = html || '<div class="empty">' + T.t('stock.empty') + '</div>';
   }
 
   // ----- DEBTS -----
@@ -186,67 +182,81 @@
     let html = '';
     open.forEach(function (d) {
       const owed = d.total - d.paid;
-      html += '<div class="debt-card">'
-        + '<span><span class="d-name">' + esc(d.name) + '</span>'
-        + '<span class="d-sub">مدفوع ' + fmt(d.paid) + ' د.ت</span></span>'
-        + '<span class="row gap"><span class="d-owed">' + fmt(owed) + '</span>'
-        + '<button class="btn primary" data-action="debt-pay" data-id="' + d.id + '">سداد</button>'
+      html += '<div class="debt-card"><span><span class="d-name">' + esc(d.name) + '</span>'
+        + '<span class="d-sub">' + T.t('debts.paid') + ' ' + money(d.paid) + '</span></span>'
+        + '<span class="row gap"><span class="d-owed">' + money(owed) + '</span>'
+        + '<button class="btn primary" data-action="debt-pay" data-id="' + d.id + '">' + T.t('debts.pay') + '</button>'
         + '</span></div>';
     });
     settled.forEach(function (d) {
-      const owed = d.total - d.paid;
       html += '<div class="debt-card"><span><span class="d-name">' + esc(d.name) + '</span>'
-        + '<span class="d-sub">مُسَدَّد ✓</span></span>'
-        + '<span class="row gap"><span class="d-owed">' + fmt(owed) + '</span>'
+        + '<span class="d-sub">' + T.t('debts.settled') + '</span></span>'
+        + '<span class="row gap"><span class="d-owed">' + money(d.paid) + '</span>'
         + '<button class="btn ghost" data-action="debt-del" data-id="' + d.id + '">✕</button></span></div>';
     });
-    $('debtList').innerHTML = html || '<div class="empty">لا ديون — ممتاز</div>';
+    $('debtList').innerHTML = html || '<div class="empty">' + T.t('debts.empty') + '</div>';
     $('debtForm').classList.toggle('hidden', !newDebtFlag);
     $('payForm').classList.toggle('hidden', !payDebtId);
   }
-  let newDebtFlag = false;
-  function setNewDebt(v) { newDebtFlag = v; if (!v) { payDebtId = null; $('payForm').classList.add('hidden'); } renderDebts(); }
+
+  function setNewDebt(v) {
+    newDebtFlag = v;
+    if (!v) { payDebtId = null; $('payForm').classList.add('hidden'); }
+    renderDebts();
+  }
 
   // ----- REPORT -----
   function renderReport() {
     const r = D.stats(state);
     const chips = [
-      ['فلوس الصبح', fmt(r.startCash) + ' د.ت', ''],
-      ['في الصندوق الآن', fmt(r.cash) + ' د.ت', ''],
-      ['مبيعات اليوم', fmt(r.daySales) + ' د.ت', ''],
-      ['استرجاعات', fmt(r.dayRefunds) + ' د.ت', ''],
-      ['مصاريف', fmt(r.dayExpenses) + ' د.ت', ''],
-      ['شراء مخزون', fmt(r.dayBuys) + ' د.ت', ''],
-      ['ربح اليوم', fmt(r.dayProfit) + ' د.ت', r.dayProfit >= 0 ? 'profit-good' : 'profit-bad'],
-      ['قيمة المخزون', fmt(r.inventoryValue) + ' د.ت', ''],
-      ['ديون مفتوحة', fmt(r.debts.total) + ' د.ت', '']
+      [T.t('report.chip.start'), money(r.startCash), ''],
+      [T.t('report.chip.now'), money(r.cash), ''],
+      [T.t('report.chip.sales'), money(r.daySales), ''],
+      [T.t('report.chip.refunds'), money(r.dayRefunds), ''],
+      [T.t('report.chip.expenses'), money(r.dayExpenses), ''],
+      [T.t('report.chip.buys'), money(r.dayBuys), ''],
+      [T.t('report.chip.profit'), money(r.dayProfit), r.dayProfit >= 0 ? 'good' : 'bad'],
+      [T.t('report.chip.inventory'), money(r.inventoryValue), ''],
+      [T.t('report.chip.debts'), money(r.debts.total), '']
     ];
     $('reportChips').innerHTML = chips.map(function (c) {
-      return '<div class="chip ' + c[2] + '"><small>' + c[0] + '</small><strong>' + c[1] + '</strong></div>';
+      return '<div class="metric"><span class="lab">' + c[0] + '</span>'
+        + '<span class="val">' + c[1] + '</span>'
+        + (c[2] ? '<span class="edge ' + c[2] + '"></span>' : '')
+        + '</div>';
     }).join('');
 
-    $('cashCheckExpected').textContent = 'الصندوق يجب أن يحتوي: ' + fmt(r.cash) + ' د.ت';
+    $('cashCheckExpected').textContent = T.t('report.expected') + money(r.cash);
 
     let ch = '';
     r.checks.slice().reverse().forEach(function (c) {
-      ch += '<div class="entry"><span>عدّ ' + entryTime(c.at) + '</span>'
+      ch += '<div class="entry"><span class="e-kind">' + T.t('kind.check') + '</span>'
+        + '<span class="growx">' + entryTime(c.at) + '</span>'
         + '<span class="' + (c.ok ? 'check-ok' : 'check-bad') + '">'
-        + (c.ok ? 'مطابق ✓' : ('فرق: ' + (c.diff > 0 ? '+' : '') + fmt(c.diff) + ' د.ت')) + '</span></div>';
+        + (c.ok ? T.t('report.matched') + ' ✓' : (T.t('report.diff') + (c.diff > 0 ? '+' : '') + fmt(c.diff) + ' ' + T.t('curr'))) + '</span></div>';
     });
-    $('checkHistory').innerHTML = ch || '<div class="empty small">لم تقم بعدّ الصندوق اليوم</div>';
+    $('checkHistory').innerHTML = ch || '<div class="empty">' + T.t('report.noChecks') + '</div>';
 
     let eh = '';
     r.entries.slice().reverse().forEach(function (e) {
       const cls = e.amount > 0 ? 'in' : (e.amount < 0 ? 'out' : '');
-      const amt = e.amount === 0 ? '—' : fmt(e.amount) + ' د.ت';
+      const amt = e.amount === 0 ? '—' : money(e.amount);
       eh += '<div class="entry">'
-        + '<span class="e-kind">' + (AR[e.kind] || e.kind) + '</span>'
-        + '<span class="growx" style="flex:1"><span>' + entryTime(e.at) + '</span>'
-        + (e.note ? '<div class="e-note">' + esc(e.note) + '</div>' : '') + '</span>'
+        + '<span class="e-kind">' + (kindLabel(e.kind)) + '</span>'
+        + '<span class="growx"><span class="e-time">' + entryTime(e.at) + '</span>'
+        + (e.note ? '<span class="e-note">' + esc(e.note) + '</span>' : '') + '</span>'
         + '<span class="e-amt ' + cls + '">' + amt + '</span>'
         + '</div>';
     });
-    $('entriesList').innerHTML = eh || '<div class="empty">لا حركة اليوم بعد</div>';
+    $('entriesList').innerHTML = eh || '<div class="empty">' + T.t('report.noMoves') + '</div>';
+  }
+
+  function kindLabel(k) {
+    const map = {
+      sale: 'kind.sale', 'debt-pay': 'kind.debtPay', refund: 'kind.refund',
+      buy: 'kind.buy', expense: 'kind.expense', income: 'kind.income', check: 'kind.check'
+    };
+    return T.t(map[k] || k);
   }
 
   // ----- SETTINGS -----
@@ -255,6 +265,8 @@
     $('cfgStartCash').value = state.day.startCash;
     $('cfgDiscount').checked = !!state.settings.allowDiscount;
     $('cfgRefund').checked = !!state.settings.allowRefund;
+    $('langAr').classList.toggle('active', T.lang === 'ar');
+    $('langEn').classList.toggle('active', T.lang === 'en');
   }
 
   // ---------- events (bound once) ----------
@@ -285,21 +297,21 @@
     if (act === 'stock-edit') {
       const p = D.getProduct(state, id);
       editProductId = id;
-      $('productFormTitle').textContent = 'تعديل: ' + p.name;
+      $('productFormTitle').textContent = T.t('stock.edit') + ': ' + p.name;
       $('pName').value = p.name; $('pBuy').value = p.buy; $('pSell').value = p.sell;
       $('pStock').value = p.stock; $('pLow').value = p.lowAt;
       $('productForm').classList.remove('hidden');
     }
-    if (act === 'stock-restock') run(function (s) { return D.buyStock(s, id, 10, D.getProduct(s, id).buy); }, '+10 إلى المخزون');
+    if (act === 'stock-restock') run(function (s) { return D.buyStock(s, id, 10, D.getProduct(s, id).buy); }, T.t('toast.restock'));
 
     if (act === 'debt-pay') {
       payDebtId = id;
       const d = state.debts.find(function (x) { return x.id === id; });
-      $('payTitle').textContent = 'سداد — ' + d.name;
+      if (d) $('payTitle').textContent = T.t('debts.payTitle') + ' — ' + d.name;
       $('payAmount').value = '';
       $('payForm').classList.remove('hidden');
     }
-    if (act === 'debt-del') run(function (s) { return D.removeDebt(s, id); }, 'حُذف من السجل');
+    if (act === 'debt-del') run(function (s) { return D.removeDebt(s, id); }, T.t('toast.debtDeleted'));
   });
 
   $('btnSell').addEventListener('click', function () {
@@ -311,7 +323,7 @@
     else if (discPct > 0) discount = { percent: discPct };
 
     const items = basket.map(function (b) { return { id: b.id, qty: b.qty }; });
-    if (items.length === 0 && freeItems.length === 0) return toast('السلة فارغة', true);
+    if (items.length === 0 && freeItems.length === 0) return toast(T.t('basket.empty'), true);
 
     try {
       if (items.length) {
@@ -323,7 +335,7 @@
       save(); basket = []; freeItems = [];
       $('discPct').value = ''; $('discAmt').value = ''; $('creditName').value = '';
       render();
-      toast(creditName ? 'سُجّل على الدين: ' + creditName : 'سُجّل البيع');
+      toast(creditName ? T.t('toast.saleCredit') + creditName : T.t('toast.saleOk'));
     } catch (e) { toast(e.message, true); }
   });
 
@@ -331,7 +343,7 @@
     const name = $('freeName').value.trim();
     const price = parseFloat($('freePrice').value) || 0;
     const qty = parseFloat($('freeQty').value) || 1;
-    if (!name) return toast('اكتب اسم السلعة', true);
+    if (!name) return toast(T.t('toast.freeName'), true);
     freeItems.push({ name: name, price: price, qty: qty });
     $('freeName').value = ''; $('freePrice').value = '';
     render();
@@ -343,18 +355,18 @@
     render();
   });
   $('btnDoRefund').addEventListener('click', function () {
-    if (!refundProductId) return toast('اختر منتجًا للاسترجاع', true);
+    if (!refundProductId) return toast(T.t('toast.refundPick'), true);
     const qty = parseFloat($('refundQty').value) || 1;
     const reason = $('refundReason').value.trim();
     run(function (s) {
       return D.refund(s, { items: [{ id: refundProductId, qty: qty }], reason: reason || null });
-    }, 'تم الاسترجاع');
+    }, T.t('toast.refundOk'));
   });
 
   // stock form
   $('btnAddProduct').addEventListener('click', function () {
     editProductId = 'new';
-    $('productFormTitle').textContent = 'منتج جديد';
+    $('productFormTitle').textContent = T.t('stock.new');
     $('pName').value = ''; $('pBuy').value = ''; $('pSell').value = ''; $('pStock').value = '0'; $('pLow').value = '3';
     $('productForm').classList.remove('hidden');
   });
@@ -369,8 +381,8 @@
     const stock = parseInt($('pStock').value, 10) || 0;
     const lowAt = parseInt($('pLow').value, 10) || 0;
     try {
-      if (!name) throw new Error('اكتب اسم المنتج');
-      if (!(sell >= 0)) throw new Error('اكتب ثمن البيع');
+      if (!name) throw new Error(T.t('toast.prodName'));
+      if (!(sell >= 0)) throw new Error(T.t('toast.prodPrice'));
       if (editProductId === 'new') {
         state = D.addProduct(state, { name: name, buy: buy, sell: sell, stock: stock, lowAt: lowAt });
       } else {
@@ -379,7 +391,7 @@
       save(); editProductId = null;
       $('productForm').classList.add('hidden');
       render();
-      toast('تم الحفظ');
+      toast(T.t('toast.savedOk'));
     } catch (e) { toast(e.message, true); }
   });
 
@@ -392,17 +404,17 @@
   $('btnSaveDebt').addEventListener('click', function () {
     const name = $('dName').value.trim();
     const amount = parseFloat($('dAmount').value) || 0;
-    if (!name || amount <= 0) return toast('اكتب الاسم والمبلغ', true);
+    if (!name || amount <= 0) return toast(T.t('toast.debtName'), true);
     run(function (s) {
       return D.addDebt(s, { name: name, amount: amount, phone: $('dPhone').value.trim() || null, note: $('dNote').value.trim() || null });
-    }, 'سُجّل الدين');
+    }, T.t('toast.debtOk'));
     setNewDebt(false);
   });
   $('btnCancelPay').addEventListener('click', function () { payDebtId = null; $('payForm').classList.add('hidden'); });
   $('btnDoPay').addEventListener('click', function () {
     const amount = parseFloat($('payAmount').value) || 0;
-    if (amount <= 0) return toast('اكتب المبلغ', true);
-    run(function (s) { return D.payDebt(s, payDebtId, { amount: amount }); }, 'تم السداد');
+    if (amount <= 0) return toast(T.t('toast.amount'), true);
+    run(function (s) { return D.payDebt(s, payDebtId, { amount: amount }); }, T.t('toast.payOk'));
     payDebtId = null;
     $('payForm').classList.add('hidden');
   });
@@ -412,22 +424,18 @@
   $('countedCash').addEventListener('keydown', function (ev) { if (ev.key === 'Enter') doCheckCash(); });
   function doCheckCash() {
     const counted = parseFloat($('countedCash').value);
-    if (!(counted >= 0)) return toast('اكتب العدد الذي عاددته', true);
+    if (!(counted >= 0)) return toast(T.t('toast.checkAmt'), true);
     $('countedCash').value = '';
-    run(function (s) { return D.checkCash(s, { counted: counted }); }, 'سُجّل العدّ');
+    run(function (s) { return D.checkCash(s, { counted: counted }); }, T.t('toast.checkOk'));
   }
 
   // settings
   $('btnSaveCfg').addEventListener('click', function () {
-    const name = $('cfgShopName').value.trim() || 'متجري';
+    const name = $('cfgShopName').value.trim() || T.t('app.name');
     const start = parseFloat($('cfgStartCash').value) || 0;
     try {
-      if (state.day.entries.length === 0 && state.day.soldCost === 0) {
-        state = D.updateShop(state, { name: name, startCash: start });
-      } else {
-        state = D.updateShop(state, { name: name });
-      }
-      save(); render(); toast('تم الحفظ');
+      state = D.updateShop(state, { name: name, startCash: start });
+      save(); render(); toast(T.t('toast.savedOk'));
     } catch (e) { toast(e.message, true); }
   });
   $('cfgDiscount').addEventListener('change', function () {
@@ -437,7 +445,7 @@
     run(function (s) { return D.setSettings(s, { allowRefund: $('cfgRefund').checked }); });
   });
   $('btnCloseDay').addEventListener('click', function () {
-    run(function (s) { return D.closeDay(s); }, 'أُغلق اليوم، وبدأ يوم جديد بنفس الرصيد');
+    run(function (s) { return D.closeDay(s); }, T.t('toast.dayClosed'));
     $('countedCash').value = '';
   });
   $('btnExport').addEventListener('click', function () {
@@ -449,17 +457,22 @@
     URL.revokeObjectURL(a.href);
   });
   $('btnReset').addEventListener('click', function () {
-    if (!confirm('مسح كل بيانات المحل؟ هذا لا يُرجع. (يمكنك حفظ نسخة أولًا)')) return;
+    if (!confirm(T.t('toast.resetConfirm'))) return;
     localStorage.removeItem(LS_KEY);
     localStorage.removeItem(BK_KEY);
-    state = D.createShop({ name: 'متجري' });
+    state = D.createShop({ name: T.t('app.name') });
     basket = []; freeItems = [];
     save(); render();
-    toast('بدأنا من جديد');
+    toast(T.t('toast.resetOk'));
   });
 
-  // tabs
-  const tabs = document.querySelectorAll('.tab');
+  // language toggle
+  $('langAr').addEventListener('click', function () { T.set('ar'); });
+  $('langEn').addEventListener('click', function () { T.set('en'); });
+  window.addEventListener('dekkan:lang', render);
+
+  // navigation (sidebar + bottom bar)
+  const tabs = document.querySelectorAll('.tab, .navitem');
   tabs.forEach(function (t) {
     t.addEventListener('click', function () {
       location.hash = t.getAttribute('data-hash');
@@ -470,6 +483,7 @@
     document.querySelectorAll('.page').forEach(function (p) { p.classList.add('hidden'); });
     const page = $('page-' + hash.replace('#/', '')) || $('page-sell');
     page.classList.remove('hidden');
+    page.classList.add('show');
     tabs.forEach(function (t) {
       t.classList.toggle('active', t.getAttribute('data-hash') === hash);
     });

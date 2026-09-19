@@ -206,3 +206,134 @@ test('every op returns a NEW state; the old one stays frozen', () => {
   assert.notEqual(s2, s);
   assert.equal(D.cash(s2), 53);
 });
+
+// ==== REFUNDS ====
+test('refund: cash back, goods back on shelf, cost undone, profit correct', () => {
+  let s = shop();
+  const coca = s.products[0]; // buy 0.8, sell 1.5
+  s = D.sell(s, { items: [{ id: coca.id, qty: 4 }] });            // +6 cash, 4 sold
+  const after = D.stats(s);
+  assert.equal(after.dayProfit, 6 - 3.2);
+
+  s = D.refund(s, { items: [{ id: coca.id, qty: 1 }], reason: 'bad bottle' }); // -1.5 back, +1 stock
+  const st = D.stats(s);
+  assert.equal(D.cash(s), 50 + 6 - 1.5);
+  assert.equal(D.getProduct(s, coca.id).stock, 7);
+  assert.equal(st.dayRefunds, 1.5);
+  assert.equal(st.netSales, 6 - 1.5);
+  assert.equal(st.costOfSold, 2.4);                  // exactly 3.2 - 0.8
+  assert.equal(st.dayProfit, 2.1); // money story stays honest
+});
+
+test('refund on credit: debt goes down, cash does NOT move', () => {
+  let s = shop();
+  const coca = s.products[0];
+  s = D.sell(s, { items: [{ id: coca.id, qty: 2 }], creditTo: 'Samir' }); // owes 3
+  assert.equal(D.cash(s), 50);
+  s = D.refund(s, { items: [{ id: coca.id, qty: 2 }], creditTo: 'Samir' });
+  assert.equal(D.cash(s), 50);
+  assert.equal(D.debtsOwed(s), 0);
+  assert.equal(D.getProduct(s, coca.id).stock, 10);
+  assert.equal(s.debts[0].settled, true);
+});
+
+test('refundFree for non-stock items', () => {
+  let s = shop();
+  s = D.sellFree(s, { name: 'Cafe maçon', price: 1.2, qty: 3 }); // +3.6
+  s = D.refundFree(s, { name: 'Cafe maçon', price: 1.2, qty: 1, note: 'wrong order' });
+  assert.equal(D.cash(s), 50 + 3.6 - 1.2);
+  assert.equal(D.stats(s).dayRefunds, 1.2);
+});
+
+test('refund respects the allowRefund toggle', () => {
+  let s = D.createShop({ allowRefund: false });
+  assert.throws(() => D.refund(s, { items: [{ id: 'x', qty: 1 }] }), /refunds are turned off/);
+});
+
+// ==== DISCOUNTS ====
+test('percent discount: customer pays less, cost unchanged (you eat the margin)', () => {
+  let s = shop();
+  const coca = s.products[0];
+  s = D.sell(s, { items: [{ id: coca.id, qty: 2 }], discount: { percent: 10 } }); // 3 -> 2.7
+  const st = D.stats(s);
+  assert.equal(D.cash(s), 50 + 2.7);
+  assert.equal(st.daySales, 2.7);
+  assert.equal(st.costOfSold, 1.6);        // cost does NOT shrink
+  assert.equal(st.dayProfit, 2.7 - 1.6);  // discount eats margin, not cost
+});
+
+test('flat discount is capped at the sale value (never a negative sale)', () => {
+  let s = shop();
+  const coca = s.products[0];
+  s = D.sell(s, { items: [{ id: coca.id, qty: 1 }], discount: { amount: 99 } }); // 1.5 -> 0
+  assert.equal(D.cash(s), 50);
+  assert.equal(D.stats(s).daySales, 0);
+});
+
+test('discount respects the allowDiscount toggle', () => {
+  let s = D.createShop({ allowDiscount: false });
+  s = D.addProduct(s, { name: 'X', sell: 1, buy: 0.5, stock: 5 });
+  const id = s.products[0].id;
+  assert.throws(() => D.sell(s, { items: [{ id, qty: 1 }], discount: { percent: 10 } }), /discounts are turned off/);
+  // and without a discount, selling still works
+  s = D.sell(s, { items: [{ id, qty: 1 }] });
+  assert.equal(D.cash(s), 1);
+});
+
+test('credit sale with discount: the debt is the discounted amount', () => {
+  let s = shop();
+  s = D.sell(s, { items: [{ id: s.products[0].id, qty: 2 }], discount: { percent: 10 }, creditTo: 'Rami' });
+  assert.equal(s.debts[0].total, 2.7);
+  assert.equal(D.cash(s), 50);
+});
+
+// ==== CASH CHECK ====
+test('checkCash compares the drawer to the computed cash and records it', () => {
+  let s = shop();
+  s = D.sell(s, { items: [{ id: s.products[0].id, qty: 2 }] }); // expected 53
+  s = D.checkCash(s, { counted: 52.5 }); // 500 millimes short
+  const st = D.stats(s);
+  assert.equal(st.lastCheck.expected, 53);
+  assert.equal(st.lastCheck.counted, 52.5);
+  assert.equal(st.lastCheck.diff, -0.5);
+  assert.equal(st.lastCheck.ok, false);
+  assert.equal(st.checks.length, 1);
+  assert.equal(D.cash(s), 53); // the check itself moved NO money
+});
+
+// ==== THE DAILY REPORT ====
+test('dayReport lists every move: start cash, each entry, totals, profit', () => {
+  let s = shop();
+  s = D.sell(s, { items: [{ id: s.products[0].id, qty: 2 }] });          // +3.00
+  s = D.sellFree(s, { name: 'Kitkat', price: 2, qty: 1 });              // +2.00
+  s = D.refund(s, { items: [{ id: s.products[0].id, qty: 1 }] });       // -1.50
+  s = D.expense(s, { amount: 4, note: 'electricity' });                 // -4.00
+  s = D.income(s, { amount: 10, note: 'from home' });                   // +10.00
+  s = D.checkCash(s, { counted: D.cash(s) });                           // ok check
+
+  const r = D.dayReport(s);
+  assert.equal(r.startCash, 50);
+  assert.equal(r.cash, 50 + 3 + 2 - 1.5 - 4 + 10);
+  assert.equal(r.entries.length, 6); // sale, sale, refund, expense, income, check
+  assert.deepEqual(r.totals, { sales: 5, debtPays: 0, refunds: 1.5, buys: 0, expenses: 4, incomes: 10, checks: 1 });
+  assert.equal(r.grossSales, 5);
+  assert.equal(r.netSales, 3.5);
+  assert.equal(r.dayProfit, -1.3); // cost of the 1 coke that stayed sold
+  assert.equal(r.lastCheck.ok, true);
+  // every amount in entries is a real, signed number (a shopkeeper can follow the story)
+  const sum = r.entries.reduce((a, e) => a + e.amount, 0) + r.startCash;
+  assert.equal(sum, r.cash);
+});
+
+// ==== a full day: sell -> close -> open -> verify history is frozen ====
+test('closed days are frozen history; new day starts from endCash', () => {
+  let s = shop();
+  s = D.sell(s, { items: [{ id: s.products[0].id, qty: 2 }] }); // 53
+  s = D.closeDay(s);
+  s = D.sell(s, { items: [{ id: s.products[1].id, qty: 1 }] }); // 54
+  const r = D.dayReport(s);
+  assert.equal(r.cash, 54);
+  assert.equal(r.entries.length, 1);                    // only today's move
+  assert.equal(s.days[0].endCash, 53);                  // yesterday closed at 53
+  assert.equal(s.days[0].entries.length, 1);            // its own entry stays there
+});

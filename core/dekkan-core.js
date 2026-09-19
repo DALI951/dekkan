@@ -1,18 +1,23 @@
-// DEKKAN CORE — the shop brain (دكان = shop)
+﻿// DEKKAN CORE — the shop brain (dekkan = "shop" in Arabic/Tunisian dialect)
 // Pure logic, zero UI. Every rule is a function on the state.
 // Immutable style: functions take state, return a NEW state. Nothing mutates in place.
 //
 // THE ALGORITHM (the whole model in one paragraph):
 //   - A shop has ONE cash box (caisse). Every money movement today is an ENTRY
 //     with a signed amount: + = money IN (sale, debt payment, income),
-//     - = money OUT (buying stock, expense).
+//     - = money OUT (buying stock, expense, refund).
 //   - cash is ALWAYS derived:  cash = startCash + sum(entries.amount).
 //     We never store cash as its own number -> it can never drift out of sync.
 //   - Products have stock. buyStock makes stock go up and cash go down.
 //     sell makes stock go down and cash go up (or debt go up if it's a credit sale).
+//     refund undoes a sale: cash out, goods back on the shelf, cost undone.
+//   - discounts (percent or flat) reduce what the customer pays; cost is untouched.
 //   - A day auto-closes and a new one opens the moment a write happens on a
 //     new date. Closing cash of day N = starting cash of day N+1.
-//   - profit for the day = sales revenue - cost of goods sold - expenses - stock buys.
+//   - The shopkeeper can do a CASH CHECK: count the drawer, compare with the
+//     computed cash. Every check is recorded in the day.
+//   - profit for the day = money in - everything money went to
+//       = (sales + debt payments - refunds) - cost of goods sold - expenses - stock buys
 
 'use strict';
 
@@ -35,26 +40,28 @@ function money(n) {
 
 // ---------- state ----------
 
-// The one and only state object. `days` = closed days (history), day = the open day.
-//   days: [ { date, startCash, endCash, soldCost, entries: [...] } ]
-//   day:  { date, startCash, soldCost, entries: [...] }
 function createShop(opts) {
   opts = opts || {};
   const start = money(opts.startCash || 0);
   const now = new Date().toISOString();
   return {
-    version: 1,
+    version: 2,
     shop: { name: opts.name || 'My Shop', currency: opts.currency || 'TND' },
+    // Options the shopkeeper can turn on/off. The UI shows/hides them.
+    settings: {
+      allowDiscount: opts.allowDiscount !== undefined ? !!opts.allowDiscount : true,
+      allowRefund: opts.allowRefund !== undefined ? !!opts.allowRefund : true
+    },
     products: [],
     debts: [],
     days: [],
-    day: { date: todayStr(), openedAt: now, startCash: start, soldCost: 0, entries: [] }
+    // the OPEN day: entries (money moves) + checks (drawer counts) + soldCost (for profit)
+    day: { date: todayStr(), openedAt: now, startCash: start, soldCost: 0, entries: [], checks: [] }
   };
 }
 
 // ---------- cash: the single source of truth ----------
 
-// The cash box value. NEVER store this — always derive.
 function cash(state) {
   let total = state.day.startCash;
   for (const e of state.day.entries) total += e.amount;
@@ -72,44 +79,38 @@ function pushEntry(state, kind, amount, ref, note) {
 
 // If the open day is not today, close it and open a fresh one.
 // Closing cash of yesterday = starting cash of today. THE day boundary.
-function rollover(state) {
-  if (state.day.date === todayStr()) return state;
+function closeOpenDay(state, closedAt) {
   const end = cash(state);
   state.days.push({
     date: state.day.date,
     openedAt: state.day.openedAt,
-    closedAt: new Date().toISOString(),
+    closedAt: closedAt,
     startCash: state.day.startCash,
     endCash: end,
     soldCost: state.day.soldCost,
-    entries: state.day.entries
+    entries: state.day.entries,
+    checks: state.day.checks
   });
-  state.day = { date: todayStr(), openedAt: new Date().toISOString(), startCash: end, soldCost: 0, entries: [] };
+  state.day = { date: todayStr(), openedAt: closedAt, startCash: end, soldCost: 0, entries: [], checks: [] };
   return state;
+}
+
+function rollover(state) {
+  if (state.day.date === todayStr()) return state;
+  return closeOpenDay(state, new Date().toISOString());
 }
 
 // Force-close today even if it IS today (shop ends the day early -> new open day).
 function closeDay(state) {
   state = clone(state);
   if (state.day.entries.length === 0 && state.day.soldCost === 0) return state; // nothing happened today, no empty day
-  const end = cash(state);
-  state.days.push({
-    date: state.day.date,
-    openedAt: state.day.openedAt,
-    closedAt: new Date().toISOString(),
-    startCash: state.day.startCash,
-    endCash: end,
-    soldCost: state.day.soldCost,
-    entries: state.day.entries
-  });
-  state.day = { date: todayStr(), openedAt: new Date().toISOString(), startCash: end, soldCost: 0, entries: [] };
-  return state;
+  return closeOpenDay(state, new Date().toISOString());
 }
 
 // ---------- products ----------
 
 function addProduct(state, p) {
-  state = rollover(productClone(state));
+  state = rollover(clone(state));
   if (!p || typeof p.name !== 'string' || !p.name.trim()) throw new Error('product needs a name');
   if (typeof p.sell !== 'number' || p.sell < 0) throw new Error('product needs a valid sell price');
   state.products.push({
@@ -124,30 +125,54 @@ function addProduct(state, p) {
 }
 
 function getProduct(state, id) {
-  return state.products.find((x) => x.id === id);
+  const real = idTrusted(state, id);
+  return state.products.find(function (x) { return x.id === real; });
 }
 
 function setProduct(state, id, patch) {
-  state = rollover(productClone(state));
+  state = rollover(clone(state));
   const p = getProduct(state, id);
-  if (!p) throw new Error('product ' + id + ' not found');
+  if (!p) throw new Error('product not found');
   if ('name' in patch && (typeof patch.name !== 'string' || !patch.name.trim())) throw new Error('name invalid');
   if ('sell' in patch && (typeof patch.sell !== 'number' || patch.sell < 0)) throw new Error('sell price invalid');
   if ('buy' in patch && (typeof patch.buy !== 'number' || patch.buy < 0)) throw new Error('buy price invalid');
+  if ('stock' in patch && !Number.isFinite(patch.stock)) throw new Error('stock invalid');
+  if ('lowAt' in patch && !Number.isFinite(patch.lowAt)) throw new Error('lowAt invalid');
   if ('stock' in patch) patch.stock = Math.floor(patch.stock);
   if ('lowAt' in patch) patch.lowAt = Math.floor(patch.lowAt);
-  Object.assign(p, patch);
+  for (const k in patch) p[k] = patch[k];
   return state;
 }
 
 // Remove a product (only if it has no stock left — you can't delete what's in your shop).
 function removeProduct(state, id) {
-  state = rollover(productClone(state));
+  state = rollover(clone(state));
   const p = getProduct(state, id);
-  if (!p) throw new Error('product ' + id + ' not found');
+  if (!p) throw new Error('product not found');
   if (p.stock > 0) throw new Error('product still has stock: ' + p.stock);
-  state.products = state.products.filter((x) => x.id !== id);
+  state.products = state.products.filter(function (x) { return x.id !== p.id; });
   return state;
+}
+
+// ---------- discount (optional, toggleable via shop.settings.allowDiscount) ----------
+
+// computes the money taken off a revenue. throws if discounts are turned off.
+function discountOff(state, revenue, discountOrNull) {
+  if (!discountOrNull) return 0;
+  if (!state.settings.allowDiscount) throw new Error('discounts are turned off');
+  if (discountOrNull.percent != null) {
+    if (!Number.isFinite(discountOrNull.percent) || discountOrNull.percent < 0 || discountOrNull.percent > 100) {
+      throw new Error('discount percent must be between 0 and 100');
+    }
+    return money(revenue * discountOrNull.percent / 100);
+  }
+  if (discountOrNull.amount != null) {
+    if (!Number.isFinite(discountOrNull.amount) || discountOrNull.amount < 0) {
+      throw new Error('discount amount must be a positive number');
+    }
+    return Math.min(money(discountOrNull.amount), revenue); // never below zero
+  }
+  throw new Error('discount needs percent or amount');
 }
 
 // ---------- money movements ----------
@@ -155,19 +180,20 @@ function removeProduct(state, id) {
 // Buying stock: cash out (-qty*unitBuy), product stock up.
 function buyStock(state, productId, qty, unitBuy) {
   state = rollover(clone(state));
-  const p = getProduct(state, idTrusted(state, productId));
+  const p = getProduct(state, productId);
   if (!p) throw new Error('product not found');
   if (!Number.isFinite(qty) || qty <= 0) throw new Error('qty must be positive');
   const u = money(unitBuy);
   if (u < 0) throw new Error('unit buy price cannot be negative');
   const total = money(qty * u);
-  p.stock += Math.floor(qty);               // you stocked up
+  p.stock += Math.floor(qty);
   pushEntry(state, 'buy', -total, productId, p.name + ' x' + Math.floor(qty));
   return state;
 }
 
 // One sale, possibly many products at once (full basket at checkout).
 //   items: [{ id, qty, price? }]   price = override if you sold above/below the normal price.
+//   discount: { percent: 0..100 }  OR  { amount: TND }  (gated by settings)
 //   creditTo: customer name -> sale goes to their DEBT instead of cash.
 function sell(state, opts) {
   state = rollover(clone(state));
@@ -177,9 +203,11 @@ function sell(state, opts) {
   let revenue = 0, cost = 0, refs = [];
   for (const it of items) {
     if (!Number.isFinite(it.qty) || it.qty <= 0) throw new Error('qty must be positive');
-    const p = getProduct(state, idTrusted(state, it.id));
+    const p = getProduct(state, it.id);
     if (!p) throw new Error('product not found');
-    if (p.stock < Math.floor(it.qty)) throw new Error('not enough stock for ' + p.name + ' (have ' + p.stock + ', need ' + it.qty + ')');
+    if (p.stock < Math.floor(it.qty)) {
+      throw new Error('not enough stock for ' + p.name + ' (have ' + p.stock + ', need ' + it.qty + ')');
+    }
     const unit = money(it.price != null ? it.price : p.sell);
     revenue += unit * it.qty;
     cost += p.buy * it.qty;
@@ -187,12 +215,14 @@ function sell(state, opts) {
     refs.push(p.name + 'x' + Math.floor(it.qty));
   }
   state.day.soldCost += money(cost);
+  const net = money(revenue - discountOff(state, revenue, opts.discount));
+
   if (opts.creditTo) {
     // Credit sale: no cash moves, the customer OWES us now.
-    pushEntry(state, 'sale', 0, refs.join(', '), 'credit: ' + opts.creditTo); // 0-cash marker entry
-    state = addDebt(state, { name: opts.creditTo, phone: opts.phone, amount: revenue, note: opts.note || (refs.join(', ')) });
+    pushEntry(state, 'sale', 0, refs.join(', '), 'credit: ' + opts.creditTo);
+    state = addDebt(state, { name: opts.creditTo, phone: opts.phone, amount: net, note: opts.note || (refs.join(', ')) });
   } else {
-    pushEntry(state, 'sale', revenue, refs.join(', '), opts.note || null);
+    pushEntry(state, 'sale', net, refs.join(', '), opts.note || null);
   }
   return clone(state);
 }
@@ -203,15 +233,75 @@ function sellFree(state, opts) {
   if (!opts || !opts.name || !opts.name.trim()) throw new Error('need an item name');
   const qty = Math.floor(opts.qty || 1);
   if (!Number.isFinite(qty) || qty <= 0) throw new Error('qty must be positive');
-  const price = money(opts.price || 0);
-  const total = money(price * qty);
+  const total = money((opts.price || 0) * qty);
+  const net = money(total - discountOff(state, total, opts.discount));
   if (opts.creditTo) {
     pushEntry(state, 'sale', 0, opts.name + 'x' + qty, 'credit: ' + opts.creditTo);
-    state = addDebt(state, { name: opts.creditTo, phone: opts.phone, amount: total, note: opts.note || opts.name });
+    state = addDebt(state, { name: opts.creditTo, phone: opts.phone, amount: net, note: opts.note || opts.name });
   } else {
-    pushEntry(state, 'sale', total, opts.name + 'x' + qty, opts.note || null);
+    pushEntry(state, 'sale', net, opts.name + 'x' + qty, opts.note || null);
   }
   return clone(state);
+}
+
+// REFUND — the customer brings it back.
+//   For a normal sale: cash back, goods back on the shelf, cost undone.
+//   For a credit sale (creditTo): no cash moves, their debt goes back down.
+function refund(state, opts) {
+  state = rollover(clone(state));
+  if (!state.settings.allowRefund) throw new Error('refunds are turned off');
+  const items = (opts && opts.items) || [];
+  if (items.length === 0) throw new Error('nothing to refund');
+
+  let back = 0, costBack = 0, refs = [];
+  for (const it of items) {
+    if (!Number.isFinite(it.qty) || it.qty <= 0) throw new Error('refund qty must be positive');
+    const p = getProduct(state, it.id);
+    if (!p) throw new Error('product not found');
+    const unit = money(it.price != null ? it.price : p.sell);
+    back += unit * it.qty;
+    costBack += p.buy * it.qty;
+    p.stock += Math.floor(it.qty); // goods go back on the shelf
+    refs.push(p.name + 'x' + Math.floor(it.qty));
+  }
+  // the cost of those goods is undone (can't go below 0 for today's report)
+  state.day.soldCost = money(Math.max(0, state.day.soldCost - costBack));
+
+  if (opts.creditTo) {
+    // was a credit sale -> undo it on the (open) debt, no cash moves
+    const d = getDebtByName(state, opts.creditTo);
+    if (!d) throw new Error('no open debt for ' + opts.creditTo);
+    const maxBack = money(d.total - d.paid); // don't take the debt below what's already paid off
+    const applied = Math.min(back, maxBack);
+    d.total = money(d.total - applied);
+    if (d.total <= d.paid) d.settled = true;
+    pushEntry(state, 'refund', 0, refs.join(', '), 'credit refund: ' + opts.creditTo);
+  } else {
+    pushEntry(state, 'refund', -money(back), refs.join(', '), opts.reason || null);
+  }
+  return state;
+}
+
+// Refund something that was sold without stock tracking (service returned / wrong order).
+function refundFree(state, opts) {
+  state = rollover(clone(state));
+  if (!state.settings.allowRefund) throw new Error('refunds are turned off');
+  if (!opts || !opts.name || !opts.name.trim()) throw new Error('need an item name');
+  const qty = Math.floor(opts.qty || 1);
+  if (!Number.isFinite(qty) || qty <= 0) throw new Error('refund qty must be positive');
+  const back = money((opts.price || 0) * qty);
+  if (opts.creditTo) {
+    const d = getDebtByName(state, opts.creditTo);
+    if (!d) throw new Error('no open debt for ' + opts.creditTo);
+    const maxBack = money(d.total - d.paid);
+    const applied = Math.min(back, maxBack);
+    d.total = money(d.total - applied);
+    if (d.total <= d.paid) d.settled = true;
+    pushEntry(state, 'refund', 0, opts.name + 'x' + qty, 'credit refund: ' + opts.creditTo);
+  } else {
+    pushEntry(state, 'refund', -back, opts.name + 'x' + qty, opts.note || null);
+  }
+  return state;
 }
 
 // Shop expenses (rent, electricity, coffee for the owner...). Cash out.
@@ -233,7 +323,13 @@ function income(state, opts) {
 // ---------- debts (the notebook, digitized) ----------
 
 function getDebt(state, id) {
-  return state.debts.find((x) => x.id === id);
+  const real = idTrusted(state, id);
+  return state.debts.find(function (x) { return x.id === real; });
+}
+
+function getDebtByName(state, name) {
+  const n = String(name).toLowerCase();
+  return state.debts.find(function (x) { return x.name.toLowerCase() === n && !x.settled; });
 }
 
 function addDebt(state, opts) {
@@ -241,10 +337,10 @@ function addDebt(state, opts) {
   if (!opts || !opts.name || !opts.name.trim()) throw new Error('debt needs a customer name');
   const amount = money(opts.amount || 0);
   if (amount <= 0) throw new Error('debt amount must be positive');
-  const d = getDebt(state, idTrusted(state, opts.debtId)) || getDebtByName(state, opts.name);
+  const d = getDebt(state, opts.debtId) || getDebtByName(state, opts.name);
   if (d) {
     d.total = money(d.total + amount);
-    d.payments.push({ amount, at: new Date().toISOString(), kind: 'debt', note: opts.note || null });
+    d.payments.push({ amount: amount, at: new Date().toISOString(), kind: 'debt', note: opts.note || null });
   } else {
     state.debts.push({
       id: uid(),
@@ -252,7 +348,7 @@ function addDebt(state, opts) {
       phone: opts.phone || null,
       total: amount,
       paid: 0,
-      payments: [{ amount, at: new Date().toISOString(), kind: 'debt', note: opts.note || null }],
+      payments: [{ amount: amount, at: new Date().toISOString(), kind: 'debt', note: opts.note || null }],
       createdAt: new Date().toISOString(),
       settled: false
     });
@@ -260,20 +356,16 @@ function addDebt(state, opts) {
   return state;
 }
 
-function getDebtByName(state, name) {
-  return state.debts.find((x) => x.name.toLowerCase() === String(name).toLowerCase() && !x.settled);
-}
-
 // Customer pays what they owe: cash IN, debt down. Handles partial payments.
 function payDebt(state, debtId, opts) {
   state = rollover(clone(state));
-  const d = getDebt(state, idTrusted(state, debtId));
+  const d = getDebt(state, debtId);
   if (!d) throw new Error('debt not found');
   const remaining = money(d.total - d.paid);
   if (remaining <= 0) throw new Error('this debt is already settled');
   let amount = money((opts && opts.amount) || 0);
   if (amount <= 0) throw new Error('payment must be positive');
-  const pay = Math.min(amount, remaining); // can't overpay -> returns the excess automatically
+  const pay = Math.min(amount, remaining); // can't overpay -> the excess stays in the customer's pocket
   d.paid = money(d.paid + pay);
   d.payments.push({ amount: -pay, at: new Date().toISOString(), kind: 'pay', note: (opts && opts.note) || null });
   if (d.paid >= d.total) d.settled = true;
@@ -287,17 +379,34 @@ function debtsOwed(state) {
   return money(total);
 }
 
-// ---------- the numbers (stats) ----------
+// ---------- CASH CHECK: shopkeeper counts the drawer, we compare ----------
 
-// All the numbers for a daily report. teach-side: everything derives from the state.
-function stats(state) {
-  let sales = 0, buys = 0, expenses = 0, incomes = 0;
+// counted = the real money physically in the drawer right now.
+// The check is recorded (amount 0, so the cash identity is untouched),
+// and the day report shows expected vs counted vs the difference.
+function checkCash(state, opts) {
+  state = rollover(clone(state));
+  const counted = money(opts && opts.counted);
+  if (!Number.isFinite(counted)) throw new Error('counted must be a number');
+  const expected = cash(state);
+  const diff = money(counted - expected);
+  state.day.checks.push({ at: new Date().toISOString(), counted: counted, expected: expected, diff: diff, ok: diff === 0 });
+  pushEntry(state, 'check', 0, null, 'counted ' + counted + ', diff ' + (diff >= 0 ? '+' : '') + diff);
+  return state;
+}
+
+// ---------- the daily REPORT (how the money moved today) ----------
+
+function dayReport(state) {
+  let sales = 0, debtPays = 0, refunds = 0, buys = 0, expenses = 0, incomes = 0, checkCount = 0;
   for (const e of state.day.entries) {
     if (e.kind === 'sale') sales += e.amount;
+    else if (e.kind === 'debt-pay') debtPays += e.amount;
+    else if (e.kind === 'refund') refunds += -e.amount;
     else if (e.kind === 'buy') buys += -e.amount;
     else if (e.kind === 'expense') expenses += -e.amount;
     else if (e.kind === 'income') incomes += e.amount;
-    else if (e.kind === 'debt-pay') sales += e.amount; // money from debt payments is real revenue today
+    else if (e.kind === 'check') checkCount++;
   }
   let inventory = 0, lowStock = [];
   for (const p of state.products) {
@@ -305,38 +414,64 @@ function stats(state) {
     if (p.lowAt > 0 && p.stock <= p.lowAt) lowStock.push(p);
   }
   sales = money(sales);
+  debtPays = money(debtPays);
+  refunds = money(refunds);
   buys = money(buys);
   expenses = money(expenses);
   incomes = money(incomes);
   const costOfSold = money(state.day.soldCost);
+  const gross = money(sales + debtPays);        // everything that came in from selling today
+  const net = money(gross - refunds);           // after giving refunds back
+
   return {
-    cash: cash(state),
+    date: state.day.date,
+    openedAt: state.day.openedAt,
+    shop: state.shop,
+    currency: state.shop.currency,
+
+    // the cashbox story: started here, ended here, and every single move between
     startCash: state.day.startCash,
-    daySales: sales,
+    cash: cash(state),
+    entries: state.day.entries.map(function (e) { return { id: e.id, kind: e.kind, amount: e.amount, at: e.at, ref: e.ref, note: e.note }; }),
+    checks: state.day.checks.map(function (c) { return { at: c.at, counted: c.counted, expected: c.expected, diff: c.diff, ok: c.ok }; }),
+    lastCheck: state.day.checks.length ? state.day.checks[state.day.checks.length - 1] : null,
+
+    totals: { sales: sales, debtPays: debtPays, refunds: refunds, buys: buys, expenses: expenses, incomes: incomes, checks: checkCount },
+
+    // the money lines
+    grossSales: gross,
+    netSales: net,
+    daySales: gross,            // v1-compatible name
+    dayRefunds: refunds,
     dayBuys: buys,
     dayExpenses: expenses,
     dayIncomes: incomes,
-    costOfSold,
+    costOfSold: costOfSold,
+
+    // the shelf
     inventoryValue: money(inventory),
-    lowStock,
-    debts: {
-      total: money(debtsOwed(state)),
-      count: state.debts.filter((x) => !x.settled).length
-    },
-    // THE profit line: money in - everything money went to.
-    dayProfit: money(sales - costOfSold - buys - expenses)
+    lowStock: lowStock,
+
+    // the notebook
+    debts: { total: money(debtsOwed(state)), count: state.debts.filter(function (x) { return !x.settled; }).length },
+
+    // THE profit line: money in - everything money went to
+    dayProfit: money(net - costOfSold - buys - expenses)
   };
 }
 
-// ---------- deep helpers (kept out of the hot path) ----------
+// stats = the daily report (v1 name kept for compatibility)
+function stats(state) {
+  return dayReport(state);
+}
+
+// ---------- deep helpers ----------
 
 function clone(state) {
   return JSON.parse(JSON.stringify(state));
 }
-function productClone(state) {
-  return clone(state);
-}
-// accept either the id string itself or { id } — small DX nicety
+
+// accept either the id string itself or { id } — small convenience
 function idTrusted(state, id) {
   if (id && typeof id === 'object' && id.id) return id.id;
   return id;
@@ -346,8 +481,9 @@ function idTrusted(state, id) {
 
 const api = {
   createShop, addProduct, setProduct, removeProduct, getProduct,
-  buyStock, sell, sellFree, expense, income,
-  addDebt, payDebt, getDebt, debtsOwed, stats, cash, closeDay, rollover, todayStr
+  buyStock, sell, sellFree, refund, refundFree, expense, income,
+  addDebt, payDebt, getDebt, getDebtByName, debtsOwed,
+  checkCash, stats, dayReport, cash, closeDay, rollover, todayStr
 };
 
 if (typeof module !== 'undefined' && module.exports) module.exports = api;

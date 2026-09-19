@@ -78,8 +78,16 @@ function boot(seed, pre) {
 
   const $ = id => doc.getElementById(id);
   const click = (action, id, i) => {
+    // HONEST tiles for real: a report metric box carries `data-metric` (never
+    // `data-id`) — that is exactly what the page really renders (js/app.js
+    // builds '<button data-action="metric-open" data-metric="sales">').
+    // Pretending data-metric is data-id is what hid the metric panal bug
+    // («لا حركة اليوم» even after a real sale) for a week.
     const tile = el('t');
-    tile.getAttribute = k => (k === 'data-action' ? action : k === 'data-id' ? id : k === 'data-i' ? i : null);
+    tile.getAttribute = k => (k === 'data-action' ? action
+      : k === 'data-metric' ? (action === 'metric-open' ? id : null)
+      : k === 'data-id' ? (action === 'metric-open' ? null : id)
+      : k === 'data-i' ? i : null);
     doc._h.click[0]({ target: { closest: sel => (sel === '[data-action]' ? tile : null) } });
   };
   const goto = hash => {

@@ -1,8 +1,8 @@
-/* DEKKAN service worker — app shell precache, cache-first, offline-capable.
+﻿/* DEKKAN service worker â€” app shell precache, cache-first, offline-capable.
  * Bump SW_VERSION to force a refresh of the shell after a deploy. */
 'use strict';
 
-const SW_VERSION = 'v13';
+const SW_VERSION = 'v14';
 const SHELL = [
   './',
   './index.html',

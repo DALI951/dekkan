@@ -10,7 +10,7 @@
   const T = window.T;
   const LS_KEY = 'dekkan.v1';
   const BK_KEY = 'dekkan.backup';
-  const A_VERSION = '0.8.1';
+  const A_VERSION = '0.8.2';
 
   // ---------- state ----------
   let state = load();

@@ -310,6 +310,13 @@
   try { saved = localStorage.getItem(LS_LANG); } catch (e) {}
   T.lang = saved === 'en' ? 'en' : 'ar';
 
+  // The shell ships RTL (index.html: <html lang="ar" dir="rtl">). A hard refresh
+  // with English persisted used to restore only the TEXT — the document kept the
+  // Arabic side until the user re-toggled. Declare the real direction here too,
+  // on every boot, so the layout and the words always agree.
+  document.documentElement.lang = T.lang;
+  document.documentElement.dir = T.lang === 'ar' ? 'rtl' : 'ltr';
+
   window.T = T;
   // exposed for the i18n consistency check (node scripts/check-i18n.js)
   window.__DEKKAN_I18N__ = { AR: AR, EN: EN };

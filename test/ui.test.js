@@ -28,11 +28,12 @@ function el(id) {
 }
 
 // boot a fresh page with one product (Coca, sells at 1.500) already in the book
-// optional seed(s): mutate the state (with real core calls) BEFORE the page boots
-function boot(seed) {
+// optional seed(s): mutate the state (with real core calls) BEFORE the page boots;
+// a second callback can pre-fill localStorage (e.g. a persisted language) before the scripts load
+function boot(seed, pre) {
   const els = {};
   const doc = {
-    documentElement: { style: {} },
+    documentElement: { style: {}, lang: '', dir: '' },
     _h: {},
     getElementById(id) { return (els[id] = els[id] || el(id)); },
     querySelectorAll() { return []; },
@@ -67,6 +68,7 @@ function boot(seed) {
   const core = require(path.join(ROOT, 'core', 'dekkan-core.js'));
   let s = core.createShop({ name: 'Test', startCash: 50 });
   s = core.addProduct(s, { name: 'Coca', buy: 0.8, sell: 1.5, stock: 10, lowAt: 3 });
+  if (pre) pre(store);
   if (seed) s = seed(core, s);
   store['dekkan.v1'] = JSON.stringify(s);
 
@@ -90,7 +92,7 @@ function boot(seed) {
     saved().day.entries.forEach(e => { t += e.amount; });
     return Math.round(t * 1000) / 1000;
   };
-  return { $, click, goto, saved, cashNow, pid: s.products[0].id, T: sandbox.T };
+  return { $, click, goto, saved, cashNow, pid: s.products[0].id, T: sandbox.T, doc };
 }
 
 test('the amount due is on screen, follows the basket, and moves while typing', () => {
@@ -378,6 +380,21 @@ test('cashbox: Enter in the cash-out form books it (same as the button)', () => 
   ui.$('cbOutPurpose').fire('keydown', { key: 'Enter' });
 
   assert.strictEqual(ui.cashNow(), 43, 'till dropped by 7 via Enter');
+});
+
+test('lang: a hard refresh restores the LAYOUT (dir) with the language, not just the text', () => {
+  const ui = boot(null, store => { store['dekkan.lang'] = 'en'; });
+  assert.strictEqual(ui.doc.documentElement.dir, 'ltr',
+    'English persisted -> the shell is declared LEFT (not stuck on the Arabic side)');
+  assert.strictEqual(ui.doc.documentElement.lang, 'en', 'and the language attribute matches');
+  assert.strictEqual(ui.T.lang, 'en', 'the translation registry remembers English too');
+});
+
+test('lang: the default (nothing saved) stays on the Arabic side — the app\'s birth direction', () => {
+  const ui = boot();
+  assert.strictEqual(ui.doc.documentElement.dir, 'rtl',
+    'no saved choice means the RTL shell stays RTL');
+  assert.strictEqual(ui.doc.documentElement.lang, 'ar');
 });
 
 test('stock: the edit label is invisible by default and only appears on action', () => {

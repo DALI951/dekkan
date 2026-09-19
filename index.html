@@ -15,6 +15,16 @@
 <link rel="stylesheet" href="css/style.css">
 <script src="js/themes.js"></script>
 <script>if (window.DEK) window.DEK.Themes.restore();</script>
+<script>
+  /* Same no-flash pattern as themes: if English is what the shopkeeper saved,
+   * declare the LEFT direction BEFORE the first paint — otherwise a hard
+   * refresh draws the Arabic-side shell until lang.js boots and flips it. */
+  (function () {
+    var l = null;
+    try { l = localStorage.getItem('dekkan.lang'); } catch (e) {}
+    if (l === 'en') { document.documentElement.lang = 'en'; document.documentElement.dir = 'ltr'; }
+  })();
+</script>
 </head>
 <body>
 

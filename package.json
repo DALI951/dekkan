@@ -4,6 +4,8 @@
   "description": "Dekkan — Arabic-first small-shop kit. Cash box, stock, debts, profit. (The algorithm, tested.)",
   "private": true,
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "test:sim": "node scripts/simulate.js",
+    "check": "node --test && node scripts/simulate.js"
   }
 }

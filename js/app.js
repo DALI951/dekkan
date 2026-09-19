@@ -10,7 +10,7 @@
   const T = window.T;
   const LS_KEY = 'dekkan.v1';
   const BK_KEY = 'dekkan.backup';
-  const A_VERSION = '0.5.0';
+  const A_VERSION = '0.6.0';
 
   // ---------- state ----------
   let state = load();
@@ -35,11 +35,19 @@
   function load() {
     try {
       const a = localStorage.getItem(LS_KEY);
-      if (a) return JSON.parse(a);
+      if (a) return migrate(JSON.parse(a));
       const b = localStorage.getItem(BK_KEY);
-      if (b) return JSON.parse(b);
+      if (b) return migrate(JSON.parse(b));
     } catch (e) { /* fresh start below */ }
     return D.createShop({ name: T.t('app.name') });
+  }
+  // saved states made before the customer registry existed (v2 shops)
+  function migrate(s) {
+    if (!s || !Array.isArray(s.customers)) {
+      if (!s) s = {};
+      s.customers = [];
+    }
+    return s;
   }
   window.addEventListener('pagehide', save);
 
@@ -163,6 +171,14 @@
     if (disc > 0) parts.push(T.t('sell.discount') + ' ' + money(disc));
     $('dueBox').classList.toggle('empty', net <= 0);
     $('dueHint').textContent = net > 0 ? parts.join(' · ') : T.t('sell.nothingYet');
+
+    // the queue: which # the next customer takes (the # on their receipt)
+    $('queueLine').textContent = T.t('sell.nextClient') + ' #' + D.nextClientNo(state);
+
+    // the counter's memory: names you can pick while typing
+    $('customerList').innerHTML = D.customerNames(state).map(function (n) {
+      return '<option value="' + esc(n) + '"></option>';
+    }).join('');
 
     renderChange(net);
     renderFreePrev();
@@ -302,6 +318,7 @@
       const amt = e.amount === 0 ? '—' : money(e.amount);
       eh += '<div class="entry">'
         + '<span class="e-kind k-' + e.kind + '">' + kindLabel(e.kind) + '</span>'
+        + (e.no ? '<span class="e-no">#' + e.no + '</span>' : '')
         + '<span class="growx"><span class="e-time">' + entryTime(e.at) + '</span>'
         + (e.note ? '<span class="e-note">' + esc(e.note) + '</span>' : '') + '</span>'
         + '<span class="e-amt ' + cls + '">' + amt + '</span>'
@@ -413,66 +430,105 @@
     if (act === 'debt-del') run(function (s) { return D.removeDebt(s, id); }, T.t('toast.debtDeleted'));
   });
 
+  // ----- the till: one checkout = one client = one receipt -----
+  function showReceipt(r) {
+    const rec = $('receipt');
+    $('rShop').textContent = state.shop.name;
+    $('rWhen').textContent = D.todayStr() + ' ' + entryTime(new Date().toISOString());
+    $('rClient').textContent = r.customer ? esc(r.customer) + ' #' + r.no : '#' + r.no;
+    $('rLines').innerHTML = r.lines.map(function (l) {
+      return '<div class="r-line"><span>' + esc(l.name) + ' <span class="r-q">×' + l.qty
+        + ' @ ' + money(l.price) + '</span></span><b>' + money(l.total) + '</b></div>';
+    }).join('') || '<div class="empty">—</div>';
+
+    let t = '<div class="r-row big"><span>' + T.t('receipt.total') + '</span><b>' + money(r.net) + '</b></div>';
+    if (r.discount > 0) t += '<div class="r-row dim"><span>' + T.t('sell.discount') + '</span><span>−' + money(r.discount) + '</span></div>';
+    if (r.paid !== null) {
+      t += '<div class="r-row"><span>' + T.t('receipt.paid') + '</span><b>' + money(r.paid) + '</b></div>';
+      if (r.change > 0) t += '<div class="r-row ok"><span>' + T.t('sell.change') + '</span><b>' + money(r.change) + '</b></div>';
+      else if (r.rest > 0) t += '<div class="r-row bad"><span>' + T.t('sell.rest') + '</span><b>' + money(r.rest) + '</b></div>';
+    } else if (r.rest > 0) {
+      t += '<div class="r-row bad"><span>' + T.t('sell.rest') + '</span><b>' + money(r.rest) + '</b></div>';
+    }
+    $('rTotals').innerHTML = t;
+    rec.classList.remove('hidden');
+    if (document.body) document.body.classList.add('no-scroll');
+  }
+  function hideReceipt() {
+    $('receipt').classList.add('hidden');
+    if (document.body) document.body.classList.remove('no-scroll');
+  }
+
+  $('btnReceiptClose').addEventListener('click', hideReceipt);
+  $('receipt').addEventListener('click', function (ev) {
+    if (ev.target === $('receipt')) hideReceipt();
+  });
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Escape' && !$('receipt').classList.contains('hidden')) hideReceipt();
+  });
+
   $('btnSell').addEventListener('click', function () {
-    const creditName = $('creditName').value.trim();
+    const customer = $('creditName').value.trim();
     const discAmt = parseFloat($('discAmt').value) || 0;
     const discPct = parseFloat($('discPct').value) || 0;
-    let discount = null;
-    if (discAmt > 0) discount = { amount: discAmt };
-    else if (discPct > 0) discount = { percent: discPct };
 
     const items = basket.map(function (b) { return { id: b.id, qty: b.qty }; });
-    if (items.length === 0 && freeItems.length === 0) return toast(T.t('basket.empty'), true);
+    const free = freeItems.map(function (f) { return { name: f.name, price: f.price, qty: f.qty }; });
+    if (items.length === 0 && free.length === 0) return toast(T.t('basket.empty'), true);
 
     const paidRaw = $('paidCash').value.trim();
     const paid = paidRaw === '' ? null : parseFloat(paidRaw);
     if (paid !== null && (!Number.isFinite(paid) || paid < 0)) return toast(T.t('toast.paidBad'), true);
 
-    // net of the whole till (stock items + free items, minus the discount)
-    const stockSubtotal = basket.reduce(function (a, b) {
+    // the whole bill: stock + free, one discount, shown before they hand money over
+    const subtotal = basket.reduce(function (a, b) {
       const p = D.getProduct(state, b.id);
       return a + (p ? p.sell * b.qty : 0);
-    }, 0);
-    const freeSubtotal = freeItems.reduce(function (a, f) { return a + f.price * f.qty; }, 0);
-    const stockDisc = discAmt > 0
-      ? Math.min(discAmt, stockSubtotal)
-      : Math.min(stockSubtotal * discPct / 100, stockSubtotal);
-    const stockNet = n3(Math.max(0, stockSubtotal - stockDisc));
-    const tillNet = n3(stockNet + freeSubtotal);
+    }, 0) + freeItems.reduce(function (a, f) { return a + f.price * f.qty; }, 0);
+    const disc = discAmt > 0
+      ? Math.min(discAmt, subtotal)
+      : Math.min(subtotal * discPct / 100, subtotal);
+    const net = n3(Math.max(0, subtotal - disc));
 
-    if (paid !== null && paid < tillNet && !creditName) return toast(T.t('toast.restName'), true);
+    if (paid !== null && paid < net && !customer) return toast(T.t('toast.restName'), true);
 
-    // Spread what was handed over across the calls, so cash NEVER counts money twice.
-    // left = still unallocated cash; each sale takes min(left, its own net).
-    let left = paid;
-    function withPaid(net, extra) {
-      if (left === null) {
-        return Object.assign({ creditTo: creditName || undefined }, extra);
-      }
-      const take = n3(Math.min(left, net));
-      left = n3(left - take);
-      return Object.assign({ paid: take, creditTo: (take < net ? creditName : '') || undefined }, extra);
-    }
+    // the lines of the receipt, from what's in the basket right now
+    const lines = [];
+    basket.forEach(function (b) {
+      const p = D.getProduct(state, b.id);
+      if (p) lines.push({ name: p.name, qty: b.qty, price: p.sell, total: n3(p.sell * b.qty) });
+    });
+    freeItems.forEach(function (f) { lines.push({ name: f.name, qty: f.qty, price: f.price, total: n3(f.price * f.qty) }); });
+
+    // the number this client takes — captured BEFORE the sale records it
+    const clientNo = D.nextClientNo(state);
 
     try {
-      if (items.length) {
-        state = D.sell(state, withPaid(stockNet, { items: items, discount: discount }));
-      }
-      freeItems.forEach(function (f) {
-        state = D.sellFree(state, withPaid(money(f.price * f.qty), { name: f.name, price: f.price, qty: f.qty }));
+      const opts = {
+        customer: customer || undefined,
+        discount: disc > 0
+          ? (discAmt > 0 ? { amount: discAmt } : { percent: discPct })
+          : null,
+        paid: paid === null ? undefined : paid
+      };
+      if (items.length) opts.items = items;
+      if (free.length) opts.free = free;
+      state = D.sellAll(state, opts);
+      save();
+
+      const rest = net - (paid === null ? 0 : Math.min(paid, net));
+      const change = (paid === null ? 0 : Math.max(0, paid - net));
+      showReceipt({
+        customer: customer, no: clientNo, lines: lines,
+        discount: n3(disc), net: net, paid: paid, rest: n3(rest), change: n3(change)
       });
-      const change = paid !== null ? n3(Math.max(0, paid - tillNet)) : 0;
-      save(); basket = []; freeItems = [];
+
+      basket = []; freeItems = [];
       $('discPct').value = ''; $('discAmt').value = ''; $('creditName').value = ''; $('paidCash').value = '';
       render();
-      if (change > 0) {
-        // the one number the shopkeeper must act on right now
-        toast(T.t('toast.change') + ' ' + money(change), false, 9000);
-      } else if (paid !== null && paid < tillNet) {
-        toast(T.t('toast.saleRest') + ' ' + money(tillNet - paid) + ' — ' + creditName);
-      } else {
-        toast(creditName ? T.t('toast.saleCredit') + creditName : T.t('toast.saleOk'));
-      }
+      if (rest > 0) toast(T.t('toast.saleRest') + money(rest) + (customer ? ' — ' + customer : ''));
+      else if (customer) toast(T.t('toast.saleCredit') + customer);
+      else toast(T.t('toast.saleOk'));
     } catch (e) { toast(e.message, true); }
   });
 

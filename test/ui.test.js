@@ -139,6 +139,9 @@ test('checkout: a part payment puts the rest on the customer', () => {
   assert.strictEqual(debts[0].name, 'Samir');
   assert.strictEqual(debts[0].total, 0.5, 'the 0.500 rest is on Samir');
   assert.ok(ui.$('toast').textContent.indexOf('Samir') !== -1, 'the toast says who owes');
+  assert.ok(ui.$('rClient').textContent.indexOf('Samir #1') !== -1, 'the receipt shows the customer and their #1');
+  // the stub DOM writes receipt lines/totals via innerHTML, so read innerHTML here
+  assert.ok(ui.$('rTotals').innerHTML.indexOf('0.500') !== -1, 'the paper spells out the rest');
   assert.match(ui.$('basketTotal').textContent, /^0\.000/, 'the basket resets');
 });
 
@@ -151,9 +154,10 @@ test('checkout: paying too much shows the change and never inflates the box', ()
 
   assert.strictEqual(ui.cashNow(), 51.5, 'cash rises by the price only');
   assert.strictEqual(ui.saved().debts.length, 0, 'overpay never creates a debt');
-  const t = ui.$('toast').textContent;
-  assert.ok(t.indexOf('3.500') !== -1, 'the change is spelled out');
-  assert.strictEqual(t.split('د.ت').length - 1, 1, 'currency printed once (no "د.ت د.ت")');
+  const r = ui.$('rTotals').innerHTML; // stub: totals are written via innerHTML
+  assert.ok(r.indexOf('3.500') !== -1, 'the change is spelled out on the receipt');
+  assert.strictEqual(r.split('د.ت').length - 1, 3, 'three amounts on the paper (total, paid, change)');
+  assert.ok(ui.$('rClient').textContent.indexOf('#1') !== -1, 'the walk-in is the day\'s #1');
 });
 
 test('checkout: a shortage with no name is refused, and nothing changes', () => {

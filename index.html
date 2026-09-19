@@ -107,13 +107,14 @@
         <label><span data-i18n="disc.pct">خصم %</span><input type="number" id="discPct" min="0" max="100" placeholder="0"></label>
         <label><span data-i18n="disc.flat">خصم ثابت</span><input type="number" id="discAmt" min="0" placeholder="0.000"></label>
       </div>
-      <label><span data-i18n="credit.label">اسم الزبون</span><input type="text" id="creditName" data-i18n-ph="credit.ph"></label>
+      <label><span data-i18n="credit.label">اسم الزبون</span><input type="text" id="creditName" list="customerList" data-i18n-ph="credit.ph"><datalist id="customerList"></datalist></label>
       <div class="due" id="dueBox">
         <div class="due-l">
           <span data-i18n="sell.due">المطلوب دفعه</span>
           <small id="dueHint"></small>
         </div>
         <strong class="due-n" id="basketTotal">0.000 د.ت</strong>
+        <span class="queue" id="queueLine"></span>
       </div>
       <label><span data-i18n="sell.paid">المبلغ المدفوع</span><input type="number" id="paidCash" min="0" step="0.001" data-i18n-ph="sell.paidPh"></label>
       <div id="changeLine" class="chg hidden"></div>
@@ -259,6 +260,23 @@
     </div>
   </section>
 </main>
+
+<!-- ================= receipt (the client's paper, shown after every sale) ================= -->
+<div id="receipt" class="receipt hidden" role="dialog" aria-modal="true">
+  <div class="receipt-card">
+    <div class="r-head">
+      <div class="r-brand">
+        <span class="r-logo">د</span>
+        <div><b id="rShop"></b><small id="rWhen"></small></div>
+      </div>
+      <button class="btn ghost" id="btnReceiptClose" data-i18n="receipt.close">تمام</button>
+    </div>
+    <div class="r-client"><span data-i18n="receipt.client">الزبون</span><b id="rClient"></b></div>
+    <div class="r-lines" id="rLines"></div>
+    <div class="r-totals" id="rTotals"></div>
+    <p class="r-thanks" data-i18n="receipt.thanks">شكراً لزيارتكم</p>
+  </div>
+</div>
 
 <div id="toast" class="toast hidden"></div>
 

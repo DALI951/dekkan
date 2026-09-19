@@ -171,6 +171,55 @@ ok(D.dayReport(s).entries.length === 1, 'day 2 report only shows today moves (ye
 
 console.log('-- day rollover: closed day frozen, new day rolls on');
 
+// --- CLIENT NUMBERS + THE COUNTER'S MEMORY ---
+// Every customer of the day gets a # (walk-ins too), the queue empties
+// at midnight, and the registry only ever remembers names that were typed.
+console.log('\n-- client numbers: one # per customer — walk-ins and named alike');
+
+let c3 = D.cash(s);
+s = D.closeDay(s);   // day 2 done -> day 3 opens with an empty queue
+ok(D.nextClientNo(s) === 1, 'new day opens — the queue starts at #1 again');
+
+// #1: a walk-in buys 2 pains, cash, no name
+const namesBefore = D.customerNames(s).length;   // Samir, Ahmed, Rami from the notebook story
+s = D.sellAll(s, { items: [{ id: s.products[1].id, qty: 2 }] });   // 2.00
+c3 += 2;
+ok(D.cash(s) === c3, 'walk-in #1 pays cash (2.00 in)');
+ok(D.customerNames(s).length === namesBefore, 'no name typed -> the walk-in adds NOBODY to the memory');
+ok(s.day.entries.filter(function (e) { return e.kind === 'sale'; })[0].note === null,
+  'the receipt has no name to print — just the #');
+
+// #2: Mahmoud pays exact cash WITH a name — remembered, no debt
+const debtsBefore = s.debts.length;   // only Rami's old 2.00 is open
+s = D.sellAll(s, { items: [{ id: s.products[0].id, qty: 2 }], paid: 3, customer: 'Mahmoud' });
+c3 += 3;
+ok(D.cash(s) === c3, 'exact 3.00 in, nothing on the notebook');
+ok(D.customerNames(s)[0] === 'Mahmoud', 'Mahmoud joins the counter\'s memory');
+ok(s.debts.length === debtsBefore, 'exact money adds no debt — Rami\'s old one is untouched');
+
+// #3: a MIXED basket (cola + cafe) is ONE numbered client
+s = D.sellAll(s, { items: [{ id: s.products[0].id, qty: 1 }], free: [{ name: 'Cafe', price: 2, qty: 1 }] });
+c3 += 3.5;
+ok(D.cash(s) === c3, 'mixed bill: 3.50 in one payment');
+ok(D.nextClientNo(s) === 4, 'a stock+free basket is ONE client, not two');
+const day3 = D.dayReport(s).entries.filter(function (e) { return e.kind === 'sale'; });
+ok(day3.length === 3, 'day 3 so far: exactly 3 numbered sales');
+ok(day3[0].no === 1 && day3[1].no === 2 && day3[2].no === 3, 'the ledger numbers them #1 #2 #3 in order');
+
+// #4: Riadh takes a cola on credit — numbered too
+s = D.sellAll(s, { items: [{ id: s.products[0].id, qty: 1 }], customer: 'Riadh' });
+ok(D.nextClientNo(s) === 5, 'credit customers are customers too');
+ok(D.customerNames(s)[0] === 'Riadh', 'Riadh jumps to the top of the counter\'s memory');
+
+// a refund is NOT a customer
+s = D.refund(s, { items: [{ id: s.products[1].id, qty: 1 }] });
+c3 -= 1;
+ok(D.cash(s) === c3, 'the refund moved cash back (open to close honesty holds)');
+ok(D.nextClientNo(s) === 5, 'a refund does not take a number — the queue waits');
+ok(D.customerNames(s).length === namesBefore + 2, 'memory grew by exactly the two NAMED customers (Mahmoud, Riadh)');
+
+console.log('-- the counter remembers only named customers, and never runs out of #s');
+
 // --- the brain also loads in a BROWSER (window.Dekkan), not just node ---
 const vm = require('node:vm');
 const fs = require('node:fs');

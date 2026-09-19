@@ -42,6 +42,7 @@
     'sell.items': 'قطع',
     'sell.discount': 'خصم',
     'sell.nothingYet': 'أضف منتوجًا للسلة',
+    'sell.nextClient': 'الزبون القادم #',
     'sell.lineTotal': 'المجموع',
     'sell.go': 'تسجيل البيع',
     'stock.left': 'متبقية', 'stock.leftEn': 'left',
@@ -118,7 +119,11 @@
     'toast.debtDeleted': 'حُذف من السجل',
     'toast.resetConfirm': 'مسح كل بيانات المحل؟ هذا لا يُرجع. (يمكنك حفظ نسخة أولًا)',
     'toast.resetOk': 'بدأنا من جديد',
-    'toast.restock': 'أُضيف للمخزون'
+    'toast.restock': 'أُضيف للمخزون',
+
+    'receipt.title': 'الفاتورة', 'receipt.client': 'الزبون',
+    'receipt.close': 'تمام', 'receipt.thanks': 'شكراً لزيارتكم',
+    'receipt.total': 'المجموع', 'receipt.paid': 'المدفوع'
   };
 
   const EN = {
@@ -154,6 +159,7 @@
     'sell.items': 'item(s)',
     'sell.discount': 'discount',
     'sell.nothingYet': 'add a product to the basket',
+    'sell.nextClient': 'Next customer #',
     'sell.lineTotal': 'Line total',
     'sell.go': 'Record sale',
     'stock.left': 'left', 'stock.leftEn': 'left',
@@ -231,7 +237,11 @@
     'toast.debtDeleted': 'Deleted from the record',
     'toast.resetConfirm': "Erase all shop data? This can't be undone. (Export a backup first)",
     'toast.resetOk': 'Fresh start',
-    'toast.restock': 'Added to stock'
+    'toast.restock': 'Added to stock',
+
+    'receipt.title': 'Receipt', 'receipt.client': 'Customer',
+    'receipt.close': 'Done', 'receipt.thanks': 'Thank you for visiting',
+    'receipt.total': 'Total', 'receipt.paid': 'Paid'
   };
 
   const T = {

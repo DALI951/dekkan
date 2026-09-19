@@ -14,6 +14,13 @@
 //   - discounts (percent or flat) reduce what the customer pays; cost is untouched.
 //   - A day auto-closes and a new one opens the moment a write happens on a
 //     new date. Closing cash of day N = starting cash of day N+1.
+//   - EVERY customer of the day gets a client NUMBER (#1, #2, ...), counting
+//     the sales of THIS day only. It resets to 1 each morning. One checkout
+//     (sellAll) = ONE sale entry = one number, so the receipt always shows
+//     the customer's number — with a name ("Mahmoud #3") or without ("#3").
+//   - The CUSTOMER REGISTRY keeps names you've ever used (from sales and the
+//     notebook) so the counter can suggest them while you type. Names are
+//     never required: an unnamed sale is a walk-in customer.
 //   - The shopkeeper can do a CASH CHECK: count the drawer, compare with the
 //     computed cash. Every check is recorded in the day.
 //   - profit for the day = money in - everything money went to
@@ -45,13 +52,15 @@ function createShop(opts) {
   const start = money(opts.startCash || 0);
   const now = new Date().toISOString();
   return {
-    version: 2,
+    version: 3,
     shop: { name: opts.name || 'My Shop', currency: opts.currency || 'TND' },
     // Options the shopkeeper can turn on/off. The UI shows/hides them.
     settings: {
       allowDiscount: opts.allowDiscount !== undefined ? !!opts.allowDiscount : true,
       allowRefund: opts.allowRefund !== undefined ? !!opts.allowRefund : true
     },
+    // every customer name ever used (sales + notebook) — the counter's memory
+    customers: [],
     products: [],
     debts: [],
     days: [],
@@ -73,6 +82,69 @@ function pushEntry(state, kind, amount, ref, note) {
     id: uid(), kind, amount: money(amount), at: new Date().toISOString(), ref: ref || null, note: note || null
   });
   return state;
+}
+
+// ---------- customers (the registry behind the counter's memory) ----------
+
+// Remember a customer name so the counter can suggest it later.
+// A name is optional for a sale (walk-in customer) — we only EVER record
+// names that were actually typed. The registry is kept MOST-RECENT-FIRST:
+// a returning customer jumps back to the top of the suggestions.
+function ensureCustomer(state, name, phone) {
+  state = rollover(clone(state));
+  const trimmed = String(name || '').trim();
+  if (!trimmed) return state;
+  const low = trimmed.toLowerCase();
+  const hitIdx = state.customers.findIndex(function (c) { return c.name.toLowerCase() === low; });
+  if (hitIdx >= 0) {
+    const hit = state.customers[hitIdx];
+    state.customers.splice(hitIdx, 1);
+    if (phone && !hit.phone) hit.phone = String(phone);
+    hit.lastSeenAt = new Date().toISOString();
+    state.customers.unshift(hit);
+  } else {
+    state.customers.unshift({
+      id: uid(),
+      name: trimmed,
+      phone: phone || null,
+      createdAt: new Date().toISOString(),
+      lastSeenAt: new Date().toISOString()
+    });
+  }
+  return state;
+}
+
+// Every customer we've ever served, most recent first (for the datalist).
+function customerNames(state) {
+  return state.customers.map(function (c) { return c.name; });
+}
+
+// ---------- client numbers (the #1, #2, ... of today) ----------
+
+// Count the numbered sales of TODAY. Each sellAll checkout = exactly ONE
+// sale entry, so this count IS the day's client counter. If the open day
+// is yesterday's, today simply hasn't sold anything yet.
+function salesToday(state) {
+  if (state.day.date !== todayStr()) return 0;
+  let n = 0;
+  for (const e of state.day.entries) if (e.kind === 'sale') n++;
+  return n;
+}
+
+// The number the NEXT customer will get (#1 on a fresh day).
+function nextClientNo(state) {
+  return salesToday(state) + 1;
+}
+
+// The number of a specific sale entry (1-based within its day), or null.
+function clientNoOf(state, entryId) {
+  let n = 0;
+  for (const e of state.day.entries) {
+    if (e.kind !== 'sale') continue;
+    n++;
+    if (e.id === entryId) return n;
+  }
+  return null;
 }
 
 // ---------- day rollover ----------
@@ -192,18 +264,24 @@ function buyStock(state, productId, qty, unitBuy) {
 }
 
 // How a sale gets paid — ONE place, so cash and debts can never disagree:
-//   no paid, no creditTo -> plain cash sale (the till takes the whole net)
-//   creditTo only        -> full credit (no cash moves, the whole net is debt)
+//   customer = the client's NAME (optional — walk-ins happen; Dali's rule).
+//              creditTo is the old alias for "full credit on this name".
+//   no paid, no customer -> plain cash sale (the till takes the whole net)
+//   customer only        -> full credit (no cash moves, the whole net is debt)
 //   paid = X (X < net)   -> PARTIAL: the till takes X, the rest (net - X) is
-//                           debt on creditTo (a name is required for the rest).
+//                           debt on the customer (a name is required for it).
 //   paid = X (X > net)   -> the till only ever keeps net; the extra is CHANGE
 //                           the shop gives back, it never enters the cash box.
+// A typed name is ALWAYS recorded (entry note + registry) — even for exact
+// cash or overpay. The number on the receipt comes from the sale entry.
 function applyPayment(state, net, opts, refText) {
+  const customer = String(opts.customer || opts.creditTo || '').trim();
   const hasPaid = opts.paid !== undefined && opts.paid !== null && opts.paid !== '';
   if (!hasPaid) {
-    if (opts.creditTo) {
-      pushEntry(state, 'sale', 0, refText, 'credit: ' + opts.creditTo);
-      return addDebt(state, { name: opts.creditTo, phone: opts.phone, amount: net, note: opts.note || refText });
+    if (customer) {
+      pushEntry(state, 'sale', 0, refText, opts.note || customer);
+      state = ensureCustomer(state, customer, opts.phone);
+      return addDebt(state, { name: customer, phone: opts.phone, amount: net, note: opts.note || refText });
     }
     pushEntry(state, 'sale', net, refText, opts.note || null);
     return state;
@@ -213,13 +291,54 @@ function applyPayment(state, net, opts, refText) {
   const cashIn = money(Math.min(paid, net));
   const left = money(net - cashIn);
   if (left > 0) {
-    const name = String(opts.creditTo || '').trim();
-    if (!name) throw new Error('the unpaid rest needs a customer name');
-    pushEntry(state, 'sale', cashIn, refText, opts.note || name);
-    return addDebt(state, { name: name, phone: opts.phone, amount: left, note: opts.note || refText });
+    if (!customer) throw new Error('the unpaid rest needs a customer name');
+    pushEntry(state, 'sale', cashIn, refText, opts.note || customer);
+    state = ensureCustomer(state, customer, opts.phone);
+    return addDebt(state, { name: customer, phone: opts.phone, amount: left, note: opts.note || refText });
   }
-  pushEntry(state, 'sale', cashIn, refText, opts.note || null);
+  pushEntry(state, 'sale', cashIn, refText, opts.note || customer || null);
+  if (customer) state = ensureCustomer(state, customer, opts.phone);
   return state;
+}
+
+// FULL CHECKOUT — one customer, one bill, one numbered sale entry.
+//   A basket can mix stock items ({id, qty, price?}) and free lines
+//   ({name, price, qty}) — the discount cuts the WHOLE bill, payment is
+//   settled once, and the entry (and its client #) is created once.
+function sellAll(state, opts) {
+  state = rollover(clone(state));
+  opts = opts || {};
+  const items = Array.isArray(opts.items) ? opts.items : [];
+  const free = Array.isArray(opts.free) ? opts.free : [];
+  if (items.length + free.length === 0) throw new Error('nothing to sell');
+
+  let revenue = 0, cost = 0, refs = [];
+  for (const it of items) {
+    if (!Number.isFinite(it.qty) || it.qty <= 0) throw new Error('qty must be positive');
+    if (it.price != null && (!Number.isFinite(it.price) || it.price < 0)) throw new Error('price must be zero or more');
+    const p = getProduct(state, it.id);
+    if (!p) throw new Error('product not found');
+    if (p.stock < Math.floor(it.qty)) {
+      throw new Error('not enough stock for ' + p.name + ' (have ' + p.stock + ', need ' + it.qty + ')');
+    }
+    const unit = money(it.price != null ? it.price : p.sell);
+    revenue += unit * it.qty;
+    cost += p.buy * it.qty;
+    p.stock -= Math.floor(it.qty);
+    refs.push(p.name + 'x' + Math.floor(it.qty));
+  }
+  for (const f of free) {
+    if (!f || !f.name || !String(f.name).trim()) throw new Error('free item needs a name');
+    if (!Number.isFinite(f.qty) || f.qty <= 0) throw new Error('free qty must be positive');
+    if (!Number.isFinite(f.price) || f.price < 0) throw new Error('free price must be zero or more');
+    revenue += money(f.price) * f.qty;
+    refs.push(String(f.name).trim() + 'x' + Math.floor(f.qty));
+  }
+  state.day.soldCost += money(cost);
+  const net = money(revenue - discountOff(state, revenue, opts.discount));
+
+  state = applyPayment(state, net, opts, refs.join(', '));
+  return clone(state);
 }
 
 // One sale, possibly many products at once (full basket at checkout).
@@ -377,7 +496,7 @@ function addDebt(state, opts) {
       settled: false
     });
   }
-  return state;
+  return ensureCustomer(state, opts.name, opts.phone);
 }
 
 // Customer pays what they owe: cash IN, debt down. Handles partial payments.
@@ -501,9 +620,16 @@ function dayReport(state) {
     currency: state.shop.currency,
 
     // the cashbox story: started here, ended here, and every single move between
+    // (sale moves carry their client number of the day: #1, #2, ...)
     startCash: state.day.startCash,
     cash: cash(state),
-    entries: state.day.entries.map(function (e) { return { id: e.id, kind: e.kind, amount: e.amount, at: e.at, ref: e.ref, note: e.note }; }),
+    entries: (function () {
+      let n = 0;
+      return state.day.entries.map(function (e) {
+        if (e.kind === 'sale') n++;
+        return { id: e.id, kind: e.kind, amount: e.amount, at: e.at, ref: e.ref, note: e.note, no: e.kind === 'sale' ? n : null };
+      });
+    })(),
     checks: state.day.checks.map(function (c) { return { at: c.at, counted: c.counted, expected: c.expected, diff: c.diff, ok: c.ok }; }),
     lastCheck: state.day.checks.length ? state.day.checks[state.day.checks.length - 1] : null,
 
@@ -552,8 +678,10 @@ function idTrusted(state, id) {
 
 const api = {
   createShop, addProduct, setProduct, removeProduct, getProduct,
-  buyStock, sell, sellFree, refund, refundFree, expense, income,
+  buyStock, sell, sellAll, sellFree, refund, refundFree, expense, income,
   addDebt, payDebt, getDebt, getDebtByName, debtsOwed, removeDebt,
+  ensureCustomer, customerNames,
+  salesToday, nextClientNo, clientNoOf,
   updateShop, setSettings,
   checkCash, stats, dayReport, cash, closeDay, rollover, todayStr
 };

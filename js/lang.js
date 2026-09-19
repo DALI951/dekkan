@@ -73,6 +73,8 @@
     'report.matched': 'مطابق', 'report.diff': 'فرق: ',
     'report.noChecks': 'لم تعدَّ الصندوق اليوم بعد',
     'report.noMoves': 'لا حركة اليوم بعد',
+    'report.tickets': 'فواتير اليوم', 'report.noTickets': 'لا فواتير بعد',
+    'report.today': 'اليوم', 'report.past': 'أيام سابقة',
     'report.chip.start': 'فلوس الصبح', 'report.chip.now': 'في الصندوق الآن',
     'report.chip.sales': 'مبيعات اليوم', 'report.chip.refunds': 'استرجاعات',
     'report.chip.expenses': 'مصاريف', 'report.chip.buys': 'شراء مخزون',
@@ -123,7 +125,7 @@
     'toast.restock': 'أُضيف للمخزون',
 
     'receipt.title': 'الفاتورة', 'receipt.client': 'الزبون',
-    'receipt.close': 'تمام', 'receipt.thanks': 'شكراً لزيارتكم',
+    'receipt.close': 'تمام', 'receipt.print': 'طباعة', 'receipt.thanks': 'شكراً لزيارتكم',
     'receipt.total': 'المجموع', 'receipt.paid': 'المدفوع'
   };
 
@@ -191,6 +193,8 @@
     'report.matched': 'Matches', 'report.diff': 'diff: ',
     'report.noChecks': 'No box counts yet today',
     'report.noMoves': 'No movement today',
+    'report.tickets': "Today's tickets", 'report.noTickets': 'No tickets yet',
+    'report.today': 'Today', 'report.past': 'Past days',
     'report.chip.start': 'MORNING CASH', 'report.chip.now': 'IN BOX NOW',
     'report.chip.sales': "TODAY'S SALES", 'report.chip.refunds': 'REFUNDS',
     'report.chip.expenses': 'EXPENSES', 'report.chip.buys': 'STOCK BUYS',
@@ -242,7 +246,7 @@
     'toast.restock': 'Added to stock',
 
     'receipt.title': 'Receipt', 'receipt.client': 'Customer',
-    'receipt.close': 'Done', 'receipt.thanks': 'Thank you for visiting',
+    'receipt.close': 'Done', 'receipt.print': 'Print', 'receipt.thanks': 'Thank you for visiting',
     'receipt.total': 'Total', 'receipt.paid': 'Paid'
   };
 

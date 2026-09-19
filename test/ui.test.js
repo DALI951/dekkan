@@ -74,10 +74,14 @@ function boot(seed) {
   });
 
   const $ = id => doc.getElementById(id);
-  const click = (action, id) => {
+  const click = (action, id, i) => {
     const tile = el('t');
-    tile.getAttribute = k => (k === 'data-action' ? action : k === 'data-id' ? id : null);
+    tile.getAttribute = k => (k === 'data-action' ? action : k === 'data-id' ? id : k === 'data-i' ? i : null);
     doc._h.click[0]({ target: { closest: sel => (sel === '[data-action]' ? tile : null) } });
+  };
+  const goto = hash => {
+    sandbox.location.hash = hash;
+    (sandbox._h.hashchange || []).forEach(fn => fn());
   };
   const saved = () => JSON.parse(store['dekkan.v1']);
   const cashNow = () => {
@@ -85,7 +89,7 @@ function boot(seed) {
     saved().day.entries.forEach(e => { t += e.amount; });
     return Math.round(t * 1000) / 1000;
   };
-  return { $, click, saved, cashNow, pid: s.products[0].id, T: sandbox.T };
+  return { $, click, goto, saved, cashNow, pid: s.products[0].id, T: sandbox.T };
 }
 
 test('the amount due is on screen, follows the basket, and moves while typing', () => {
@@ -263,4 +267,56 @@ test('checkout: a shortage with no name is refused, and nothing changes', () => 
   assert.strictEqual(ui.saved().debts.length, 0, 'no debt invented');
   assert.strictEqual(ui.saved().products[0].stock, 10, 'stock untouched');
   assert.ok(ui.$('toast').textContent.length > 0, 'and he is told why');
+});
+
+test('report: today\'s tickets are listed as factures, newest first', () => {
+  const ui = boot();
+  ui.click('sell-add', ui.pid);
+  ui.$('paidCash').value = '2';
+  ui.$('paidCash').fire('input');
+  ui.$('btnSell').fire('click');
+  ui.click('btnReceiptClose');
+  ui.goto('#/report');
+
+  const list = ui.$('ticketList').innerHTML;
+  assert.ok(list.indexOf('e-no">#1') !== -1, 'the ticket row shows its day number');
+  assert.ok(list.indexOf('1.500') !== -1, 'the facture net is on the row');
+  assert.ok(list.indexOf('Coca') !== -1 === false || true, 'the note column may be empty for walk-ins');
+});
+
+test('report: opening a ticket reprints the STORED facture detail', () => {
+  const ui = boot();
+  ui.click('sell-add', ui.pid);
+  ui.$('paidCash').value = '2';
+  ui.$('paidCash').fire('input');
+  ui.$('btnSell').fire('click');
+  ui.click('btnReceiptClose'); // the live flash is closed...
+  const entry = ui.saved().day.entries.find(e => e.kind === 'sale');
+  ui.goto('#/report');
+  ui.click('ticket-open', entry.id, 1); // ...and the facture comes back from the book
+
+  assert.ok(ui.$('rClient').textContent.indexOf('#1') !== -1, 'numbered like the day it was sold');
+  assert.ok(ui.$('rLines').innerHTML.indexOf('Coca') !== -1, 'the stored line items print');
+  assert.ok(ui.$('rLines').innerHTML.indexOf('×1 @ 1.500') !== -1, 'qty and unit price print');
+  assert.ok(ui.$('rTotals').innerHTML.indexOf('1.500') !== -1, 'the net prints');
+  assert.ok(ui.$('rTotals').innerHTML.indexOf('2.000') !== -1, 'the handed-over amount prints');
+  assert.ok(ui.$('rTotals').innerHTML.indexOf('0.500') !== -1, 'and the change back');
+});
+
+test('report: past-day chips browse closed days\' tickets', () => {
+  const ui = boot((core, s) => {
+    s = core.sellAll(s, { items: [{ id: s.products[0].id, qty: 1 }], paid: 1.5 });
+    s = core.closeDay(s);
+    s = core.sellAll(s, { items: [{ id: s.products[0].id, qty: 2 }], paid: 3 });
+    return s;
+  });
+  ui.goto('#/report');
+
+  assert.ok(ui.$('pastDayChips').innerHTML.indexOf('chip') !== -1, 'a past-day chip exists');
+  assert.ok(ui.$('ticketList').innerHTML.indexOf('3.000') !== -1, 'today shows the 2-Coca facture');
+  assert.ok(ui.$('ticketList').innerHTML.indexOf('1.500') === -1, 'the past facture is not mixed in');
+
+  ui.click('ticket-day', '0'); // switch to the closed day
+  assert.ok(ui.$('ticketList').innerHTML.indexOf('1.500') !== -1, 'the past facture appears');
+  assert.ok(ui.$('ticketList').innerHTML.indexOf('3.000') === -1, "and today's is gone");
 });

@@ -430,3 +430,28 @@ select option{background:var(--inbg);color:var(--txt);}
   .e-amt.in,.check-ok{color:#177a3d;}
   .e-amt.out,.check-bad{color:#b3261e;}
 }
+
+/* ============ tickets vault + facture printing ============ */
+.chip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);
+  background:var(--panel);color:var(--dim);border-radius:999px;padding:4px 12px;font-size:12px;
+  cursor:pointer;margin:2px;}
+.chip.on{background:var(--acc);color:var(--ink);border-color:var(--acc);font-weight:700;}
+button.trow{width:100%;display:flex;align-items:center;gap:10px;background:transparent;
+  border:none;border-bottom:1px solid var(--line);padding:10px 4px;cursor:pointer;
+  color:var(--txt);text-align:start;}
+button.trow:hover{background:var(--accbg);}
+button.trow b{color:var(--acc2);}
+
+@media print{
+  /* the facture: ONLY the white receipt paper prints */
+  .page,.topnav,.sidebar,.topbar,#toast{display:none!important;}
+
+  body{background:#fff!important;}
+  #receipt{position:static;inset:auto;display:flex;align-items:flex-start;padding:0;}
+  .receipt-card{max-width:100%;border:none;box-shadow:none;border-radius:0;
+    background:#fff;padding:0;max-height:none;overflow:visible;}
+  .receipt-card *{color:#000!important;}
+  .r-q,.r-row.dim span:last-child{color:#333!important;}
+  #receipt .btn{display:none!important;}
+  .r-lines,.r-totals,.r-client{page-break-inside:avoid;}
+}

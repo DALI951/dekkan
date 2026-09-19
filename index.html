@@ -197,6 +197,11 @@
       <h3 data-i18n="report.movements">حركة اليوم</h3>
       <div id="entriesList"></div>
     </div>
+    <div class="card">
+      <h3 data-i18n="report.tickets">فواتير اليوم</h3>
+      <p class="muted" id="pastDayChips"></p>
+      <div id="ticketList" class="rows"></div>
+    </div>
     <div class="grid3" id="reportChips"></div>
   </section>
 
@@ -269,6 +274,7 @@
         <span class="r-logo">د</span>
         <div><b id="rShop"></b><small id="rWhen"></small></div>
       </div>
+      <button class="btn ghost" id="btnReceiptPrint" data-i18n="receipt.print">طباعة</button>
       <button class="btn ghost" id="btnReceiptClose" data-i18n="receipt.close">تمام</button>
     </div>
     <div class="r-client"><span data-i18n="receipt.client">الزبون</span><b id="rClient"></b></div>

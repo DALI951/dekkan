@@ -77,10 +77,13 @@ function cash(state) {
   return money(total);
 }
 
-function pushEntry(state, kind, amount, ref, note) {
-  state.day.entries.push({
-    id: uid(), kind, amount: money(amount), at: new Date().toISOString(), ref: ref || null, note: note || null
-  });
+function pushEntry(state, kind, amount, ref, note, extra) {
+  const entry = {
+    id: uid(), kind, amount: money(amount), at: new Date().toISOString(), ref: ref || null, note: note || null,
+    bill: null
+  };
+  if (extra) for (const k in extra) entry[k] = extra[k];
+  state.day.entries.push(entry);
   return state;
 }
 
@@ -263,6 +266,29 @@ function buyStock(state, productId, qty, unitBuy) {
   return state;
 }
 
+// ---------- the bill (what the receipt/facture prints, stored per sale) ----------
+
+// lines: [{ name, qty, price, total }]  — the raw line items of this sale.
+// paidVal: money handed over, or null when nothing was given (plain cash or credit).
+// cashIn: what actually entered the till (min(paid, net), or net / 0).
+// The bill NEVER changes the ledger math — it's the printable record of a sale.
+function billOf(lines, discount, net, paidVal, cashIn) {
+  return {
+    lines: lines,
+    discount: money(discount),
+    net: money(net),
+    paid: paidVal === null ? null : money(paidVal),
+    rest: money(Math.max(0, net - cashIn)),
+    change: money(Math.max(0, (paidVal === null ? 0 : paidVal) - net)) // cashIn is clamped; change is paid BEYOND the net
+  };
+}
+
+function paidValOf(opts) {
+  const v = opts.paid;
+  if (v === undefined || v === null || v === '') return null;
+  return money(Number(v));
+}
+
 // How a sale gets paid — ONE place, so cash and debts can never disagree:
 //   customer = the client's NAME (optional — walk-ins happen; Dali's rule).
 //              creditTo is the old alias for "full credit on this name".
@@ -274,16 +300,16 @@ function buyStock(state, productId, qty, unitBuy) {
 //                           the shop gives back, it never enters the cash box.
 // A typed name is ALWAYS recorded (entry note + registry) — even for exact
 // cash or overpay. The number on the receipt comes from the sale entry.
-function applyPayment(state, net, opts, refText) {
+function applyPayment(state, net, opts, refText, bill) {
   const customer = String(opts.customer || opts.creditTo || '').trim();
   const hasPaid = opts.paid !== undefined && opts.paid !== null && opts.paid !== '';
   if (!hasPaid) {
     if (customer) {
-      pushEntry(state, 'sale', 0, refText, opts.note || customer);
+      pushEntry(state, 'sale', 0, refText, opts.note || customer, { bill: bill || null });
       state = ensureCustomer(state, customer, opts.phone);
       return addDebt(state, { name: customer, phone: opts.phone, amount: net, note: opts.note || refText });
     }
-    pushEntry(state, 'sale', net, refText, opts.note || null);
+    pushEntry(state, 'sale', net, refText, opts.note || null, { bill: bill || null });
     return state;
   }
   const paid = money(Number(opts.paid));
@@ -292,11 +318,11 @@ function applyPayment(state, net, opts, refText) {
   const left = money(net - cashIn);
   if (left > 0) {
     if (!customer) throw new Error('the unpaid rest needs a customer name');
-    pushEntry(state, 'sale', cashIn, refText, opts.note || customer);
+    pushEntry(state, 'sale', cashIn, refText, opts.note || customer, { bill: bill || null });
     state = ensureCustomer(state, customer, opts.phone);
     return addDebt(state, { name: customer, phone: opts.phone, amount: left, note: opts.note || refText });
   }
-  pushEntry(state, 'sale', cashIn, refText, opts.note || customer || null);
+  pushEntry(state, 'sale', cashIn, refText, opts.note || customer || null, { bill: bill || null });
   if (customer) state = ensureCustomer(state, customer, opts.phone);
   return state;
 }
@@ -336,8 +362,23 @@ function sellAll(state, opts) {
   }
   state.day.soldCost += money(cost);
   const net = money(revenue - discountOff(state, revenue, opts.discount));
+  const disc = money(revenue - net);
 
-  state = applyPayment(state, net, opts, refs.join(', '));
+  // the printable bill, built BEFORE the payment settles (everything the receipt shows)
+  const lines = [];
+  for (const it of items) {
+    const unit = money(it.price != null ? it.price : getProduct(state, it.id).sell);
+    lines.push({ name: getProduct(state, it.id).name, qty: Math.floor(it.qty), price: unit, total: money(unit * it.qty) });
+  }
+  for (const f of free) {
+    lines.push({ name: String(f.name).trim(), qty: Math.floor(f.qty), price: money(f.price), total: money(f.price * f.qty) });
+  }
+  const paidVal = paidValOf(opts);
+  const customer = String(opts.customer || opts.creditTo || '').trim();
+  const cashIn = paidVal === null ? (customer ? 0 : net) : money(Math.min(paidVal, net));
+  const bill = billOf(lines, disc, net, paidVal, cashIn);
+
+  state = applyPayment(state, net, opts, refs.join(', '), bill);
   return clone(state);
 }
 
@@ -368,8 +409,19 @@ function sell(state, opts) {
   }
   state.day.soldCost += money(cost);
   const net = money(revenue - discountOff(state, revenue, opts.discount));
+  const disc = money(revenue - net);
 
-  state = applyPayment(state, net, opts, refs.join(', '));
+  const lines = [];
+  for (const it of items) {
+    const unit = money(it.price != null ? it.price : getProduct(state, it.id).sell);
+    lines.push({ name: getProduct(state, it.id).name, qty: Math.floor(it.qty), price: unit, total: money(unit * it.qty) });
+  }
+  const paidVal = paidValOf(opts);
+  const customer = String(opts.customer || opts.creditTo || '').trim();
+  const cashIn = paidVal === null ? (customer ? 0 : net) : money(Math.min(paidVal, net));
+  const bill = billOf(lines, disc, net, paidVal, cashIn);
+
+  state = applyPayment(state, net, opts, refs.join(', '), bill);
   return clone(state);
 }
 
@@ -383,7 +435,15 @@ function sellFree(state, opts) {
   if (!Number.isFinite(price) || price < 0) throw new Error('price must be zero or more');
   const total = money(price * qty);
   const net = money(total - discountOff(state, total, opts.discount));
-  state = applyPayment(state, net, opts, opts.name + 'x' + qty);
+  const disc = money(total - net);
+  const paidVal = paidValOf(opts);
+  const customer = String(opts.customer || opts.creditTo || '').trim();
+  const cashIn = paidVal === null ? (customer ? 0 : net) : money(Math.min(paidVal, net));
+  const bill = billOf(
+    [{ name: String(opts.name).trim(), qty: qty, price: money(price), total: money(price * qty) }],
+    disc, net, paidVal, cashIn
+  );
+  state = applyPayment(state, net, opts, opts.name + 'x' + qty, bill);
   return clone(state);
 }
 

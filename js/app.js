@@ -10,7 +10,7 @@
   const T = window.T;
   const LS_KEY = 'dekkan.v1';
   const BK_KEY = 'dekkan.backup';
-  const A_VERSION = '0.6.2';
+  const A_VERSION = '0.7.0';
 
   // ---------- state ----------
   let state = load();
@@ -325,6 +325,60 @@
         + '</div>';
     });
     $('entriesList').innerHTML = eh || '<div class="empty">' + T.t('report.noMoves') + '</div>';
+
+    renderTickets();
+  }
+
+  let ticketDay = null; // tickets report: null = today's open day, else an index into state.days (history)
+
+  // the tickets vault: every day's sales as factures, newest ticket first.
+  // past-day chips let the shopkeeper browse closed days too.
+  function renderTickets() {
+    const day = ticketDay === null ? state.day : state.days[ticketDay];
+
+    let chips = '';
+    if (state.days.length) {
+      chips = '<button class="chip' + (ticketDay === null ? ' on' : '') + '" data-action="ticket-day" data-id="-1">'
+        + T.t('report.today') + '</button>'
+        + state.days.map(function (d, i) {
+          const n = d.entries.filter(function (e) { return e.kind === 'sale'; }).length;
+          return '<button class="chip' + (ticketDay === i ? ' on' : '') + '" data-action="ticket-day" data-id="' + i + '">'
+            + String(d.date).slice(0, 10) + ' · ' + n + '</button>';
+        }).join('');
+      chips = '<span class="muted">' + T.t('report.past') + '</span> ' + chips;
+    }
+    $('pastDayChips').innerHTML = chips;
+
+    if (!day) { $('ticketList').innerHTML = '<div class="empty">' + T.t('report.noTickets') + '</div>'; return; }
+    const list = [];
+    day.entries.forEach(function (e) { if (e.kind === 'sale') list.push(e); });
+    let rows = '';
+    for (let i = list.length; i > 0; i--) {
+      const e = list[i - 1];
+      const bill = e.bill;
+      rows += '<button class="entry trow" data-action="ticket-open" data-id="' + e.id + '" data-i="' + i + '">'
+        + '<span class="e-no">#' + i + '</span>'
+        + '<span class="growx"><span class="e-time">' + entryTime(e.at) + '</span>'
+        + (e.note ? '<span class="e-note">' + esc(e.note) + '</span>' : '') + '</span>'
+        + '<b>' + money(bill ? bill.net : e.amount) + '</b></button>';
+    }
+    $('ticketList').innerHTML = rows || '<div class="empty">' + T.t('report.noTickets') + '</div>';
+  }
+
+  // reopen a stored sale as a facture. legacy sales (no bill, pre-facture days)
+  // still print — the total plus whatever the entry remembers.
+  function openTicket(e, no) {
+    const bill = e.bill;
+    showReceipt({
+      customer: e.note || '', no: no,
+      lines: bill && bill.lines ? bill.lines : [],
+      discount: bill ? bill.discount : 0,
+      net: bill ? bill.net : e.amount,
+      paid: bill ? bill.paid : null,
+      rest: bill ? bill.rest : 0,
+      change: bill ? bill.change : 0,
+      when: e.at
+    });
   }
 
   function kindLabel(k) {
@@ -428,13 +482,24 @@
       $('payForm').classList.remove('hidden');
     }
     if (act === 'debt-del') run(function (s) { return D.removeDebt(s, id); }, T.t('toast.debtDeleted'));
+
+    if (act === 'ticket-day') {
+      ticketDay = parseInt(id, 10) === -1 ? null : parseInt(id, 10);
+      render();
+    }
+    if (act === 'ticket-open') {
+      const day = ticketDay === null ? state.day : state.days[ticketDay];
+      const e = (day.entries || []).find(function (x) { return x.id === id; });
+      if (e) openTicket(e, parseInt(i, 10) || 1);
+    }
   });
 
   // ----- the till: one checkout = one client = one receipt -----
   function showReceipt(r) {
     const rec = $('receipt');
+    const when = r.when || new Date().toISOString();
     $('rShop').textContent = state.shop.name;
-    $('rWhen').textContent = D.todayStr() + ' ' + entryTime(new Date().toISOString());
+    $('rWhen').textContent = String(when).slice(0, 10) + ' ' + entryTime(when);
     $('rClient').textContent = r.customer ? esc(r.customer) + ' #' + r.no : '#' + r.no;
     $('rLines').innerHTML = r.lines.map(function (l) {
       return '<div class="r-line"><span>' + esc(l.name) + ' <span class="r-q">×' + l.qty
@@ -460,6 +525,9 @@
   }
 
   $('btnReceiptClose').addEventListener('click', hideReceipt);
+  $('btnReceiptPrint').addEventListener('click', function () {
+    if (window.print) window.print(); // the print CSS turns the overlay into a clean facture
+  });
   $('receipt').addEventListener('click', function (ev) {
     if (ev.target === $('receipt')) hideReceipt();
   });

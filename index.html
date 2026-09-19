@@ -97,6 +97,7 @@
         <input type="number" id="freeQty" value="1" min="1" class="qty">
         <button class="btn" id="btnAddFree" data-i18n="free.add">إضافة</button>
       </div>
+      <div class="line-prev hidden" id="freePrev"></div>
     </div>
 
     <div class="card stack basket">
@@ -107,12 +108,16 @@
         <label><span data-i18n="disc.flat">خصم ثابت</span><input type="number" id="discAmt" min="0" placeholder="0.000"></label>
       </div>
       <label><span data-i18n="credit.label">اسم الزبون</span><input type="text" id="creditName" data-i18n-ph="credit.ph"></label>
+      <div class="due" id="dueBox">
+        <div class="due-l">
+          <span data-i18n="sell.due">المطلوب دفعه</span>
+          <small id="dueHint"></small>
+        </div>
+        <strong class="due-n" id="basketTotal">0.000 د.ت</strong>
+      </div>
       <label><span data-i18n="sell.paid">المبلغ المدفوع</span><input type="number" id="paidCash" min="0" step="0.001" data-i18n-ph="sell.paidPh"></label>
       <div id="changeLine" class="chg hidden"></div>
-      <div class="row end">
-        <span class="total" id="basketTotal">0.000 د.ت</span>
-        <button class="btn primary big" id="btnSell" data-i18n="sell.go">تسجيل البيع</button>
-      </div>
+      <button class="btn primary big" id="btnSell" data-i18n="sell.go">تسجيل البيع</button>
     </div>
   </section>
 

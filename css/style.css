@@ -246,6 +246,19 @@ select option{background:var(--inbg);color:var(--txt);}
 /* ============ basket (the till) ============ */
 .basket{border-color:var(--accborder);}
 .basket .total{direction:ltr;font-size:22px;font-weight:800;color:var(--acc2);font-variant-numeric:tabular-nums;}
+
+/* what the customer must pay — the loudest number on the sell page */
+.due{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  border:1px solid var(--accborder);border-radius:var(--rads);padding:13px 16px;
+  background:linear-gradient(135deg,var(--accbg),transparent 72%);
+}
+.due-l span{display:block;font-size:11.5px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--dim);}
+.due-l small{display:block;font-size:11.5px;color:var(--mut);margin-top:3px;}
+.due-n{direction:ltr;font-size:27px;font-weight:800;color:var(--acc2);font-variant-numeric:tabular-nums;}
+.due.empty{border-style:dashed;background:none;}
+.due.empty .due-n{color:var(--dim);}
+.line-prev{font-size:12.5px;font-weight:800;color:var(--acc2);font-variant-numeric:tabular-nums;border-top:1px dashed var(--line);padding-top:9px;}
 .basket-line{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 2px;border-bottom:1px dashed var(--line);}
 .basket-line:last-child{border-bottom:none;}
 .basket-line .q{color:var(--acc2);font-size:12px;font-weight:800;}
@@ -371,6 +384,8 @@ select option{background:var(--inbg);color:var(--txt);}
   .metric .lab,.pageHead p,.e-time,.e-note{color:#666;}
   .btn{display:none;}
   .chg{background:#fff;border-color:#ccc;color:#000;}
+  .due{background:#fff;border-color:#999;}
+  .due-n{color:#000;}
   .e-amt.in,.check-ok{color:#177a3d;}
   .e-amt.out,.check-bad{color:#b3261e;}
 }

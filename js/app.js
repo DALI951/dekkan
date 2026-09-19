@@ -10,7 +10,7 @@
   const T = window.T;
   const LS_KEY = 'dekkan.v1';
   const BK_KEY = 'dekkan.backup';
-  const A_VERSION = '0.4.0';
+  const A_VERSION = '0.5.0';
 
   // ---------- state ----------
   let state = load();
@@ -55,7 +55,9 @@
     }
   }
   function fmt(n) { return Number(n).toFixed(3); }
-  function money(n) { return fmt(n) + ' ' + T.t('curr'); }
+  // money() is for SHOWING. For maths always use n3() (mirrors the core's rounding).
+  function n3(n) { return Math.round(Number(n) * 1000) / 1000; }
+  function money(n) { return fmt(n3(n)) + ' ' + T.t('curr'); }
   function $(id) { return document.getElementById(id); }
   function toast(msg, isErr, ms) {
     const t = $('toast');
@@ -152,9 +154,30 @@
     const amt = parseFloat($('discAmt').value) || 0;
     const disc = amt > 0 ? Math.min(amt, subtotal) : Math.min(subtotal * pct / 100, subtotal);
     $('discountRow').classList.toggle('hidden', !state.settings.allowDiscount);
-    const net = money(Math.max(0, subtotal - disc));
+    const net = n3(Math.max(0, subtotal - disc));
     $('basketTotal').textContent = money(net);
+
+    // what the customer must hand over — right there, and it moves while you type
+    const parts = [];
+    if (count > 0) parts.push(count + ' ' + T.t('sell.items'));
+    if (disc > 0) parts.push(T.t('sell.discount') + ' ' + money(disc));
+    $('dueBox').classList.toggle('empty', net <= 0);
+    $('dueHint').textContent = net > 0 ? parts.join(' · ') : T.t('sell.nothingYet');
+
     renderChange(net);
+    renderFreePrev();
+  }
+
+  // live line for the no-stock item form (price x qty, while you type)
+  function renderFreePrev() {
+    const el = $('freePrev');
+    if (!el) return;
+    const name = $('freeName').value.trim();
+    const price = parseFloat($('freePrice').value) || 0;
+    const qty = parseInt($('freeQty').value, 10) || 0;
+    if (!name) { el.className = 'line-prev hidden'; return; }
+    el.className = 'line-prev';
+    el.textContent = name + '  ×' + qty + '  =  ' + money(price * qty);
   }
 
   // Live till line: what the customer handed over vs what they owe / get back.
@@ -171,7 +194,7 @@
       if (!Number.isFinite(paid) || paid < 0) {
         txt = T.t('toast.paidBad'); cls += ' bad';
       } else if (paid >= net) {
-        const back = money(paid - net);
+        const back = n3(paid - net);
         if (back > 0) { txt = T.t('sell.change') + ' ' + money(back); cls += ' ok'; }
         else { txt = T.t('sell.exact'); cls += ' ok'; }
       } else {
@@ -414,8 +437,8 @@
     const stockDisc = discAmt > 0
       ? Math.min(discAmt, stockSubtotal)
       : Math.min(stockSubtotal * discPct / 100, stockSubtotal);
-    const stockNet = money(Math.max(0, stockSubtotal - stockDisc));
-    const tillNet = money(stockNet + freeSubtotal);
+    const stockNet = n3(Math.max(0, stockSubtotal - stockDisc));
+    const tillNet = n3(stockNet + freeSubtotal);
 
     if (paid !== null && paid < tillNet && !creditName) return toast(T.t('toast.restName'), true);
 
@@ -426,8 +449,8 @@
       if (left === null) {
         return Object.assign({ creditTo: creditName || undefined }, extra);
       }
-      const take = money(Math.min(left, net));
-      left = money(left - take);
+      const take = n3(Math.min(left, net));
+      left = n3(left - take);
       return Object.assign({ paid: take, creditTo: (take < net ? creditName : '') || undefined }, extra);
     }
 
@@ -438,13 +461,13 @@
       freeItems.forEach(function (f) {
         state = D.sellFree(state, withPaid(money(f.price * f.qty), { name: f.name, price: f.price, qty: f.qty }));
       });
-      const change = paid !== null ? money(Math.max(0, paid - tillNet)) : 0;
+      const change = paid !== null ? n3(Math.max(0, paid - tillNet)) : 0;
       save(); basket = []; freeItems = [];
       $('discPct').value = ''; $('discAmt').value = ''; $('creditName').value = ''; $('paidCash').value = '';
       render();
       if (change > 0) {
         // the one number the shopkeeper must act on right now
-        toast(T.t('toast.change') + ' ' + money(change) + ' ' + T.t('curr'), false, 9000);
+        toast(T.t('toast.change') + ' ' + money(change), false, 9000);
       } else if (paid !== null && paid < tillNet) {
         toast(T.t('toast.saleRest') + ' ' + money(tillNet - paid) + ' — ' + creditName);
       } else {
@@ -464,8 +487,10 @@
   });
 
   // the till: what was handed over + who owes the rest (live, before the sale is recorded)
-  $('paidCash').addEventListener('input', function () { renderSell(); });
-  $('creditName').addEventListener('input', function () { renderSell(); });
+  ['paidCash', 'creditName', 'discPct', 'discAmt', 'freeName', 'freePrice', 'freeQty'].forEach(function (id) {
+    const el = $(id);
+    if (el) el.addEventListener('input', function () { renderSell(); });
+  });
 
   $('btnRefundMode').addEventListener('click', function () {
     refundMode = !refundMode;

@@ -114,6 +114,7 @@
     'settings.language': 'لغة الواجهة',
 
     'toast.couldntSave': 'تعذّر الحفظ',
+    'toast.saleCancelled': 'أُلغي البيع',
     'toast.saleOk': 'سُجّل البيع', 'toast.saleCredit': 'سُجّل على الدين: ',
     'toast.saleRest': 'سُجّل البيع، والباقي على: ',
     'toast.change': 'أعطِ الزبون الباقي:',
@@ -250,6 +251,7 @@
     'settings.language': 'Interface language',
 
     'toast.couldntSave': "Couldn't save",
+    'toast.saleCancelled': 'Sale cancelled',
     'toast.saleOk': 'Sale recorded', 'toast.saleCredit': 'Recorded on credit: ',
     'toast.saleRest': 'Sale recorded, rest owed by: ',
     'toast.change': 'Give the customer this change:',

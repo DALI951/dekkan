@@ -22,7 +22,7 @@ test('a plain cash sale stores its full bill on the sale entry', () => {
   const e = s.day.entries[s.day.entries.length - 1];
   assert.strictEqual(e.kind, 'sale');
   assert.ok(e.bill, 'the entry carries its bill');
-  assert.deepStrictEqual(e.bill.lines, [{ name: 'Coca', qty: 2, price: 1.5, total: 3 }]);
+  assert.deepStrictEqual(e.bill.lines, [{ id: coca, name: 'Coca', qty: 2, price: 1.5, total: 3 }]);
   assert.strictEqual(e.bill.discount, 0);
   assert.strictEqual(e.bill.net, 3);
   assert.strictEqual(e.bill.paid, 3);
@@ -88,7 +88,7 @@ test('a mixed basket (stock + free) is ONE bill with ALL its lines', () => {
 
   const e = s.day.entries[s.day.entries.length - 1];
   assert.strictEqual(e.bill.lines.length, 2);
-  assert.deepStrictEqual(e.bill.lines[0], { name: 'Coca', qty: 1, price: 1.5, total: 1.5 });
+  assert.deepStrictEqual(e.bill.lines[0], { id: coca, name: 'Coca', qty: 1, price: 1.5, total: 1.5 });
   assert.deepStrictEqual(e.bill.lines[1], { name: 'Cafe', qty: 2, price: 1, total: 2 });
   assert.strictEqual(e.bill.net, 3.5);
 });
@@ -98,7 +98,7 @@ test('legacy sell() and sellFree() also stamp their bills on the entry', () => {
   let s = D.sell(s0, { items: [{ id: biscuit, qty: 1 }], creditTo: 'Rami' });
   let e = s.day.entries[s.day.entries.length - 1];
   assert.strictEqual(e.kind, 'sale');
-  assert.deepStrictEqual(e.bill.lines, [{ name: 'Biscuit', qty: 1, price: 1.75, total: 1.75 }]);
+  assert.deepStrictEqual(e.bill.lines, [{ id: biscuit, name: 'Biscuit', qty: 1, price: 1.75, total: 1.75 }]);
   assert.strictEqual(e.bill.rest, 1.75, 'full credit rest');
 
   s = D.sellFree(s, { name: 'Coffee', price: 0.5, qty: 2 });

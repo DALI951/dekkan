@@ -10,7 +10,7 @@
   const T = window.T;
   const LS_KEY = 'dekkan.v1';
   const BK_KEY = 'dekkan.backup';
-  const A_VERSION = '0.8.3';
+  const A_VERSION = '0.8.4';
 
   // ---------- state ----------
   let state = load();
@@ -21,6 +21,7 @@
   let editProductId = null;
   let payDebtId = null;
   let newDebtFlag = false;
+  let receiptEntryId = null;   // entry id of the sale currently shown on the receipt (for refunds)
 
   // ---------- persistence ----------
   function save() {
@@ -174,7 +175,7 @@
     if (count > 0) parts.push(count + ' ' + T.t('sell.items'));
     if (disc > 0) parts.push(T.t('sell.discount') + ' ' + money(disc));
     $('dueBox').classList.toggle('empty', net <= 0);
-    $('dueHint').textContent = net > 0 ? parts.join(' Â· ') : T.t('sell.nothingYet');
+    $('dueHint').textContent = net > 0 ? parts.join('  ·  ') : T.t('sell.nothingYet');
 
     // the queue: which # the next customer takes (the # on their receipt)
     $('queueLine').textContent = T.t('sell.nextClient') + ' #' + D.nextClientNo(state);
@@ -208,7 +209,12 @@
     const name = $('creditName').value.trim();
     let txt = '', cls = 'chg';
     if (raw === '') {
-      if (net > 0 && name) { txt = T.t('sell.onCredit') + ' ' + name; cls += ' warn'; }
+      if (net > 0) {
+        txt = name
+          ? T.t('sell.onCredit') + ' ' + name
+          : T.t('sell.rest') + ' ' + money(net) + ' — ' + T.t('sell.restNeedName');
+        cls += name ? ' warn' : ' bad';
+      }
     } else {
       const paid = parseFloat(raw);
       if (!Number.isFinite(paid) || paid < 0) {
@@ -246,7 +252,7 @@
       const low = p.lowAt > 0 && p.stock <= p.lowAt;
       html += '<div class="stock-card"><span>'
         + '<span class="s-name">' + esc(p.name) + '</span>'
-        + '<span class="s-meta">' + T.t('stock.buy') + ' ' + money(p.buy) + ' â€¢ ' + T.t('stock.sell') + ' ' + money(p.sell) + '</span></span>'
+        + '<span class="s-meta">' + T.t('stock.buy') + ' ' + money(p.buy) + '  •  ' + T.t('stock.sell') + ' ' + money(p.sell) + '</span></span>'
         + '<span class="row gap"><span class="s-stock' + (low ? ' low' : '') + '">' + p.stock + '</span>'
         + '<button class="btn ghost" data-action="stock-edit" data-id="' + p.id + '">' + T.t('stock.edit') + '</button>'
         + '<button class="btn ghost" data-action="stock-restock" data-id="' + p.id + '">+10</button></span></div>';
@@ -293,7 +299,7 @@
       '<div class="tilth">' + T.t('report.chip.now') + '</div>'
       + '<div class="tillnum">' + money(r.cash) + '</div>'
       + '<div class="tillsub">' + T.t('report.chip.start') + ' <b>' + money(r.startCash) + '</b>'
-      + ' Â· ' + T.t('report.chip.profit')
+      + '  ·  ' + T.t('report.chip.profit')
       + ' <b class="' + (r.dayProfit >= 0 ? 'ok' : 'bad') + '">' + money(r.dayProfit) + '</b></div>';
 
     const chips = [
@@ -343,6 +349,7 @@
   // reopen a stored sale as a facture. legacy sales (no bill, pre-facture days)
   // still print — the total plus whatever the entry remembers.
   function openTicket(e, no) {
+    receiptEntryId = e.id;
     const bill = e.bill;
     showReceipt({
       customer: e.note || '', no: no,
@@ -408,7 +415,7 @@
     $('cbTill').innerHTML = '<div class="tilth">' + T.t('cashbox.now') + '</div>'
       + '<div class="tillnum">' + money(r.cash) + '</div>'
       + '<div class="tillsub">' + T.t('cashbox.inToday') + ' <b class="ok">' + money(inToday) + '</b>'
-      + ' Â· ' + T.t('cashbox.outToday') + ' <b class="bad">' + money(outToday) + '</b></div>';
+      + '  ·  ' + T.t('cashbox.outToday') + ' <b class="bad">' + money(outToday) + '</b></div>';
     $('cbInCat').innerHTML = catOptions(state.categories.in);
     $('cbOutCat').innerHTML = catOptions(state.categories.out);
     $('catInList').innerHTML = catChips(state.categories.in, 'in');
@@ -596,6 +603,32 @@
     if (document.body) document.body.classList.remove('no-scroll');
   }
 
+  // Refund the sale shown on the receipt: restock its stock lines, clear its
+  // free lines, and keep the paper trail. The entry id comes from the ticket
+  // that opened this receipt (openTicket sets receiptEntryId).
+  $('btnReceiptRefund').addEventListener('click', function () {
+    if (!receiptEntryId) return toast(T.t('toast.refundPick'), true);
+    const entry = (state.day.entries || []).find(function (e) { return e.id === receiptEntryId; });
+    if (!entry || !entry.bill) return toast(T.t('toast.couldntSave'), true);
+    const items = [], freeNames = [];
+    let freeQty = 0, freePrice = 0;
+    (entry.bill.lines || []).forEach(function (l) {
+      if (l.id != null) items.push({ id: l.id, qty: l.qty, price: l.price });
+      else { freeNames.push(l.name); freeQty += l.qty || 1; freePrice += l.total || l.price || 0; }
+    });
+    try {
+      let s = state;
+      if (items.length) s = D.refund(s, { items: items, reason: 'refund' });
+      if (freeNames.length) s = D.refundFree(s, { name: freeNames.join(' + '), qty: 1, price: n3(freePrice) });
+      state = s;
+      save();
+      receiptEntryId = null;
+      hideReceipt();
+      render();
+      toast(T.t('toast.refundOk'));
+    } catch (e) { toast(e.message, true); }
+  });
+
   $('btnReceiptClose').addEventListener('click', hideReceipt);
   $('btnReceiptClose2').addEventListener('click', hideReceipt);
   $('btnReceiptPrint').addEventListener('click', function () {
@@ -618,7 +651,7 @@
 
   // Cancel on the record-sale form: drop the whole order, reset the till, back to products.
   $('btnCancelSell').addEventListener('click', function () {
-    basket = []; freeItems = [];
+    basket = []; freeItems = []; receiptEntryId = null;
     $('paidCash').value = ''; $('discPct').value = ''; $('discAmt').value = ''; $('creditName').value = '';
     hideReceipt(); render(); toast(T.t('toast.saleCancelled'));
   });
@@ -646,7 +679,14 @@
       : Math.min(subtotal * discPct / 100, subtotal);
     const net = n3(Math.max(0, subtotal - disc));
 
-    if (paid !== null && paid < net && !customer) return toast(T.t('toast.restName'), true);
+    // whoever leaves ANY rest unpaid must give a name — that includes paying
+    // nothing at all (full credit with an empty money field)
+    const due = Math.max(0, net - (paid === null ? 0 : paid));
+    if (due > 0 && !customer) {
+      const nm = $('creditName');
+      if (nm && nm.focus) nm.focus();
+      return toast(T.t('toast.restName'), true);
+    }
 
     // the lines of the receipt, from what's in the basket right now
     const lines = [];
@@ -671,6 +711,10 @@
       if (free.length) opts.free = free;
       state = D.sellAll(state, opts);
       save();
+
+      // remember which entry the receipt just showed, so its refund button works
+      const es = state.day.entries || [];
+      receiptEntryId = es.length ? es[es.length - 1].id : null;
 
       const rest = net - (paid === null ? 0 : Math.min(paid, net));
       const change = (paid === null ? 0 : Math.max(0, paid - net));

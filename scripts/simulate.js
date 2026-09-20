@@ -230,13 +230,30 @@ vm.createContext(sandbox);
 sandbox.window = sandbox;
 sandbox.self = sandbox;
 ['dekkan-core.js', 'core.js', 'products.js', 'debts.js', 'sales.js', 'refunds.js',
-  'cashbox.js', 'report.js', 'shop.js'].forEach(f => {
+  'employees.js', 'cashbox.js', 'report.js', 'shop.js'].forEach(f => {
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'core', f), 'utf8'), sandbox);
 });
 ok(typeof sandbox.window.Dekkan === 'object' && typeof sandbox.window.Dekkan.createShop === 'function',
   'browser load: the same files expose window.Dekkan (the webapp can use it)');
 const b = sandbox.window.Dekkan.createShop({ startCash: 5 });
 ok(sandbox.window.Dekkan.cash(b) === 5, 'browser brain works (cash = 5 on a fresh shop)');
+
+// --- the MONTHLY report: the whole story adds up inside its month ---
+console.log('\n-- monthly review: the whole story lives in this month');
+const now = D.todayStr().slice(0, 7);
+const allMoves = s.days.reduce(function (a, d) { return a.concat(d.entries); }, []).concat(s.day.entries)
+  .filter(function (e) { return e.kind !== 'check'; });
+const rm = D.monthlyReport(s, now);
+ok(rm.moves === allMoves.length, 'monthly: every money move of the story is in the month');
+ok(rm.sales === D.money(allMoves.reduce(function (a, e) { return a + (e.kind === 'sale' ? e.amount : 0); }, 0)),
+  'monthly: the sales column matches the ledger');
+ok(rm.profit === D.money(rm.wins - rm.losses), 'monthly: profit = wins - losses');
+ok(rm.salaries === 0, 'monthly: no team hired -> no salaries');
+s = D.addEmployee(s, { name: 'Sami', type: 'chef', salary: 300 });
+ok(D.salariesFor(s, now) === 300, 'monthly: a hire adds their salary to the month');
+ok(D.monthlyReport(s, now).losses === D.money(rm.losses + 300), 'monthly: the salary lands inside the losses');
+ok(D.monthlyReport(s, '2000-01').moves === 0 && D.monthlyReport(s, '2000-01').profit === 0,
+  'monthly: a month before the shop existed is empty');
 
 // ============ VERDICT ============
 console.log('\n=== simulation done: ' + passes + ' passed, ' + fails + ' failed ===\n');

@@ -17,7 +17,7 @@
   const A = DEK.actions;
   const LS_KEY = 'dekkan.v1';
   const BK_KEY = 'dekkan.backup';
-  const A_VERSION = '0.8.7';
+  const A_VERSION = '0.9.0';
 
   // ---------- helpers ----------
   function $(id) { return document.getElementById(id); }
@@ -43,6 +43,8 @@
     editProductId: null,
     payDebtId: null,
     newDebtFlag: false,
+    editEmployeeId: null,       // 'new' or an employee id while the staff form is open
+    month: D.todayStr().slice(0, 7), // the month shown in the monthly review
     receiptEntryId: null,   // entry id of the sale currently shown on the receipt (for refunds)
     storageRead: false
   };
@@ -75,6 +77,7 @@
     if (!s.categories || !Array.isArray(s.categories.in) || !Array.isArray(s.categories.out)) {
       s.categories = { in: [], out: [] };
     }
+    if (!Array.isArray(s.employees)) s.employees = [];
     return s;
   }
   C.state = load();
@@ -151,12 +154,20 @@
   $('btnCancelPay').addEventListener('click', function () { A.cancelPay(C); });
   $('btnDoPay').addEventListener('click', function () { A.doPay(C); });
 
+  // staff form
+  $('btnAddEmployee').addEventListener('click', function () { A.newEmployee(C); });
+  $('btnCancelEmployee').addEventListener('click', function () { A.cancelEmployee(C); });
+  $('btnSaveEmployee').addEventListener('click', function () { A.saveEmployee(C); });
+  var monthPicker = $('monthPicker');
+  monthPicker.addEventListener('input', function () { C.month = monthPicker.value; render(); });
+
   // ----- Enter = the button on every form (the till never needs a mouse) -----
   A.enterRuns(C, ['freeName', 'freePrice', 'freeQty'], function () { A.press(C, 'btnAddFree'); });
   A.enterRuns(C, ['creditName', 'discPct', 'discAmt', 'paidCash'], function () { A.press(C, 'btnSell'); });
   A.enterRuns(C, ['payAmount'], function () { A.press(C, 'btnDoPay'); });
   A.enterRuns(C, ['dName', 'dAmount', 'dPhone', 'dNote'], function () { A.press(C, 'btnSaveDebt'); });
   A.enterRuns(C, ['pName', 'pBuy', 'pSell', 'pStock', 'pLow'], function () { A.press(C, 'btnSaveProduct'); });
+  A.enterRuns(C, ['empName', 'empType', 'empSalary', 'empPhone', 'empNote'], function () { A.press(C, 'btnSaveEmployee'); });
 
   // cash box
   $('btnCashIn').addEventListener('click', function () { A.bookCash(C, 'in'); });

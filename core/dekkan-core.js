@@ -11,7 +11,7 @@
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) {
     const K = {};
-    ['core', 'products', 'debts', 'sales', 'refunds', 'cashbox', 'report', 'shop']
+    ['core', 'products', 'debts', 'sales', 'refunds', 'employees', 'cashbox', 'report', 'shop']
       .forEach(function (m) { require('./' + m + '.js')(K); });
     module.exports = K;
     return;

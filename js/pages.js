@@ -12,7 +12,7 @@
   'use strict';
 
   function render(C) {
-    const { renderHeader, renderSell, renderStock, renderDebts, renderReport, renderCashBox, renderSettings } = DEK.pages;
+    const { renderHeader, renderSell, renderStock, renderDebts, renderReport, renderCashBox, renderSettings, renderEmployees } = DEK.pages;
     renderHeader(C);
     renderSell(C);
     renderStock(C);
@@ -20,6 +20,7 @@
     renderReport(C);
     renderCashBox(C);
     renderSettings(C);
+    renderEmployees(C);
   }
 
   function renderHeader(C) {
@@ -457,6 +458,87 @@
     if (document.body) document.body.classList.remove('no-scroll');
   }
 
+  // ----- STAFF (the team + the month in review) -----
+  function currentMonth() {
+    const n = new Date();
+    return n.getFullYear() + '-' + ((n.getMonth() + 1) < 10 ? '0' : '') + (n.getMonth() + 1);
+  }
+  function renderEmployees(C) {
+    const { state, $, T, D, fmt } = C;
+    const { money, esc } = fmt;
+    const ym = C.month && /^\d{4}-\d{2}$/.test(C.month) ? C.month : (C.month = currentMonth());
+    const r = D.monthlyReport(state, ym);
+
+    $('monthPicker').value = ym;
+    $('monthWins').textContent = money(r.wins);
+    $('monthLosses').textContent = money(r.losses);
+    const profit = $('monthProfit');
+    profit.textContent = money(r.profit);
+    profit.classList.toggle('ok', r.profit >= 0);
+    profit.classList.toggle('bad', r.profit < 0);
+
+    const line = function (lab, val, cls) {
+      return '<div class="mrow"><span class="lab">' + lab + '</span><b class="' + (cls || '') + '">' + money(val) + '</b></div>';
+    };
+    $('monthBreakdown').innerHTML =
+      line(T.t('staff.sales'), r.sales) +
+      line(T.t('staff.debtPays'), r.debtPays) +
+      line(T.t('staff.incomes'), r.incomes) +
+      line(T.t('staff.refunds'), r.refunds) +
+      line(T.t('staff.buys'), r.buys) +
+      line(T.t('staff.expenses'), r.expenses) +
+      line(T.t('staff.salaries'), r.salaries, 'bad');
+
+    const dayRows = r.days.map(function (d) {
+      return '<div class="mrow"><span class="lab">' + d.date + '</span>' +
+        '<b class="ok">+' + money(d.in) + '</b>' +
+        '<b class="bad">-' + money(d.out) + '</b></div>';
+    }).join('');
+    $('monthDays').innerHTML = dayRows
+      ? '<div class="mrow"><span class="lab">' + T.t('staff.dayInOut') + '</span>' +
+        '<b>' + T.t('staff.moves') + ': ' + r.moves + '</b></div>' + dayRows
+      : '';
+
+    const team = state.employees || [];
+    if (!team.length) {
+      $('staffList').innerHTML = '<p class="muted">' + T.t('staff.empty') + '</p>';
+    } else {
+      $('staffList').innerHTML = team.map(function (e) {
+        const meta = [e.type, T.t('staff.hired') + ': ' + e.hiredAt, e.phone, e.note].filter(Boolean).join(' · ');
+        const fired = e.active ? '' : ' <span class="muted">(' + T.t('staff.fired') + ')</span>';
+        return '<div class="entry">' +
+          '<div class="stack" style="flex:1">' +
+          '<b>' + esc(e.name) + fired + '</b>' +
+          '<small class="muted">' + esc(meta) + '</small>' +
+          '<small class="muted">' + money(e.salary) + ' / ' + T.t('staff.monthly') + '</small>' +
+          '</div>' +
+          '<span class="row gr">' +
+          '<button class="btn ghost" data-action="staff-edit" data-id="' + e.id + '">' + T.t('staff.edit') + '</button>' +
+          (e.active ? '<button class="btn ghost" data-action="staff-fire" data-id="' + e.id + '">' + T.t('staff.fire') + '</button>' : '') +
+          '</span></div>';
+      }).join('');
+    }
+
+    // the hire/edit form only exists when it is in flight (C.editEmployeeId)
+    const form = $('staffForm');
+    if (C.editEmployeeId) {
+      form.classList.remove('hidden');
+      if (C.editEmployeeId !== 'new') {
+        const e = team.find(function (x) { return x.id === C.editEmployeeId; });
+        if (e) {
+          $('staffFormTitle').textContent = T.t('staff.edit') + ': ' + e.name;
+          $('empName').value = e.name;
+          $('empType').value = e.type;
+          $('empSalary').value = String(e.salary);
+          $('empPhone').value = e.phone;
+          $('empNote').value = e.note;
+        }
+      }
+    } else {
+      form.classList.add('hidden');
+    }
+  }
+
   function revealProductForm(C) {
     const { $ } = C;
     const f = $('productForm');
@@ -470,6 +552,7 @@
     renderReport: renderReport, openTicket: openTicket, openMetric: openMetric,
     renderCashBox: renderCashBox, catOptions: catOptions, catChips: catChips,
     renderSettings: renderSettings, renderThemes: renderThemes, updateStorage: updateStorage,
-    showReceipt: showReceipt, hideReceipt: hideReceipt, revealProductForm: revealProductForm
+    showReceipt: showReceipt, hideReceipt: hideReceipt, revealProductForm: revealProductForm,
+    renderEmployees: renderEmployees
   };
 });

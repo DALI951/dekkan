@@ -178,6 +178,11 @@ input,select{
 input:focus{border-color:var(--acc);background:var(--inbgfocus);box-shadow:0 0 0 3px var(--accbg);}
 input::placeholder{color:var(--dim);}
 input.qty{max-width:86px;}
+.monthInput{margin-inline-start:auto;max-width:150px;direction:ltr;text-align:center;}
+.mrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 4px;border-bottom:1px dashed var(--line);}
+.mrow:last-child{border-bottom:none;}
+.mrow .lab{font-size:12px;color:var(--mut);}
+.mrow b{font-variant-numeric:tabular-nums;direction:ltr;}
 select option{background:var(--inbg);color:var(--txt);}
 
 /* ============ switches ============ */

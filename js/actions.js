@@ -211,6 +211,52 @@
     } catch (e) { toast(e.message, true); }
   }
 
+  // ----- staff (hire / edit / fire) -----
+  function newEmployee(C) {
+    const { $, T } = C;
+    C.editEmployeeId = 'new';
+    $('staffFormTitle').textContent = T.t('staff.new');
+    $('empName').value = ''; $('empType').value = '';
+    $('empSalary').value = ''; $('empPhone').value = ''; $('empNote').value = '';
+    $('staffForm').classList.remove('hidden');
+  }
+  function cancelEmployee(C) {
+    const { $ } = C;
+    C.editEmployeeId = null;
+    $('staffForm').classList.add('hidden');
+  }
+  function saveEmployee(C) {
+    const { state, $, T, D, save, render, toast } = C;
+    const name = $('empName').value.trim();
+    const type = $('empType').value.trim();
+    const raw = $('empSalary').value.trim();
+    const salary = raw === '' ? 0 : parseFloat(raw);
+    try {
+      if (!name || !type) throw new Error(T.t('toast.empFields'));
+      if (!(isFinite(salary) && salary >= 0)) throw new Error(T.t('toast.empSalary'));
+      const fields = { name: name, type: type, salary: salary, phone: $('empPhone').value.trim(), note: $('empNote').value.trim() };
+      if (C.editEmployeeId === 'new') {
+        C.state = D.addEmployee(state, fields);
+      } else {
+        C.state = D.updateEmployee(state, C.editEmployeeId, fields);
+      }
+      save(); C.editEmployeeId = null;
+      $('staffForm').classList.add('hidden');
+      render();
+      toast(T.t('toast.empSaved'));
+    } catch (e) { toast(e.message, true); }
+  }
+  function fireEmployee(C, id) {
+    const { state, $, T, D, save, render, toast } = C;
+    try {
+      C.state = D.fireEmployee(state, id);
+      save(); C.editEmployeeId = null;
+      $('staffForm').classList.add('hidden');
+      render();
+      toast(T.t('toast.empFired'));
+    } catch (e) { toast(e.message, true); }
+  }
+
   function openNewDebt(C) {
     const { $ } = C;
     const setNewDebt = DEK.pages.setNewDebt;
@@ -391,6 +437,21 @@
       try { C.state = D.removeCategory(C.state, { side: i, id: id }); save(); } catch (err) { /* already gone */ }
       render();
     }
+
+    if (act === 'staff-edit') {
+      const e = (C.state.employees || []).find(function (x) { return x.id === id; });
+      if (!e) return;
+      C.editEmployeeId = id;
+      $('staffFormTitle').textContent = T.t('staff.edit') + ': ' + e.name;
+      $('empName').value = e.name;
+      $('empType').value = e.type;
+      $('empSalary').value = String(e.salary);
+      $('empPhone').value = e.phone;
+      $('empNote').value = e.note;
+      $('staffForm').classList.remove('hidden');
+      render();
+    }
+    if (act === 'staff-fire') fireEmployee(C, id);
   }
 
   DEK.actions = {
@@ -400,6 +461,8 @@
     openNewDebt: openNewDebt, saveDebt: saveDebt, cancelPay: cancelPay, doPay: doPay,
     addCat: addCat, bookCash: bookCash, doCheckCash: doCheckCash, saveCfg: saveCfg,
     toggleDiscount: toggleDiscount, toggleRefund: toggleRefund, closeDay: closeDay,
-    exportBackup: exportBackup, resetAll: resetAll, onClick: onClick
+    exportBackup: exportBackup, resetAll: resetAll, onClick: onClick,
+    newEmployee: newEmployee, cancelEmployee: cancelEmployee, saveEmployee: saveEmployee,
+    fireEmployee: fireEmployee
   };
 });

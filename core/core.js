@@ -49,6 +49,7 @@ function createShop(opts) {
     categories: { in: [], out: [] },
     products: [],
     debts: [],
+    employees: [],
     days: [],
     // the OPEN day: entries (money moves) + checks (drawer counts) + soldCost (for profit)
     day: { date: todayStr(), openedAt: now, startCash: start, soldCost: 0, entries: [], checks: [] }

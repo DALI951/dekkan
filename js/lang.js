@@ -141,7 +141,24 @@
 
     'receipt.title': 'الفاتورة', 'receipt.client': 'الزبون',
     'receipt.close': 'تمام', 'receipt.print': 'طباعة', 'receipt.thanks': 'شكراً لزيارتكم',
-    'receipt.total': 'المجموع', 'receipt.paid': 'المدفوع'
+    'receipt.total': 'المجموع', 'receipt.paid': 'المدفوع',
+
+    'tab.employees': 'الموظفون',
+    'staff.head': 'الموظفون والمُراجعة الشهرية',
+    'staff.sub': 'فريقك ورواتبهم — وصورة الشهر كاملة',
+    'staff.monthly': 'المراجعة الشهرية',
+    'staff.wins': 'الدخل (داخل)', 'staff.losses': 'الخسائر (خارج)', 'staff.profit': 'الربح',
+    'staff.sales': 'المبيعات', 'staff.debtPays': 'سداد ديون', 'staff.incomes': 'ودائع أخرى',
+    'staff.refunds': 'المردودات', 'staff.buys': 'شراء مخزون', 'staff.expenses': 'المصاريف',
+    'staff.salaries': 'الرواتب', 'staff.moves': 'حركة', 'staff.dayInOut': 'داخل / خارج',
+    'staff.team': 'الفريق',
+    'staff.add': 'أضف موظفاً', 'staff.new': 'موظف جديد', 'staff.edit': 'تعديل',
+    'staff.empty': 'لا يوجد موظفون بعد — أضف أول موظف',
+    'staff.name': 'الاسم', 'staff.type': 'الصنف / المنصب', 'staff.salary': 'الراتب الشهري',
+    'staff.phone': 'الهاتف (اختياري)', 'staff.note': 'ملاحظة', 'staff.hired': 'التحاق',
+    'staff.fire': 'إنهاء العمل', 'staff.fired': 'منتهي العقد',
+    'toast.empSaved': 'تم حفظ الموظف', 'toast.empFired': 'تم إنهاء عمل الموظف',
+    'toast.empFields': 'اكتب الاسم والصنف', 'toast.empSalary': 'راتب غير صالح'
   };
 
   const EN = {
@@ -278,7 +295,24 @@
 
     'receipt.title': 'Receipt', 'receipt.client': 'Customer',
     'receipt.close': 'Done', 'receipt.print': 'Print', 'receipt.thanks': 'Thank you for visiting',
-    'receipt.total': 'Total', 'receipt.paid': 'Paid'
+    'receipt.total': 'Total', 'receipt.paid': 'Paid',
+
+    'tab.employees': 'Staff',
+    'staff.head': 'Staff & monthly review',
+    'staff.sub': 'Your team and their wages — and the whole month at a glance',
+    'staff.monthly': 'Monthly review',
+    'staff.wins': 'Wins (in)', 'staff.losses': 'Losses (out)', 'staff.profit': 'Profit',
+    'staff.sales': 'Sales', 'staff.debtPays': 'Debt payments', 'staff.incomes': 'Other income',
+    'staff.refunds': 'Refunds', 'staff.buys': 'Stock buys', 'staff.expenses': 'Expenses',
+    'staff.salaries': 'Salaries', 'staff.moves': 'moves', 'staff.dayInOut': 'in / out',
+    'staff.team': 'The team',
+    'staff.add': 'Add employee', 'staff.new': 'New employee', 'staff.edit': 'Edit',
+    'staff.empty': 'No employees yet — hire your first',
+    'staff.name': 'Name', 'staff.type': 'Type / role', 'staff.salary': 'Monthly salary',
+    'staff.phone': 'Phone (optional)', 'staff.note': 'Note', 'staff.hired': 'Hired',
+    'staff.fire': 'Fire', 'staff.fired': 'Fired',
+    'toast.empSaved': 'Employee saved', 'toast.empFired': 'Employee fired',
+    'toast.empFields': 'Name and type are required', 'toast.empSalary': 'Salary is not valid'
   };
 
   const T = {

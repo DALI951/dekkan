@@ -502,9 +502,9 @@ test("today's moves: bare number rows and refunds name the sale they undid", () 
     'no currency sign in today\'s moves — just the number');
 });
 
-// ---------- STAFF (employees + monthly review) ----------
+// ---------- STAFF (team page) + MONTHLY REVIEW (its own page) ----------
 
-test('the staff page hires a worker into the book and shows the monthly card', () => {
+test('the staff page hires a worker into the book', () => {
   const ui = boot();
   ui.goto('#/employees');
   ui.$('btnAddEmployee').fire('click');
@@ -518,11 +518,9 @@ test('the staff page hires a worker into the book and shows the monthly card', (
   assert.strictEqual(s.employees[0].name, 'Ali', 'trimmed name is in the book');
   assert.strictEqual(s.employees[0].salary, 300);
   assert.ok(ui.$('staffList').innerHTML.indexOf('Ali') !== -1, 'the hire is on screen');
-  assert.ok(/^\d{4}-\d{2}$/.test(ui.$('monthPicker').value), 'the picker shows a real month');
-  assert.ok(ui.$('monthProfit').textContent.indexOf('0.000') !== -1, 'an idle month profits nothing');
 });
 
-test('the staff page fires a worker and the monthly card counts a month of money', () => {
+test('the staff page fires a worker and the monthly page counts a month of money', () => {
   const ui = boot((core, s) => {
     s = core.addEmployee(s, { name: 'Sarra', type: 'Cleaner', salary: 150 });
     s.day.entries.push({ id: 'x1', kind: 'sale', amount: 100, at: new Date().toISOString(), note: '', ref: '', bill: 0 });
@@ -531,14 +529,16 @@ test('the staff page fires a worker and the monthly card counts a month of money
   });
   ui.goto('#/employees');
   assert.ok(ui.$('staffList').innerHTML.indexOf('Sarra') !== -1, 'the seeded hire is listed');
-  assert.ok(ui.$('monthWins').textContent.indexOf('100') !== -1, 'wins show the 100 sale');
-  assert.ok(ui.$('monthLosses').textContent.indexOf('180') !== -1, 'losses: 30 expense + 150 salary');
 
   const id = ui.saved().employees[0].id;
   ui.click('staff-fire', id);
   const s = ui.saved();
   assert.strictEqual(s.employees[0].active, false, 'fired leaves the team');
   assert.ok(/^\d{4}-\d{2}-\d{2}$/.test(s.employees[0].firedAt), 'with the date stamped');
+
+  ui.goto('#/monthly');
+  assert.ok(ui.$('monthWins').textContent.indexOf('100') !== -1, 'the monthly page wins show the 100 sale');
+  assert.ok(ui.$('monthLosses').textContent.indexOf('180') !== -1, 'losses: 30 expense + 150 salary');
 });
 
 test('the month picker switches the review to any month', () => {
@@ -546,7 +546,7 @@ test('the month picker switches the review to any month', () => {
     s.day.entries.push({ id: 'x1', kind: 'sale', amount: 70, at: new Date().toISOString(), note: '', ref: '', bill: 0 });
     return s;
   });
-  ui.goto('#/employees');
+  ui.goto('#/monthly');
   assert.ok(ui.$('monthWins').textContent.indexOf('70') !== -1, 'the current month sees the sale');
   ui.$('monthPicker').value = '2020-01';
   ui.$('monthPicker').fire('input');

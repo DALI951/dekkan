@@ -12,7 +12,7 @@
   'use strict';
 
   function render(C) {
-    const { renderHeader, renderSell, renderStock, renderDebts, renderReport, renderCashBox, renderSettings, renderEmployees } = DEK.pages;
+    const { renderHeader, renderSell, renderStock, renderDebts, renderReport, renderCashBox, renderSettings, renderEmployees, renderMonthly } = DEK.pages;
     renderHeader(C);
     renderSell(C);
     renderStock(C);
@@ -21,6 +21,7 @@
     renderCashBox(C);
     renderSettings(C);
     renderEmployees(C);
+    renderMonthly(C);
   }
 
   function renderHeader(C) {
@@ -458,14 +459,58 @@
     if (document.body) document.body.classList.remove('no-scroll');
   }
 
-  // ----- STAFF (the team + the month in review) -----
+  // ----- STAFF (the team: hire / edit / fire) -----
+  function renderEmployees(C) {
+    const { state, $, T, fmt } = C;
+    const { money, esc } = fmt;
+    const team = state.employees || [];
+    if (!team.length) {
+      $('staffList').innerHTML = '<p class="muted">' + T.t('staff.empty') + '</p>';
+    } else {
+      $('staffList').innerHTML = team.map(function (e) {
+        const meta = [e.type, T.t('staff.hired') + ': ' + e.hiredAt, e.phone, e.note].filter(Boolean).join(' · ');
+        const fired = e.active ? '' : ' <span class="muted">(' + T.t('staff.fired') + ')</span>';
+        return '<div class="entry">' +
+          '<div class="stack" style="flex:1">' +
+          '<b>' + esc(e.name) + fired + '</b>' +
+          '<small class="muted">' + esc(meta) + '</small>' +
+          '<small class="muted">' + money(e.salary) + ' / ' + T.t('staff.perMonth') + '</small>' +
+          '</div>' +
+          '<span class="row gr">' +
+          '<button class="btn ghost" data-action="staff-edit" data-id="' + e.id + '">' + T.t('staff.edit') + '</button>' +
+          (e.active ? '<button class="btn ghost" data-action="staff-fire" data-id="' + e.id + '">' + T.t('staff.fire') + '</button>' : '') +
+          '</span></div>';
+      }).join('');
+    }
+
+    // the hire/edit form only exists when it is in flight (C.editEmployeeId)
+    const form = $('staffForm');
+    if (C.editEmployeeId) {
+      form.classList.remove('hidden');
+      if (C.editEmployeeId !== 'new') {
+        const e = team.find(function (x) { return x.id === C.editEmployeeId; });
+        if (e) {
+          $('staffFormTitle').textContent = T.t('staff.edit') + ': ' + e.name;
+          $('empName').value = e.name;
+          $('empType').value = e.type;
+          $('empSalary').value = String(e.salary);
+          $('empPhone').value = e.phone;
+          $('empNote').value = e.note;
+        }
+      }
+    } else {
+      form.classList.add('hidden');
+    }
+  }
+
+  // ----- MONTHLY REVIEW (one month, wins/losses/profit with salaries) -----
   function currentMonth() {
     const n = new Date();
     return n.getFullYear() + '-' + ((n.getMonth() + 1) < 10 ? '0' : '') + (n.getMonth() + 1);
   }
-  function renderEmployees(C) {
+  function renderMonthly(C) {
     const { state, $, T, D, fmt } = C;
-    const { money, esc } = fmt;
+    const { money } = fmt;
     const ym = C.month && /^\d{4}-\d{2}$/.test(C.month) ? C.month : (C.month = currentMonth());
     const r = D.monthlyReport(state, ym);
 
@@ -498,45 +543,6 @@
       ? '<div class="mrow"><span class="lab">' + T.t('staff.dayInOut') + '</span>' +
         '<b>' + T.t('staff.moves') + ': ' + r.moves + '</b></div>' + dayRows
       : '';
-
-    const team = state.employees || [];
-    if (!team.length) {
-      $('staffList').innerHTML = '<p class="muted">' + T.t('staff.empty') + '</p>';
-    } else {
-      $('staffList').innerHTML = team.map(function (e) {
-        const meta = [e.type, T.t('staff.hired') + ': ' + e.hiredAt, e.phone, e.note].filter(Boolean).join(' · ');
-        const fired = e.active ? '' : ' <span class="muted">(' + T.t('staff.fired') + ')</span>';
-        return '<div class="entry">' +
-          '<div class="stack" style="flex:1">' +
-          '<b>' + esc(e.name) + fired + '</b>' +
-          '<small class="muted">' + esc(meta) + '</small>' +
-          '<small class="muted">' + money(e.salary) + ' / ' + T.t('staff.monthly') + '</small>' +
-          '</div>' +
-          '<span class="row gr">' +
-          '<button class="btn ghost" data-action="staff-edit" data-id="' + e.id + '">' + T.t('staff.edit') + '</button>' +
-          (e.active ? '<button class="btn ghost" data-action="staff-fire" data-id="' + e.id + '">' + T.t('staff.fire') + '</button>' : '') +
-          '</span></div>';
-      }).join('');
-    }
-
-    // the hire/edit form only exists when it is in flight (C.editEmployeeId)
-    const form = $('staffForm');
-    if (C.editEmployeeId) {
-      form.classList.remove('hidden');
-      if (C.editEmployeeId !== 'new') {
-        const e = team.find(function (x) { return x.id === C.editEmployeeId; });
-        if (e) {
-          $('staffFormTitle').textContent = T.t('staff.edit') + ': ' + e.name;
-          $('empName').value = e.name;
-          $('empType').value = e.type;
-          $('empSalary').value = String(e.salary);
-          $('empPhone').value = e.phone;
-          $('empNote').value = e.note;
-        }
-      }
-    } else {
-      form.classList.add('hidden');
-    }
   }
 
   function revealProductForm(C) {
@@ -553,6 +559,6 @@
     renderCashBox: renderCashBox, catOptions: catOptions, catChips: catChips,
     renderSettings: renderSettings, renderThemes: renderThemes, updateStorage: updateStorage,
     showReceipt: showReceipt, hideReceipt: hideReceipt, revealProductForm: revealProductForm,
-    renderEmployees: renderEmployees
+    renderEmployees: renderEmployees, renderMonthly: renderMonthly
   };
 });

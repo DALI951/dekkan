@@ -370,7 +370,7 @@ function sellAll(state, opts) {
   const lines = [];
   for (const it of items) {
     const unit = money(it.price != null ? it.price : getProduct(state, it.id).sell);
-    lines.push({ name: getProduct(state, it.id).name, qty: Math.floor(it.qty), price: unit, total: money(unit * it.qty) });
+    lines.push({ id: it.id, name: getProduct(state, it.id).name, qty: Math.floor(it.qty), price: unit, total: money(unit * it.qty) });
   }
   for (const f of free) {
     lines.push({ name: String(f.name).trim(), qty: Math.floor(f.qty), price: money(f.price), total: money(f.price * f.qty) });
@@ -416,7 +416,7 @@ function sell(state, opts) {
   const lines = [];
   for (const it of items) {
     const unit = money(it.price != null ? it.price : getProduct(state, it.id).sell);
-    lines.push({ name: getProduct(state, it.id).name, qty: Math.floor(it.qty), price: unit, total: money(unit * it.qty) });
+    lines.push({ id: it.id, name: getProduct(state, it.id).name, qty: Math.floor(it.qty), price: unit, total: money(unit * it.qty) });
   }
   const paidVal = paidValOf(opts);
   const customer = String(opts.customer || opts.creditTo || '').trim();

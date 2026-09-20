@@ -130,7 +130,10 @@
       </div>
       <label><span data-i18n="sell.paid">المبلغ المدفوع</span><input type="number" id="paidCash" min="0" step="0.001" data-i18n-ph="sell.paidPh"></label>
       <div id="changeLine" class="chg hidden"></div>
-      <button class="btn primary big" id="btnSell" data-i18n="sell.go">تسجيل البيع</button>
+      <div class="row gap">
+        <button class="btn ghost big" id="btnCancelSell" data-i18n="common.cancel">إلغاء</button>
+        <button class="btn primary big" id="btnSell" data-i18n="sell.go">تسجيل البيع</button>
+      </div>
     </div>
   </section>
 
@@ -329,6 +332,7 @@
         <span class="r-logo">د</span>
         <div><b id="rShop"></b><small id="rWhen"></small></div>
       </div>
+      <button class="btn ghost" id="btnReceiptRefund" data-i18n="sell.refund">استرجاع</button>
       <button class="btn ghost" id="btnReceiptPrint" data-i18n="receipt.print">طباعة</button>
       <button class="btn ghost" id="btnReceiptClose" data-i18n="receipt.close">تمام</button>
     </div>

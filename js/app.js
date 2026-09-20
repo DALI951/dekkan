@@ -1,8 +1,8 @@
-﻿/* DEKKAN â€” the shop webapp (v4: theme engine + till-style report).
+﻿/* DEKKAN — the shop webapp (v4: theme engine + till-style report).
  * UI layer ONLY: renders state, calls the core (window.Dekkan), persists.
  * Every business rule lives in core/dekkan-core.js.
  * Every user-visible string goes through T.t() (js/lang.js).
- * Every color comes from a theme token (js/themes.js) â€” no hardcoded colors here.
+ * Every color comes from a theme token (js/themes.js) — no hardcoded colors here.
  */
 'use strict';
 (function () {
@@ -147,13 +147,13 @@
       if (!p) return;
       bh += '<div class="basket-line"><span>' + esc(p.name) + ' <span class="q">x' + b.qty + '</span></span>'
         + '<span class="sub">' + money(b.qty * p.sell) + '</span>'
-        + '<span class="row gap"><button class="btn ghost" data-action="basket-minus" data-id="' + b.id + '">âˆ’</button> '
+        + '<span class="row gap"><button class="btn ghost" data-action="basket-minus" data-id="' + b.id + '">−</button> '
         + '<button class="btn ghost" data-action="basket-plus" data-id="' + b.id + '">+</button></span></div>';
     });
     freeItems.forEach(function (f, i) {
       bh += '<div class="basket-line"><span>' + esc(f.name) + ' <span class="q">x' + f.qty + '</span></span>'
         + '<span class="sub">' + money(f.qty * f.price) + '</span>'
-        + '<button class="btn ghost" data-action="basket-free-del" data-i="' + i + '">âœ•</button></div>';
+        + '<button class="btn ghost" data-action="basket-free-del" data-i="' + i + '">✕</button></div>';
     });
     $('basketList').innerHTML = bh || '<div class="empty">' + T.t('basket.empty') + '</div>';
 
@@ -169,7 +169,7 @@
     const net = n3(Math.max(0, subtotal - disc));
     $('basketTotal').textContent = money(net);
 
-    // what the customer must hand over â€” right there, and it moves while you type
+    // what the customer must hand over — right there, and it moves while you type
     const parts = [];
     if (count > 0) parts.push(count + ' ' + T.t('sell.items'));
     if (disc > 0) parts.push(T.t('sell.discount') + ' ' + money(disc));
@@ -218,7 +218,7 @@
         if (back > 0) { txt = T.t('sell.change') + ' ' + money(back); cls += ' ok'; }
         else { txt = T.t('sell.exact'); cls += ' ok'; }
       } else {
-        txt = T.t('sell.rest') + ' ' + money(net - paid) + ' â€” '
+        txt = T.t('sell.rest') + ' ' + money(net - paid) + ' — '
           + (name || T.t('sell.restNeedName'));
         cls += ' bad';
       }
@@ -230,7 +230,7 @@
   function addToBasket(id) {
     const p = D.getProduct(state, id);
     if (!p) return;
-    if (p.stock <= 0) return toast(T.t('toast.noStock'), true); // sold out â€” the tile is disabled too
+    if (p.stock <= 0) return toast(T.t('toast.noStock'), true); // sold out — the tile is disabled too
     const hit = basket.find(function (b) { return b.id === id; });
     const qty = (hit ? hit.qty : 0) + 1;
     if (qty > p.stock) return toast(T.t('toast.maxStock') + p.stock, true); // never more than on the shelf
@@ -271,7 +271,7 @@
       html += '<div class="debt-card"><span><span class="d-name">' + esc(d.name) + '</span>'
         + '<span class="d-sub">' + T.t('debts.settled') + '</span></span>'
         + '<span class="row gap"><span class="d-owed">' + money(d.paid) + '</span>'
-        + '<button class="btn ghost" data-action="debt-del" data-id="' + d.id + '">âœ•</button></span></div>';
+        + '<button class="btn ghost" data-action="debt-del" data-id="' + d.id + '">✕</button></span></div>';
     });
     $('debtList').innerHTML = html || '<div class="empty">' + T.t('debts.empty') + '</div>';
     $('debtForm').classList.toggle('hidden', !newDebtFlag);
@@ -318,14 +318,14 @@
       ch += '<div class="entry"><span class="e-kind k-check">' + T.t('kind.check') + '</span>'
         + '<span class="growx">' + entryTime(c.at) + '</span>'
         + '<span class="' + (c.ok ? 'check-ok' : 'check-bad') + '">'
-        + (c.ok ? T.t('report.matched') + ' âœ“' : (T.t('report.diff') + (c.diff > 0 ? '+' : '') + fmt(c.diff) + ' ' + T.t('curr'))) + '</span></div>';
+        + (c.ok ? T.t('report.matched') + ' ✓' : (T.t('report.diff') + (c.diff > 0 ? '+' : '') + fmt(c.diff) + ' ' + T.t('curr'))) + '</span></div>';
     });
     $('checkHistory').innerHTML = ch || '<div class="empty">' + T.t('report.noChecks') + '</div>';
 
     let eh = '';
     r.entries.slice().reverse().forEach(function (e) {
       const cls = e.amount > 0 ? 'in' : (e.amount < 0 ? 'out' : 'none');
-      const amt = e.amount === 0 ? 'â€”' : money(e.amount);
+      const amt = e.amount === 0 ? '—' : money(e.amount);
       const guts = '<span class="e-kind k-' + e.kind + '">' + kindLabel(e.kind) + '</span>'
         + (e.no ? '<span class="e-no">#' + e.no + '</span>' : '')
         + '<span class="growx"><span class="e-time">' + entryTime(e.at) + '</span>'
@@ -334,14 +334,14 @@
       // a sale row IS a ticket: tap it to reopen the facture
       eh += e.kind === 'sale'
         ? '<button class="entry trow" data-action="ticket-open" data-id="' + e.id + '" data-i="' + e.no + '">'
-          + guts + '<span class="e-ticket">â€¹</span></button>'
+          + guts + '<span class="e-ticket">₹</span></button>'
         : '<div class="entry">' + guts + '</div>';
     });
     $('entriesList').innerHTML = eh || '<div class="empty">' + T.t('report.noMoves') + '</div>';
   }
 
   // reopen a stored sale as a facture. legacy sales (no bill, pre-facture days)
-  // still print â€” the total plus whatever the entry remembers.
+  // still print — the total plus whatever the entry remembers.
   function openTicket(e, no) {
     const bill = e.bill;
     showReceipt({
@@ -415,7 +415,7 @@
     $('catOutList').innerHTML = catChips(state.categories.out, 'out');
   }
   function catOptions(pool) {
-    return '<option value="">â€”</option>'
+    return '<option value="">—</option>'
       + pool.map(function (c) { return '<option value="' + esc(c.name) + '">' + esc(c.name) + '</option>'; }).join('');
   }
   function catChips(pool, side) {
@@ -472,7 +472,7 @@
     updateStorage();
   }
 
-  // ----- THEMES (colors live in js/themes.js â€” the app just asks) -----
+  // ----- THEMES (colors live in js/themes.js — the app just asks) -----
   function themes() { return window.DEK && window.DEK.Themes; }
 
   function renderThemes() {
@@ -497,7 +497,7 @@
     navigator.storage.estimate().then(function (est) {
       const mb = (est.usage || 0) / 1048576;
       el.textContent = (mb < 0.1 ? '<0.1' : (mb < 10 ? mb.toFixed(1) : String(Math.round(mb)))) + ' MB';
-    }).catch(function () { /* stays â€” */ });
+    }).catch(function () { /* stays — */ });
   }
 
   // ---------- events (bound once) ----------
@@ -541,14 +541,14 @@
       $('pName').value = p.name; $('pBuy').value = p.buy; $('pSell').value = p.sell;
       $('pStock').value = p.stock; $('pLow').value = p.lowAt;
       $('productForm').classList.remove('hidden');
-      revealProductForm(); // the label only exists NOW â€” make sure it is actually on screen
+      revealProductForm(); // the label only exists NOW — make sure it is actually on screen
     }
     if (act === 'stock-restock') run(function (s) { return D.buyStock(s, id, 10, D.getProduct(s, id).buy); }, T.t('toast.restock'));
 
     if (act === 'debt-pay') {
       payDebtId = id;
       const d = state.debts.find(function (x) { return x.id === id; });
-      if (d) $('payTitle').textContent = T.t('debts.payTitle') + ' â€” ' + d.name;
+      if (d) $('payTitle').textContent = T.t('debts.payTitle') + ' — ' + d.name;
       $('payAmount').value = '';
       $('payForm').classList.remove('hidden');
     }
@@ -576,10 +576,10 @@
     $('rLines').innerHTML = r.lines.map(function (l) {
       return '<div class="r-line"><span>' + esc(l.name) + ' <span class="r-q">×' + l.qty
         + ' @ ' + money(l.price) + '</span></span><b>' + money(l.total) + '</b></div>';
-    }).join('') || '<div class="empty">â€”</div>';
+    }).join('') || '<div class="empty">—</div>';
 
     let t = '<div class="r-row big"><span>' + T.t('receipt.total') + '</span><b>' + money(r.net) + '</b></div>';
-    if (r.discount > 0) t += '<div class="r-row dim"><span>' + T.t('sell.discount') + '</span><span>âˆ’' + money(r.discount) + '</span></div>';
+    if (r.discount > 0) t += '<div class="r-row dim"><span>' + T.t('sell.discount') + '</span><span>−' + money(r.discount) + '</span></div>';
     if (r.paid !== null) {
       t += '<div class="r-row"><span>' + T.t('receipt.paid') + '</span><b>' + money(r.paid) + '</b></div>';
       if (r.change > 0) t += '<div class="r-row ok"><span>' + T.t('sell.change') + '</span><b>' + money(r.change) + '</b></div>';
@@ -616,6 +616,13 @@
     if (pf && !pf.classList.contains('hidden')) pf.classList.add('hidden');
   });
 
+  // Cancel on the record-sale form: drop the whole order, reset the till, back to products.
+  $('btnCancelSell').addEventListener('click', function () {
+    basket = []; freeItems = [];
+    $('paidCash').value = ''; $('discPct').value = ''; $('discAmt').value = ''; $('creditName').value = '';
+    hideReceipt(); render(); toast(T.t('toast.saleCancelled'));
+  });
+
   $('btnSell').addEventListener('click', function () {
     const customer = $('creditName').value.trim();
     const discAmt = parseFloat($('discAmt').value) || 0;
@@ -649,7 +656,7 @@
     });
     freeItems.forEach(function (f) { lines.push({ name: f.name, qty: f.qty, price: f.price, total: n3(f.price * f.qty) }); });
 
-    // the number this client takes â€” captured BEFORE the sale records it
+    // the number this client takes — captured BEFORE the sale records it
     const clientNo = D.nextClientNo(state);
 
     try {
@@ -675,7 +682,7 @@
       basket = []; freeItems = [];
       $('discPct').value = ''; $('discAmt').value = ''; $('creditName').value = ''; $('paidCash').value = '';
       render();
-      if (rest > 0) toast(T.t('toast.saleRest') + money(rest) + (customer ? ' â€” ' + customer : ''));
+      if (rest > 0) toast(T.t('toast.saleRest') + money(rest) + (customer ? ' — ' + customer : ''));
       else if (customer) toast(T.t('toast.saleCredit') + customer);
       else toast(T.t('toast.saleOk'));
     } catch (e) { toast(e.message, true); }
@@ -718,7 +725,7 @@
     $('productForm').classList.remove('hidden');
     revealProductForm();
   });
-  // the edit label must land on screen â€” it lives below the product list
+  // the edit label must land on screen — it lives below the product list
   function revealProductForm() {
     const f = $('productForm');
     if (f && f.scrollIntoView) f.scrollIntoView({ behavior: 'smooth', block: 'center' });

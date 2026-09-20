@@ -221,13 +221,20 @@ ok(D.customerNames(s).length === namesBefore + 2, 'memory grew by exactly the tw
 console.log('-- the counter remembers only named customers, and never runs out of #s');
 
 // --- the brain also loads in a BROWSER (window.Dekkan), not just node ---
+// (the core is now a loader + module files; the page loads them in this order)
 const vm = require('node:vm');
 const fs = require('node:fs');
+const path = require('node:path');
 const sandbox = { window: {} };
 vm.createContext(sandbox);
-vm.runInContext(fs.readFileSync(require.resolve('../core/dekkan-core.js'), 'utf8'), sandbox);
+sandbox.window = sandbox;
+sandbox.self = sandbox;
+['dekkan-core.js', 'core.js', 'products.js', 'debts.js', 'sales.js', 'refunds.js',
+  'cashbox.js', 'report.js', 'shop.js'].forEach(f => {
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'core', f), 'utf8'), sandbox);
+});
 ok(typeof sandbox.window.Dekkan === 'object' && typeof sandbox.window.Dekkan.createShop === 'function',
-  'browser load: the same file exposes window.Dekkan (the webapp can use it)');
+  'browser load: the same files expose window.Dekkan (the webapp can use it)');
 const b = sandbox.window.Dekkan.createShop({ startCash: 5 });
 ok(sandbox.window.Dekkan.cash(b) === 5, 'browser brain works (cash = 5 on a fresh shop)');
 

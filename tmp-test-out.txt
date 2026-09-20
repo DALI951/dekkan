@@ -1,0 +1,204 @@
+﻿Γ£ö the amount due is on screen, follows the basket, and moves while typing (17.9008ms)
+Γ£ö the no-stock line previews its own total while typing (3.3697ms)
+Γ£û checkout: a part payment puts the rest on the customer (5.2952ms)
+Γ£ö debts: paying MORE than the balance is refused at the till ΓÇö nothing moves (3.9449ms)
+Γ£ö debts: paying exactly the balance works and settles the debt (5.634ms)
+Γ£û till: Enter in the paid field runs the sale (same as pressing the button) (3.833ms)
+Γ£ö till: Enter in the free-item row adds the line (no checkout) (2.7331ms)
+Γ£ö debts: Enter in the pay box settles the debt (same as the pay button) (2.6958ms)
+Γ£ö debts: Enter in the new-debt form books it (same as the save button) (3.2083ms)
+Γ£ö stock: Enter in the product form adds the product (same as save) (4.1192ms)
+Γ£û checkout: paying too much shows the change and never inflates the box (3.1296ms)
+Γ£ö checkout: a shortage with no name is refused, and nothing changes (3.2029ms)
+Γ£û report: ONE moves list ΓÇö no separate tickets vault, sales open their ticket (2.9852ms)
+Γ£û report: opening a ticket reprints the STORED facture detail (4.8398ms)
+Γ£ö report: tapping a metric box opens the detail behind the number (3.3054ms)
+Γ£û report: the debts metric lists who owes what (1.238ms)
+Γ£ö cashbox: cash out asks a purpose and drops the till (3.2714ms)
+Γ£ö cashbox: cash in asks a source and fills the till (3.9722ms)
+Γ£ö cashbox: categories are created and appear in the pickers (3.9851ms)
+Γ£ö cashbox: Enter in the cash-out form books it (same as the button) (3.4182ms)
+Γ£ö lang: a hard refresh restores the LAYOUT (dir) with the language, not just the text (2.3461ms)
+Γ£ö lang: the default (nothing saved) stays on the Arabic side ΓÇö the app's birth direction (2.1665ms)
+Γ£ö stock: the edit label is invisible by default and only appears on action (2.305ms)
+Γ£ö stock: a sold-out product cannot be added to the basket (3.34ms)
+Γ£ö stock: the + never takes the basket over what is in stock (4.3902ms)
+Γ£û receipt refund: the sale on the receipt is refundable in one tap (3.1321ms)
+Γ£û receipt refund: free lines are cleared without stock, the sale stays filed (2.8908ms)
+Γ£û today's moves: bare number rows and refunds name the sale they undid (3.0947ms)
+Γä╣ tests 28
+Γä╣ suites 0
+Γä╣ pass 19
+Γä╣ fail 9
+Γä╣ cancelled 0
+Γä╣ skipped 0
+Γä╣ todo 0
+Γä╣ duration_ms 2805.7724
+
+Γ£û failing tests:
+
+test at test\ui.test.js:147:1
+Γ£û checkout: a part payment puts the rest on the customer (5.2952ms)
+  AssertionError [ERR_ASSERTION]: only the 1.000 handed over enters the box
+  
+  50 !== 51
+  
+      at TestContext.<anonymous> (C:\Users\Dali\Projects\dekkan\test\ui.test.js:155:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 50,
+    expected: 51,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test\ui.test.js:199:1
+Γ£û till: Enter in the paid field runs the sale (same as pressing the button) (3.833ms)
+  AssertionError [ERR_ASSERTION]: the sale went through (overpay keeps the net)
+  
+  50 !== 51.5
+  
+      at TestContext.<anonymous> (C:\Users\Dali\Projects\dekkan\test\ui.test.js:206:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 50,
+    expected: 51.5,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test\ui.test.js:257:1
+Γ£û checkout: paying too much shows the change and never inflates the box (3.1296ms)
+  AssertionError [ERR_ASSERTION]: cash rises by the price only
+  
+  50 !== 51.5
+  
+      at TestContext.<anonymous> (C:\Users\Dali\Projects\dekkan\test\ui.test.js:264:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 50,
+    expected: 51.5,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test\ui.test.js:285:1
+Γ£û report: ONE moves list ΓÇö no separate tickets vault, sales open their ticket (2.9852ms)
+  AssertionError [ERR_ASSERTION]: the sale row inside today's moves is tappable
+      at TestContext.<anonymous> (C:\Users\Dali\Projects\dekkan\test\ui.test.js:296:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test\ui.test.js:299:1
+Γ£û report: opening a ticket reprints the STORED facture detail (4.8398ms)
+  TypeError: Cannot read properties of undefined (reading 'id')
+      at TestContext.<anonymous> (C:\Users\Dali\Projects\dekkan\test\ui.test.js:308:33)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7)
+
+test at test\ui.test.js:334:1
+Γ£û report: the debts metric lists who owes what (1.238ms)
+  ReferenceError: pushEntry is not defined
+      at applyPayment (C:\Users\Dali\Projects\dekkan\core\sales.js:189:5)
+      at Object.sellAll (C:\Users\Dali\Projects\dekkan\core\sales.js:63:11)
+      at C:\Users\Dali\Projects\dekkan\test\ui.test.js:336:14
+      at boot (C:\Users\Dali\Projects\dekkan\test\ui.test.js:72:17)
+      at TestContext.<anonymous> (C:\Users\Dali\Projects\dekkan\test\ui.test.js:335:14)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+
+test at test\ui.test.js:452:1
+Γ£û receipt refund: the sale on the receipt is refundable in one tap (3.1321ms)
+  AssertionError [ERR_ASSERTION]: the box took the 3.000
+  
+  50 !== 53
+  
+      at TestContext.<anonymous> (C:\Users\Dali\Projects\dekkan\test\ui.test.js:459:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 50,
+    expected: 53,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test\ui.test.js:471:1
+Γ£û receipt refund: free lines are cleared without stock, the sale stays filed (2.8908ms)
+  AssertionError [ERR_ASSERTION]: one refund for the stock line, one for the free line
+  
+  0 !== 2
+  
+      at TestContext.<anonymous> (C:\Users\Dali\Projects\dekkan\test\ui.test.js:486:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test\ui.test.js:490:1
+Γ£û today's moves: bare number rows and refunds name the sale they undid (3.0947ms)
+  AssertionError [ERR_ASSERTION]: the refund row shows the # of the sale it reversed
+      at TestContext.<anonymous> (C:\Users\Dali\Projects\dekkan\test\ui.test.js:499:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

@@ -72,7 +72,9 @@ function boot(seed, pre) {
   if (seed) s = seed(core, s);
   store['dekkan.v1'] = JSON.stringify(s);
 
-  ['core/dekkan-core.js', 'js/themes.js', 'js/lang.js', 'js/app.js'].forEach(f => {
+  ['core/dekkan-core.js', 'core/core.js', 'core/products.js', 'core/debts.js',
+    'core/sales.js', 'core/refunds.js', 'core/cashbox.js', 'core/report.js', 'core/shop.js',
+    'js/themes.js', 'js/lang.js', 'js/app.js'].forEach(f => {
     vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f });
   });
 

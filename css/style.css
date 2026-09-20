@@ -439,7 +439,7 @@ button.trow{width:100%;display:flex;align-items:center;gap:10px;background:trans
   color:var(--txt);text-align:start;}
 button.trow:hover{background:var(--accbg);}
 button.trow b{color:var(--acc2);}
-.e-ticket{color:var(--acc);font-size:14px;font-weight:800;flex:none;}
+.entry.trow{cursor:pointer;}
 
 /* ============ report metric boxes (tap for the detail) ============ */
 button.metric{background:var(--panel);border:1px solid var(--line);border-radius:var(--rads);

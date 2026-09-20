@@ -127,3 +127,19 @@ test('bills survive a day close — history tickets keep their detail', () => {
   assert.strictEqual(hist.entries[0].bill.net, 3);
   assert.strictEqual(s.day.entries[0].bill.net, 1.5, 'and the new day has its own');
 });
+
+test('refund carries the number of the sale it reversed', () => {
+  const { s: s0, coca } = shop();
+  let s = D.sellAll(s0, { items: [{ id: coca, qty: 2 }], paid: 3 }); // sale #1
+  const saleId = s.day.entries[s.day.entries.length - 1].id;
+  const saleNo = D.clientNoOf(s, saleId); // derived, 1-based — the # the receipt showed
+  assert.strictEqual(saleNo, 1, 'the sale took number 1');
+  s = D.refund(s, { items: [{ id: coca, qty: 2 }], saleNo: saleNo });
+  const r = s.day.entries[s.day.entries.length - 1];
+  assert.strictEqual(r.kind, 'refund');
+  assert.strictEqual(r.saleNo, saleNo, 'the refund says which sale it undid');
+
+  s = D.refundFree(s, { name: 'Cafe', qty: 1, price: 2, saleNo: 7 });
+  const rf = s.day.entries[s.day.entries.length - 1];
+  assert.strictEqual(rf.saleNo, 7, 'and free-line refunds too');
+});

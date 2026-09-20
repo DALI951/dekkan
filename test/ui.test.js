@@ -484,3 +484,18 @@ test('receipt refund: free lines are cleared without stock, the sale stays filed
   assert.strictEqual(refunds.length, 2, 'one refund for the stock line, one for the free line');
   assert.ok(s.day.entries.some(e => e.kind === 'sale'), 'the original sale stays filed');
 });
+
+test("today's moves: bare number rows and refunds name the sale they undid", () => {
+  const ui = boot();
+  ui.click('sell-add', ui.pid);              // Coca x1 -> 1.500
+  ui.$('paidCash').value = '1.5';
+  ui.$('paidCash').fire('input');
+  ui.$('btnSell').fire('click');
+  ui.$('btnReceiptRefund').fire('click');
+
+  const html = ui.$('entriesList').innerHTML;
+  assert.ok(/k-refund[\s\S]*class="e-no">#1</.test(html),
+    'the refund row shows the # of the sale it reversed');
+  assert.ok(html.indexOf('د.ت') === -1,
+    'no currency sign in today\'s moves — just the number');
+});

@@ -480,9 +480,9 @@ function refund(state, opts) {
     const applied = Math.min(back, maxBack);
     d.total = money(d.total - applied);
     if (d.total <= d.paid) d.settled = true;
-    pushEntry(state, 'refund', 0, refs.join(', '), 'credit refund: ' + opts.creditTo);
+    pushEntry(state, 'refund', 0, refs.join(', '), 'credit refund: ' + opts.creditTo, { saleNo: opts.saleNo || null });
   } else {
-    pushEntry(state, 'refund', -money(back), refs.join(', '), opts.reason || null);
+    pushEntry(state, 'refund', -money(back), refs.join(', '), opts.reason || null, { saleNo: opts.saleNo || null });
   }
   return state;
 }
@@ -502,9 +502,9 @@ function refundFree(state, opts) {
     const applied = Math.min(back, maxBack);
     d.total = money(d.total - applied);
     if (d.total <= d.paid) d.settled = true;
-    pushEntry(state, 'refund', 0, opts.name + 'x' + qty, 'credit refund: ' + opts.creditTo);
+    pushEntry(state, 'refund', 0, opts.name + 'x' + qty, 'credit refund: ' + opts.creditTo, { saleNo: opts.saleNo || null });
   } else {
-    pushEntry(state, 'refund', -back, opts.name + 'x' + qty, opts.note || null);
+    pushEntry(state, 'refund', -back, opts.name + 'x' + qty, opts.note || null, { saleNo: opts.saleNo || null });
   }
   return state;
 }

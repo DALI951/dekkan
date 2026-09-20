@@ -10,7 +10,7 @@
   const T = window.T;
   const LS_KEY = 'dekkan.v1';
   const BK_KEY = 'dekkan.backup';
-  const A_VERSION = '0.8.6';
+  const A_VERSION = '0.8.7';
 
   // ---------- state ----------
   let state = load();
@@ -330,10 +330,11 @@
 
     let eh = '';
     r.entries.slice().reverse().forEach(function (e) {
-      const cls = e.amount > 0 ? 'in' : (e.amount < 0 ? 'out' : 'none');
-      const amt = e.amount === 0 ? '—' : money(e.amount);
+const cls = e.amount > 0 ? 'in' : (e.amount < 0 ? 'out' : 'none');
+      const amt = e.amount === 0 ? '-' : n3(e.amount); // bare number — the shop floor reads the digits
       const guts = '<span class="e-kind k-' + e.kind + '">' + kindLabel(e.kind) + '</span>'
         + (e.no ? '<span class="e-no">#' + e.no + '</span>' : '')
+        + (e.kind === 'refund' && e.saleNo ? '<span class="e-no">#' + e.saleNo + '</span>' : '')
         + '<span class="growx"><span class="e-time">' + entryTime(e.at) + '</span>'
         + (e.note ? '<span class="e-note">' + esc(e.note) + '</span>' : '') + '</span>'
         + '<span class="e-amt ' + cls + '">' + amt + '</span>';
@@ -394,6 +395,7 @@
         if (e.kind !== kind) return;
         rows += line(kindLabel(e.kind)
           + (e.no ? ' <span class="e-no">#' + e.no + '</span>' : '')
+          + (e.kind === 'refund' && e.saleNo ? ' <span class="e-no">#' + e.saleNo + '</span>' : '')
           + (e.note ? ' <span class="e-note">' + esc(e.note) + '</span>' : ''),
           money(Math.abs(e.amount)), e.amount > 0 ? 'in' : 'bad');
       });
@@ -618,8 +620,9 @@
     });
     try {
       let s = state;
-      if (items.length) s = D.refund(s, { items: items, reason: 'refund' });
-      if (freeNames.length) s = D.refundFree(s, { name: freeNames.join(' + '), qty: 1, price: n3(freePrice) });
+      const saleNo = D.clientNoOf(s, receiptEntryId); // the # of the sale being reversed
+      if (items.length) s = D.refund(s, { items: items, reason: 'refund', saleNo: saleNo });
+      if (freeNames.length) s = D.refundFree(s, { name: freeNames.join(' + '), qty: 1, price: n3(freePrice), saleNo: saleNo });
       state = s;
       save();
       receiptEntryId = null;

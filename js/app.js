@@ -10,7 +10,7 @@
   const T = window.T;
   const LS_KEY = 'dekkan.v1';
   const BK_KEY = 'dekkan.backup';
-  const A_VERSION = '0.8.4';
+  const A_VERSION = '0.8.5';
 
   // ---------- state ----------
   let state = load();
@@ -340,7 +340,7 @@
       // a sale row IS a ticket: tap it to reopen the facture
       eh += e.kind === 'sale'
         ? '<button class="entry trow" data-action="ticket-open" data-id="' + e.id + '" data-i="' + e.no + '">'
-          + guts + '<span class="e-ticket">₹</span></button>'
+          + guts + '<span class="e-ticket">🧾</span></button>'
         : '<div class="entry">' + guts + '</div>';
     });
     $('entriesList').innerHTML = eh || '<div class="empty">' + T.t('report.noMoves') + '</div>';

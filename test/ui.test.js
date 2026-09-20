@@ -446,3 +446,41 @@ test('stock: the + never takes the basket over what is in stock', () => {
   assert.ok(ui.$('basketList').innerHTML.indexOf('x4') !== -1, 'still 4, not 5');
   assert.ok(ui.$('toast').textContent.length > 0, 'and he is told why');
 });
+
+test('receipt refund: the sale on the receipt is refundable in one tap', () => {
+  const ui = boot();
+  ui.click('sell-add', ui.pid);              // Coca x1
+  ui.click('sell-add', ui.pid);              // Coca x2 -> 3.000
+  ui.$('paidCash').value = '3';
+  ui.$('paidCash').fire('input');
+  ui.$('btnSell').fire('click');
+  assert.strictEqual(ui.cashNow(), 53, 'the box took the 3.000');
+
+  ui.$('btnReceiptRefund').fire('click');
+  const s = ui.saved();
+  assert.strictEqual(s.products[0].stock, 10, 'the goods went back on the shelf');
+  assert.strictEqual(ui.cashNow(), 50, 'the cash went back to the starting 50');
+  const refunds = s.day.entries.filter(e => e.kind === 'refund');
+  assert.strictEqual(refunds.length, 1, 'one refund on the ledger');
+  assert.strictEqual(refunds[0].amount, -3, 'for the full 3.000 (with the price from the bill)');
+  assert.ok(ui.$('toast').textContent.length > 0, 'and a toast told him');
+});
+
+test('receipt refund: free lines are cleared without stock, the sale stays filed', () => {
+  const ui = boot();
+  ui.click('sell-add', ui.pid);              // 1 Coca -> 1.500
+  ui.$('freeName').value = 'Cafe';
+  ui.$('freePrice').value = '2';
+  ui.$('btnAddFree').fire('click');          // + free Cafe 2.000
+  ui.$('paidCash').value = '3.5';
+  ui.$('paidCash').fire('input');
+  ui.$('btnSell').fire('click');
+
+  ui.$('btnReceiptRefund').fire('click');
+  const s = ui.saved();
+  assert.strictEqual(s.products[0].stock, 10, 'coca restocked from the bill line id');
+  assert.strictEqual(ui.cashNow(), 50, 'all 3.500 came back out of the box');
+  const refunds = s.day.entries.filter(e => e.kind === 'refund');
+  assert.strictEqual(refunds.length, 2, 'one refund for the stock line, one for the free line');
+  assert.ok(s.day.entries.some(e => e.kind === 'sale'), 'the original sale stays filed');
+});

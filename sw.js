@@ -1,8 +1,9 @@
-﻿/* DEKKAN service worker — app shell precache, cache-first, offline-capable.
+﻿/* DEKKAN service worker — app shell precache, network-first (online = always
+ * newest code, offline = last cached shell), offline-capable.
  * Bump SW_VERSION to force a refresh of the shell after a deploy. */
 'use strict';
 
-const SW_VERSION = 'v29';
+const SW_VERSION = 'v30';
 const SHELL = [
   './',
   './index.html',
@@ -49,15 +50,18 @@ self.addEventListener('activate', function (e) {
 
 self.addEventListener('fetch', function (e) {
   if (e.request.method !== 'GET') return;
+  // network-first for everything same-origin: online => always the newest code
+  // (no more getting stuck on a stale cached shell), offline => last cached copy.
   e.respondWith(
-    caches.match(e.request).then(function (hit) {
-      return hit || fetch(e.request).then(function (res) {
-        // cache successful same-origin responses as you go
-        if (res.ok && e.request.url.startsWith(self.location.origin)) {
-          const copy = res.clone();
-          caches.open(CACHE).then(function (c) { c.put(e.request, copy); });
-        }
-        return res;
+    fetch(e.request).then(function (res) {
+      if (res.ok && e.request.url.startsWith(self.location.origin)) {
+        const copy = res.clone();
+        caches.open(CACHE).then(function (c) { c.put(e.request, copy); });
+      }
+      return res;
+    }).catch(function () {
+      return caches.match(e.request).then(function (hit) {
+        return hit || caches.match('./');
       });
     })
   );

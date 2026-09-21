@@ -33,6 +33,9 @@ function sellAll(state, opts) {
     revenue += unit * it.qty;
     cost += p.buy * it.qty;
     p.stock -= Math.floor(it.qty);
+    // the per-day refund budget: how many of THIS product left the shelf today
+    const sp = (state.day.soldByProduct = state.day.soldByProduct || {});
+    sp[p.id] = (sp[p.id] || 0) + Math.floor(it.qty);
     refs.push(p.name + 'x' + Math.floor(it.qty));
   }
   for (const f of free) {
@@ -40,7 +43,10 @@ function sellAll(state, opts) {
     if (!Number.isFinite(f.qty) || f.qty <= 0) throw new Error('free qty must be positive');
     if (!Number.isFinite(f.price) || f.price < 0) throw new Error('free price must be zero or more');
     revenue += money(f.price) * f.qty;
-    refs.push(String(f.name).trim() + 'x' + Math.floor(f.qty));
+    const sf = (state.day.soldFree = state.day.soldFree || {});
+    const fn = String(f.name).trim();
+    sf[fn] = (sf[fn] || 0) + Math.floor(f.qty);
+    refs.push(fn + 'x' + Math.floor(f.qty));
   }
   state.day.soldCost += money(cost);
   const net = money(revenue - discountOff(state, revenue, opts.discount));
@@ -88,6 +94,8 @@ function sell(state, opts) {
     revenue += unit * it.qty;
     cost += p.buy * it.qty;
     p.stock -= Math.floor(it.qty);
+    const sp = (state.day.soldByProduct = state.day.soldByProduct || {});
+    sp[p.id] = (sp[p.id] || 0) + Math.floor(it.qty);
     refs.push(p.name + 'x' + Math.floor(it.qty));
   }
   state.day.soldCost += money(cost);
@@ -120,6 +128,9 @@ function sellFree(state, opts) {
   const total = money(price * qty);
   const net = money(total - discountOff(state, total, opts.discount));
   const disc = money(total - net);
+  const sf = (state.day.soldFree = state.day.soldFree || {});
+  const sfn = String(opts.name).trim();
+  sf[sfn] = (sf[sfn] || 0) + qty;
   const paidVal = paidValOf(opts);
   const customer = String(opts.customer || opts.creditTo || '').trim();
   const cashIn = paidVal === null ? (customer ? 0 : net) : money(Math.min(paidVal, net));

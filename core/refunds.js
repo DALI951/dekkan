@@ -23,11 +23,17 @@ function refund(state, opts) {
     if (!Number.isFinite(it.qty) || it.qty <= 0) throw new Error('refund qty must be positive');
     const p = getProduct(state, it.id);
     if (!p) throw new Error('product not found');
+    const take = Math.floor(it.qty);
+    // you can only give back what actually left the shelf today
+    const broad = (state.day.soldByProduct = state.day.soldByProduct || {});
+    const sold = broad[p.id] || 0;
+    if (take > sold) throw new Error('refund qty exceeds what was sold today for ' + p.name + ' (sold ' + sold + ')');
+    broad[p.id] = sold - take;
     const unit = money(it.price != null ? it.price : p.sell);
-    back += unit * it.qty;
-    costBack += p.buy * it.qty;
-    p.stock += Math.floor(it.qty); // goods go back on the shelf
-    refs.push(p.name + 'x' + Math.floor(it.qty));
+    back += unit * take;
+    costBack += p.buy * take;
+    p.stock += take; // goods go back on the shelf
+    refs.push(p.name + 'x' + take);
   }
   // the cost of those goods is undone (can't go below 0 for today's report)
   state.day.soldCost = money(Math.max(0, state.day.soldCost - costBack));
@@ -42,6 +48,9 @@ function refund(state, opts) {
     if (d.total <= d.paid) d.settled = true;
     pushEntry(state, 'refund', 0, refs.join(', '), 'credit refund: ' + opts.creditTo, { saleNo: opts.saleNo || null });
   } else {
+    // cash back — but the till must physically hold it first
+    const now = cash(state);
+    if (money(back) > now) throw new Error('not enough cash in the till to refund (' + money(now) + ')');
     pushEntry(state, 'refund', -money(back), refs.join(', '), opts.reason || null, { saleNo: opts.saleNo || null });
   }
   return state;
@@ -55,6 +64,12 @@ function refundFree(state, opts) {
   if (!opts || !opts.name || !opts.name.trim()) throw new Error('need an item name');
   const qty = Math.floor(opts.qty || 1);
   if (!Number.isFinite(qty) || qty <= 0) throw new Error('refund qty must be positive');
+  // the free-item budget, by NAME — you can only give back what was sold today
+  const broad = (state.day.soldFree = state.day.soldFree || {});
+  const sfn = String(opts.name).trim();
+  const sold = broad[sfn] || 0;
+  if (qty > sold) throw new Error('refund qty exceeds what was sold today for ' + sfn + ' (sold ' + sold + ')');
+  broad[sfn] = sold - qty;
   const back = money((opts.price || 0) * qty);
   if (opts.creditTo) {
     const d = getDebtByName(state, opts.creditTo);
@@ -63,9 +78,11 @@ function refundFree(state, opts) {
     const applied = Math.min(back, maxBack);
     d.total = money(d.total - applied);
     if (d.total <= d.paid) d.settled = true;
-    pushEntry(state, 'refund', 0, opts.name + 'x' + qty, 'credit refund: ' + opts.creditTo, { saleNo: opts.saleNo || null });
+    pushEntry(state, 'refund', 0, sfn + 'x' + qty, 'credit refund: ' + opts.creditTo, { saleNo: opts.saleNo || null });
   } else {
-    pushEntry(state, 'refund', -back, opts.name + 'x' + qty, opts.note || null, { saleNo: opts.saleNo || null });
+    const now = cash(state);
+    if (money(back) > now) throw new Error('not enough cash in the till to refund (' + money(now) + ')');
+    pushEntry(state, 'refund', -back, sfn + 'x' + qty, opts.note || null, { saleNo: opts.saleNo || null });
   }
   return state;
 }

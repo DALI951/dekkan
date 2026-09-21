@@ -39,6 +39,9 @@
     if (!receiptEntryId) return toast(T.t('toast.refundPick'), true);
     const entry = (state.day.entries || []).find(function (e) { return e.id === receiptEntryId; });
     if (!entry || !entry.bill) return toast(T.t('toast.couldntSave'), true);
+    // if this was a full credit sale (nothing paid, a receivable still open),
+    // the refund undoes the DEBT — never touches physical cash.
+    const creditTo = entry.bill.paid === null && entry.bill.rest > 0 && entry.note ? String(entry.note) : null;
     const items = [], freeNames = [];
     let freeQty = 0, freePrice = 0;
     (entry.bill.lines || []).forEach(function (l) {
@@ -48,8 +51,8 @@
     try {
       let s = state;
       const saleNo = D.clientNoOf(s, receiptEntryId); // the # of the sale being reversed
-      if (items.length) s = D.refund(s, { items: items, reason: 'refund', saleNo: saleNo });
-      if (freeNames.length) s = D.refundFree(s, { name: freeNames.join(' + '), qty: 1, price: n3(freePrice), saleNo: saleNo });
+      if (items.length) s = D.refund(s, { items: items, reason: 'refund', saleNo: saleNo, creditTo: creditTo });
+      if (freeNames.length) s = D.refundFree(s, { name: freeNames.join(' + '), qty: 1, price: n3(freePrice), saleNo: saleNo, creditTo: creditTo });
       C.state = s;
       save();
       C.receiptEntryId = null;
@@ -150,9 +153,14 @@
   function addFree(C) {
     const { $, T, freeItems, render, toast } = C;
     const name = $('freeName').value.trim();
-    const price = parseFloat($('freePrice').value) || 0;
-    const qty = parseFloat($('freeQty').value) || 1;
+    const priceRaw = $('freePrice').value;
+    const qtyRaw = $('freeQty').value;
+    // blank price = freebie (0); anything typed must be a real number >= 0
+    const price = priceRaw === '' ? 0 : parseFloat(priceRaw);
+    const qty = qtyRaw === '' ? 1 : parseFloat(qtyRaw);
     if (!name) return toast(T.t('toast.freeName'), true);
+    if (!Number.isFinite(price) || price < 0) return toast(T.t('toast.freePrice'), true);
+    if (!Number.isFinite(qty) || qty < 1) return toast(T.t('toast.freeQty'), true);
     freeItems.push({ name: name, price: price, qty: qty });
     $('freeName').value = ''; $('freePrice').value = '';
     render();

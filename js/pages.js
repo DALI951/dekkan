@@ -12,11 +12,12 @@
   'use strict';
 
   function render(C) {
-    const { renderHeader, renderSell, renderStock, renderDebts, renderReport, renderCashBox, renderSettings, renderEmployees, renderMonthly } = DEK.pages;
+    const { renderHeader, renderSell, renderStock, renderDebts, renderClients, renderReport, renderCashBox, renderSettings, renderEmployees, renderMonthly } = DEK.pages;
     renderHeader(C);
     renderSell(C);
     renderStock(C);
     renderDebts(C);
+    renderClients(C);
     renderReport(C);
     renderCashBox(C);
     renderSettings(C);
@@ -224,6 +225,39 @@
     C.newDebtFlag = v;
     if (!v) { C.payDebtId = null; $('payForm').classList.add('hidden'); }
     renderDebts(C);
+  }
+
+  // ----- CLIENTS -----
+  function renderClients(C) {
+    const { state, $, T, D, fmt } = C;
+    const { money, esc, entryTime } = fmt;
+    const report = D.clientsReport(state);
+    const kindName = function (k) {
+      return k === 'sale' ? T.t('clients.purchase')
+        : k === 'refund' ? T.t('clients.refund')
+        : k === 'debt-add' ? T.t('clients.debtAdd')
+        : k === 'debt-pay' ? T.t('clients.debtPay')
+        : k;
+    };
+    $('clientsList').innerHTML = report.clients.map(function (c) {
+      const rows = c.history.map(function (h) {
+        const cls = h.kind === 'refund' ? 'bad' : (h.kind === 'debt-add' ? 'bad' : 'in');
+        return '<div class="entry"><span class="e-kind k-' + (h.kind === 'debt-add' ? 'debt' : h.kind) + '">' + kindName(h.kind) + '</span>'
+          + (h.saleNo ? '<span class="e-no">#' + h.saleNo + '</span>' : '')
+          + '<span class="growx"><span class="e-time">' + entryTime(h.at) + '</span>'
+          + (h.lines ? '<span class="e-note">' + esc(h.lines) + '</span>' : '') + '</span>'
+          + '<span class="e-amt ' + cls + '">' + money(h.amount) + '</span></div>';
+      }).join('') || '<div class="empty">' + T.t('clients.noHistory') + '</div>';
+      return '<div class="card client-card">'
+        + '<h3>' + esc(c.name) + (c.phone ? ' <small class="muted">' + esc(c.phone) + '</small>' : '') + '</h3>'
+        + '<div class="grid3">'
+        + '<div class="metric"><span class="lab">' + T.t('clients.purchases') + '</span><b class="val ok">' + money(c.purchases) + '</b></div>'
+        + '<div class="metric"><span class="lab">' + T.t('clients.refunds') + '</span><b class="val bad">' + money(c.refunds) + '</b></div>'
+        + '<div class="metric"><span class="lab">' + T.t('clients.owed') + '</span><b class="val bad">' + money(c.owed) + '</b></div>'
+        + '</div>'
+        + '<div class="rows">' + rows + '</div>'
+        + '</div>';
+    }).join('') || '<div class="card empty">' + T.t('clients.empty') + '</div>';
   }
 
   // ----- REPORT -----
@@ -554,7 +588,7 @@
   DEK.pages = {
     render: render, renderHeader: renderHeader, renderSell: renderSell,
     renderFreePrev: renderFreePrev, renderChange: renderChange, addToBasket: addToBasket,
-    renderStock: renderStock, renderDebts: renderDebts, setNewDebt: setNewDebt,
+    renderStock: renderStock, renderDebts: renderDebts, renderClients: renderClients, setNewDebt: setNewDebt,
     renderReport: renderReport, openTicket: openTicket, openMetric: openMetric,
     renderCashBox: renderCashBox, catOptions: catOptions, catChips: catChips,
     renderSettings: renderSettings, renderThemes: renderThemes, updateStorage: updateStorage,

@@ -139,6 +139,8 @@ test('refund carries the number of the sale it reversed', () => {
   assert.strictEqual(r.kind, 'refund');
   assert.strictEqual(r.saleNo, saleNo, 'the refund says which sale it undid');
 
+  // the refund budget requires the free item to have been sold today first
+  s = D.sellFree(s, { name: 'Cafe', price: 2, qty: 1 });
   s = D.refundFree(s, { name: 'Cafe', qty: 1, price: 2, saleNo: 7 });
   const rf = s.day.entries[s.day.entries.length - 1];
   assert.strictEqual(rf.saleNo, 7, 'and free-line refunds too');

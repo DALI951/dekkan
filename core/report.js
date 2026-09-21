@@ -161,7 +161,137 @@ function monthlyReport(state, ym) {
   return r;
 }
 
+
+// ---------- CLIENT profiles (saved names + purchases/refunds/debts/payments) ----------
+
+function clientReportDays(state) {
+  const out = (state.days || []).map(function (d) {
+    return { date: d.date, entries: d.entries || [] };
+  });
+  out.push({ date: state.day.date, entries: state.day.entries || [] });
+  return out;
+}
+
+function billLinesText(bill, ref) {
+  if (bill && Array.isArray(bill.lines) && bill.lines.length) {
+    return bill.lines.map(function (l) { return l.name + ' x' + l.qty; }).join(', ');
+  }
+  return ref || '';
+}
+
+function blankClient(name, phone) {
+  return {
+    name: name,
+    phone: phone || null,
+    purchases: 0,
+    refunds: 0,
+    debtAdded: 0,
+    debtPaid: 0,
+    owed: 0,
+    visits: 0,
+    history: []
+  };
+}
+
+function clientsReport(state) {
+  const profiles = {};
+  const order = [];
+  const ensure = function (name, phone) {
+    const n = String(name || '').trim();
+    if (!n) return null;
+    const k = n.toLowerCase();
+    if (!profiles[k]) {
+      profiles[k] = blankClient(n, phone);
+      order.push(k);
+    } else if (phone && !profiles[k].phone) profiles[k].phone = phone;
+    return profiles[k];
+  };
+
+  (state.customers || []).forEach(function (c) { ensure(c.name, c.phone); });
+  (state.debts || []).forEach(function (d) { ensure(d.name, d.phone); });
+
+  const saleToClient = {}; // day + # -> saved client name
+  clientReportDays(state).forEach(function (day) {
+    let no = 0;
+    (day.entries || []).forEach(function (e) {
+      if (e.kind !== 'sale') return;
+      no++;
+      const p = ensure(e.note || '');
+      if (!p) return; // walk-in / anonymous / note that is not a saved name
+      const total = e.bill && Number.isFinite(e.bill.net) ? e.bill.net : e.amount;
+      p.purchases = money(p.purchases + total);
+      p.visits++;
+      saleToClient[day.date + '#' + no] = p.name;
+      p.history.push({
+        kind: 'sale',
+        at: e.at,
+        day: day.date,
+        saleNo: no,
+        amount: money(total),
+        paid: e.bill ? e.bill.paid : null,
+        rest: e.bill ? e.bill.rest : 0,
+        lines: billLinesText(e.bill, e.ref)
+      });
+    });
+  });
+
+  clientReportDays(state).forEach(function (day) {
+    (day.entries || []).forEach(function (e) {
+      if (e.kind === 'refund') {
+        const name = (e.saleNo && saleToClient[day.date + '#' + e.saleNo]) ||
+          (String(e.note || '').indexOf('credit refund: ') === 0 ? String(e.note).slice(15) : '');
+        const p = ensure(name);
+        if (!p) return;
+        const amount = money(Math.abs(e.amount));
+        p.refunds = money(p.refunds + amount);
+        p.history.push({ kind: 'refund', at: e.at, day: day.date, saleNo: e.saleNo || null, amount: amount, lines: e.ref || '' });
+      } else if (e.kind === 'debt-pay') {
+        const p = ensure(e.ref || e.note || '');
+        if (!p) return;
+        p.debtPaid = money(p.debtPaid + e.amount);
+        p.history.push({ kind: 'debt-pay', at: e.at, day: day.date, amount: money(e.amount), lines: e.note || '' });
+      }
+    });
+  });
+
+  (state.debts || []).forEach(function (d) {
+    const p = ensure(d.name, d.phone);
+    if (!p) return;
+    p.owed = money(p.owed + Math.max(0, d.total - d.paid));
+    (d.payments || []).forEach(function (x) {
+      if (x.kind === 'debt') {
+        p.debtAdded = money(p.debtAdded + x.amount);
+        p.history.push({ kind: 'debt-add', at: x.at, day: locDay(x.at), amount: money(x.amount), lines: x.note || '' });
+      }
+    });
+  });
+
+  const clients = order.map(function (k) {
+    const p = profiles[k];
+    p.purchases = money(p.purchases);
+    p.refunds = money(p.refunds);
+    p.debtAdded = money(p.debtAdded);
+    p.debtPaid = money(p.debtPaid);
+    p.owed = money(p.owed);
+    p.history.sort(function (a, b) { return String(b.at || '').localeCompare(String(a.at || '')); });
+    return p;
+  }).sort(function (a, b) {
+    const ta = a.history.length ? a.history[0].at : '';
+    const tb = b.history.length ? b.history[0].at : '';
+    return String(tb).localeCompare(String(ta)) || a.name.localeCompare(b.name);
+  });
+  return { clients: clients };
+}
+
+function clientProfile(state, name) {
+  const target = String(name || '').trim().toLowerCase();
+  const hit = clientsReport(state).clients.find(function (c) { return c.name.toLowerCase() === target; });
+  return hit || blankClient(String(name || '').trim(), null);
+}
+
   K.dayReport = dayReport;
   K.stats = stats;
   K.monthlyReport = monthlyReport;
+  K.clientsReport = clientsReport;
+  K.clientProfile = clientProfile;
 });

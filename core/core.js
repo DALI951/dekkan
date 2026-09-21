@@ -52,7 +52,8 @@ function createShop(opts) {
     employees: [],
     days: [],
     // the OPEN day: entries (money moves) + checks (drawer counts) + soldCost (for profit)
-    day: { date: todayStr(), openedAt: now, startCash: start, soldCost: 0, entries: [], checks: [] }
+    // + soldByProduct/soldFree (the per-day refund budgets, by product id / free-item name)
+    day: { date: todayStr(), openedAt: now, startCash: start, soldCost: 0, entries: [], checks: [], soldByProduct: {}, soldFree: {} }
   };
 }
 
@@ -124,7 +125,7 @@ function closeOpenDay(state, closedAt) {
     entries: state.day.entries,
     checks: state.day.checks
   });
-  state.day = { date: todayStr(), openedAt: closedAt, startCash: end, soldCost: 0, entries: [], checks: [] };
+  state.day = { date: todayStr(), openedAt: closedAt, startCash: end, soldCost: 0, entries: [], checks: [], soldByProduct: {}, soldFree: {} };
   return state;
 }
 

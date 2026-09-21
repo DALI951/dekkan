@@ -14,7 +14,7 @@
     'cashbox.label': 'رصيد الصندوق', 'today': 'اليوم: ',
     'curr': 'د.ت',
 
-    'tab.sell': 'البيع', 'tab.stock': 'المخزون', 'tab.debts': 'الديون',
+    'tab.sell': 'البيع', 'tab.stock': 'المخزون', 'tab.debts': 'الديون', 'tab.clients': 'الزبائن',
     'tab.report': 'التقرير',
     'tab.cashbox': 'الخزينة',
     'tab.settings': 'الإعدادات',
@@ -65,6 +65,12 @@
     'debts.pay': 'سداد', 'debts.paid': 'مدفوع', 'debts.settled': 'مُسَدَّس',
     'debts.empty': 'لا ديون — ممتاز',
     'debts.payTitle': 'سداد',
+
+    'clients.head': 'الزبائن', 'clients.sub': 'كل زبون محفوظ: بياناته، مشترياته، الاسترجاعات، والديون',
+    'clients.empty': 'لا يوجد زبائن محفوظين بعد', 'clients.noHistory': 'لا حركة لهذا الزبون بعد',
+    'clients.purchases': 'المشتريات', 'clients.refunds': 'الاسترجاعات', 'clients.owed': 'الباقي عليه',
+    'clients.purchase': 'شراء', 'clients.refund': 'استرجاع',
+    'clients.debtAdd': 'دين جديد', 'clients.debtPay': 'سداد دين',
 
     'report.title': 'تقرير اليوم', 'report.sub': 'القصة الكاملة للفلوس',
     'report.check': 'عدّ الصندوق',
@@ -121,6 +127,8 @@
     'toast.paidBad': 'المبلغ المدفوع غير صحيح',
     'toast.restName': 'الباقي يحتاج اسم الزبون',
     'toast.freeName': 'اكتب اسم السلعة',
+    'toast.freePrice': 'الثمن يجب أن يكون صفرًا أو أكثر',
+    'toast.freeQty': 'الكمية يجب أن تكون 1 على الأقل',
     'toast.refundPick': 'اختر منتوجًا للاسترجاع',
     'toast.refundOk': 'تم الاسترجاع',
     'toast.prodName': 'اكتب اسم المنتوج', 'toast.prodPrice': 'اكتب ثمن البيع',
@@ -167,7 +175,7 @@
     'cashbox.label': 'Cash in box', 'today': 'Today: ',
     'curr': 'TND',
 
-    'tab.sell': 'Sell', 'tab.stock': 'Stock', 'tab.debts': 'Debts',
+    'tab.sell': 'Sell', 'tab.stock': 'Stock', 'tab.debts': 'Debts', 'tab.clients': 'Clients',
     'tab.report': 'Report',
     'tab.cashbox': 'Cash box',
     'tab.settings': 'Settings',
@@ -218,6 +226,12 @@
     'debts.pay': 'Pay', 'debts.paid': 'paid', 'debts.settled': 'Settled',
     'debts.empty': 'No debts — clean',
     'debts.payTitle': 'Pay',
+
+    'clients.head': 'Clients', 'clients.sub': 'Every saved client: data, purchases, refunds, and debts',
+    'clients.empty': 'No saved clients yet', 'clients.noHistory': 'No movement for this client yet',
+    'clients.purchases': 'Purchases', 'clients.refunds': 'Refunds', 'clients.owed': 'Still owes',
+    'clients.purchase': 'Purchase', 'clients.refund': 'Refund',
+    'clients.debtAdd': 'New debt', 'clients.debtPay': 'Debt paid',
 
     'report.title': "Today's report", 'report.sub': 'The full money story',
     'report.check': 'Count the box',
@@ -276,6 +290,8 @@
     'toast.paidBad': 'That paid amount is not valid',
     'toast.restName': 'The unpaid rest needs a customer name',
     'toast.freeName': 'Type the item name',
+    'toast.freePrice': 'Price must be zero or more',
+    'toast.freeQty': 'Qty must be at least 1',
     'toast.refundPick': 'Pick a product to refund',
     'toast.refundOk': 'Refund recorded',
     'toast.prodName': 'Type the product name', 'toast.prodPrice': 'Type the sell price',

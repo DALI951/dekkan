@@ -552,3 +552,24 @@ test('the month picker switches the review to any month', () => {
   ui.$('monthPicker').fire('input');
   assert.ok(ui.$('monthWins').textContent.indexOf('0.000') !== -1, 'a dead month is empty');
 });
+
+// ---------- CLIENTS (saved client profiles) ----------
+
+test('the clients page shows saved client data, purchases, refunds and debt history', () => {
+  const ui = boot((core, s) => {
+    s = core.sellAll(s, { items: [{ id: s.products[0].id, qty: 2 }], customer: 'Ali', phone: '222', paid: 3 });
+    s = core.sellAll(s, { free: [{ name: 'Delivery', qty: 1, price: 4 }], customer: 'Ali', paid: 1 });
+    const saleNo = core.clientNoOf(s, s.day.entries.filter(e => e.kind === 'sale')[0].id);
+    s = core.refund(s, { items: [{ id: s.products[0].id, qty: 1 }], reason: 'returned', saleNo: saleNo });
+    const debt = s.debts.find(d => d.name === 'Ali');
+    return core.payDebt(s, debt.id, { amount: 2 });
+  });
+  ui.goto('#/clients');
+  const html = ui.$('clientsList').innerHTML;
+  assert.ok(html.indexOf('Ali') !== -1, 'saved client is listed');
+  assert.ok(html.indexOf('222') !== -1, 'saved phone is shown');
+  assert.ok(html.indexOf('Coca x2') !== -1, 'purchase lines are shown');
+  assert.ok(html.indexOf('Delivery x1') !== -1, 'free purchase lines are shown');
+  assert.ok(html.indexOf('#1') !== -1, 'refund points back to the sale number');
+  assert.ok(html.indexOf('1.000') !== -1, 'open owed total is shown');
+});

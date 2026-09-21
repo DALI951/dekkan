@@ -317,6 +317,10 @@
         : '<div class="entry">' + guts + '</div>';
     });
     $('entriesList').innerHTML = eh || '<div class="empty">' + T.t('report.noMoves') + '</div>';
+
+    // the fat-finger valve: only when the very last move of today is a sale
+    const undoBtn = $('btnUndoSale');
+    if (undoBtn) undoBtn.hidden = !D.canUndoSale(state);
   }
 
   // reopen a stored sale as a facture. legacy sales (no bill, pre-facture days)

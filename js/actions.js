@@ -359,6 +359,13 @@
     run(function (s) { return D.closeDay(s); }, T.t('toast.dayClosed'));
     $('countedCash').value = '';
   }
+  function undoLastSale(C) {
+    const { T, D, run } = C;
+    if (!D.canUndoSale(C.state)) return toast(T.t('toast.nothingUndo'), true);
+    if (!confirm(T.t('toast.undoConfirm'))) return;
+    run(function (s) { return D.undoLastSale(s); }, T.t('toast.undoOk'));
+    C.basket = []; C.freeItems = []; // the till resets with the undo
+  }
   function exportBackup(C) {
     const { state, D } = C;
     const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
@@ -504,6 +511,7 @@
     openNewDebt: openNewDebt, saveDebt: saveDebt, cancelPay: cancelPay, doPay: doPay,
     addCat: addCat, bookCash: bookCash, doCheckCash: doCheckCash, saveCfg: saveCfg,
     toggleDiscount: toggleDiscount, toggleRefund: toggleRefund, closeDay: closeDay,
+    undoLastSale: undoLastSale,
     exportBackup: exportBackup, importBackup: importBackup, onImportFile: onImportFile, resetAll: resetAll, onClick: onClick,
     newEmployee: newEmployee, cancelEmployee: cancelEmployee, saveEmployee: saveEmployee,
     fireEmployee: fireEmployee

@@ -6,7 +6,7 @@
   if (typeof module === 'object' && module.exports) module.exports = factory;
   if (typeof window !== 'undefined' && root.DEK && root.DEK.core) factory(root.DEK.core);
 })(typeof self !== 'undefined' ? self : this, function (K) {
-  const { money, cash, pushEntry, ensureCustomer, rollover, getProduct, discountOff, addDebt, clone } = K;
+  const { money, cash, pushEntry, ensureCustomer, rollover, getProduct, discountOff, addDebt, getDebtByName, clone } = K;
 
 
 // FULL CHECKOUT — one customer, one bill, one numbered sale entry.
@@ -143,7 +143,74 @@ function sellFree(state, opts) {
 }
 
 
-// ---------- the bill (what the receipt/facture prints, stored per sale) ----------
+// ---------- UNDO the last sale (the fat-finger safety valve) ----------
+// Reverses the LAST entry of the open day IF it is a sale — and only then.
+// Because nothing can have happened after it, reversing cash/stock/debt is
+// always exact: later numbers were never built on the sale being there.
+function canUndoSale(state) {
+  const entries = state.day && state.day.entries;
+  if (!entries || entries.length === 0) return false;
+  return entries[entries.length - 1].kind === 'sale';
+}
+
+function undoLastSale(state) {
+  state = rollover(clone(state));
+  if (!canUndoSale(state)) throw new Error('nothing to undo');
+  const entries = state.day.entries;
+  const sale = entries[entries.length - 1];
+
+  // stock back + per-day sold budgets back + sold cost back
+  const lines = (sale.bill && sale.bill.lines) || [];
+  for (const ln of lines) {
+    if (ln.id) {
+      const p = getProduct(state, ln.id);
+      if (p) {
+        p.stock += Math.floor(ln.qty);
+        const sp = (state.day.soldByProduct = state.day.soldByProduct || {});
+        if (sp[ln.id]) {
+          sp[ln.id] = Math.max(0, Math.floor(sp[ln.id]) - Math.floor(ln.qty));
+          if (sp[ln.id] === 0) delete sp[ln.id];
+        }
+        state.day.soldCost = money(Math.max(0, state.day.soldCost - p.buy * Math.floor(ln.qty)));
+      }
+    } else {
+      const sf = (state.day.soldFree = state.day.soldFree || {});
+      if (sf[ln.name] != null) {
+        sf[ln.name] = Math.max(0, Math.floor(sf[ln.name]) - Math.floor(ln.qty));
+        if (sf[ln.name] === 0) delete sf[ln.name];
+      }
+    }
+  }
+
+  // debt created/added by this sale comes back off the notebook
+  const name = String(sale.note || '').trim();
+  if (name) {
+    const d = getDebtByName(state, name);
+    if (d && d.payments.length) {
+      // find THIS sale's debt add (the payment whose amount matches and sits at the tail)
+      const lastPay = d.payments[d.payments.length - 1];
+      if (lastPay && lastPay.kind === 'debt') {
+        d.total = money(d.total - lastPay.amount);
+        d.payments.pop();
+        if (d.total <= 0) {
+          // we only ever pop a 'debt' add: if the remaining payments are all
+          // adds of earlier sales, total stays correct; a paid-down debt with
+          // no adds left at 0 <= handled by settled below
+          d.paid = 0; // the added amount was never paid in this reversal frame
+          d.total = 0;
+          if (d.payments.length === 0) {
+            state.debts = state.debts.filter(function (x) { return x.id !== d.id; });
+          } else {
+            d.settled = d.paid >= d.total;
+          }
+        }
+      }
+    }
+  }
+
+  entries.pop();
+  return clone(state);
+}
 
 // lines: [{ name, qty, price, total }]  — the raw line items of this sale.
 // paidVal: money handed over, or null when nothing was given (plain cash or credit).
@@ -212,4 +279,6 @@ function applyPayment(state, net, opts, refText, bill) {
   K.billOf = billOf;
   K.paidValOf = paidValOf;
   K.applyPayment = applyPayment;
+  K.canUndoSale = canUndoSale;
+  K.undoLastSale = undoLastSale;
 });

@@ -383,6 +383,35 @@ test.describe('onslaught: cashbox + settings guards', () => {
     expect(restored.products[0].stock).toBe(6); // 7 - 1 sold = the exported numbers, not a fresh shop
   });
 
+  test('undo the last sale: goods, cash and ledger all come back', async ({ page }) => {
+    await open(page, '#/stock');
+    await addSoda(page, 4);
+    await gotoTab(page, '#/sell');
+    await sellOne(page, 3); // 1 x Soda @ 1.5, paid 3 -> till 1.5, change 1.5
+    await closeReceipt(page);
+    await gotoTab(page, '#/report');
+    await expect(page.locator('#cashNow')).toHaveText(/1\.500/);
+    await expect(page.locator('#entriesList')).toContainText('1.5'); // the sold amount row
+
+    // undo button is visible because the last move is a sale
+    page.once('dialog', d => d.accept());
+    await page.locator('#btnUndoSale').click();
+    await expect(page.locator('#toast')).toContainText('أُلغي آخر بيع');
+
+    await expect(page.locator('#cashNow')).toHaveText(/0\.000/); // till back to zero
+    await expect(page.locator('#entriesList .empty')).toBeVisible(); // no moves left
+    await expect(page.locator('#btnUndoSale')).toBeHidden(); // nothing to undo anymore
+
+    // the goods came back: sell the same cola now (stock was 3 after first sale)
+    await gotoTab(page, '#/stock');
+    await expect(page.locator('#stockList')).toContainText('4'); // full stock restored
+  });
+
+  test('undo is NOT offered when the last move is not a sale', async ({ page }) => {
+    await open(page, '#/report');
+    await expect(page.locator('#btnUndoSale')).toBeHidden(); // fresh empty shop
+  });
+
   test('closing an EMPTY day is clean: no crash, cash intact', async ({ page }) => {
     await open(page, '#/settings');
     await page.locator('#btnCloseDay').click();

@@ -49,6 +49,8 @@ body{
 ::-webkit-scrollbar-thumb{background:var(--scrail);border-radius:6px;border:2px solid var(--bg);}
 ::-webkit-scrollbar-thumb:hover{background:var(--scrthumb);}
 .hidden{display:none!important;}
+/* the hidden attribute must beat any display rule a class sets */
+[hidden]{display:none!important;}
 .muted{color:var(--mut);}
 .small{font-size:12px;}
 b{font-weight:700;}

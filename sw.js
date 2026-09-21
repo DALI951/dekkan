@@ -3,7 +3,7 @@
  * Bump SW_VERSION to force a refresh of the shell after a deploy. */
 'use strict';
 
-const SW_VERSION = 'v31';
+const SW_VERSION = 'v32';
 const SHELL = [
   './',
   './index.html',

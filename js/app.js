@@ -17,7 +17,7 @@
   const A = DEK.actions;
   const LS_KEY = 'dekkan.v1';
   const BK_KEY = 'dekkan.backup';
-  const A_VERSION = '0.16.0';
+  const A_VERSION = '0.17.0';
 
   // ---------- helpers ----------
   function $(id) { return document.getElementById(id); }
@@ -118,6 +118,22 @@
     C._lastReportDate = null;
     P.render(C);
   });
+
+  // ----- owner lock: the keypad in front of the money actions -----
+  const keypad = $('keypad');
+  if (keypad) keypad.addEventListener('click', function (ev) {
+    const k = ev.target.closest ? ev.target.closest('.key') : null;
+    if (!k) return;
+    P.pinKey(C, k.getAttribute('data-pin'));
+  });
+  const pinCancel = $('btnPinCancel');
+  if (pinCancel) pinCancel.addEventListener('click', function () { P.closePin(C); });
+  $('pinPanel').addEventListener('click', function (ev) {
+    if (ev.target === $('pinPanel')) P.closePin(C);
+  });
+  const pinSet = $('btnPinSet'), pinClear = $('btnPinClear');
+  if (pinSet) pinSet.addEventListener('click', function () { A.pinSet(C); });
+  if (pinClear) pinClear.addEventListener('click', function () { A.pinClear(C); });
 
   // ----- the till: one checkout = one client = one receipt -----
   $('btnReceiptRefund').addEventListener('click', function () { A.receiptRefund(C); });

@@ -230,7 +230,7 @@ vm.createContext(sandbox);
 sandbox.window = sandbox;
 sandbox.self = sandbox;
 ['dekkan-core.js', 'core.js', 'products.js', 'debts.js', 'sales.js', 'refunds.js',
-  'employees.js', 'cashbox.js', 'report.js', 'shop.js'].forEach(f => {
+  'employees.js', 'cashbox.js', 'report.js', 'shop.js', 'pin.js'].forEach(f => {
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'core', f), 'utf8'), sandbox);
 });
 ok(typeof sandbox.window.Dekkan === 'object' && typeof sandbox.window.Dekkan.createShop === 'function',

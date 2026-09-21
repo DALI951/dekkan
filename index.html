@@ -376,6 +376,22 @@
         <label class="switch"><input type="checkbox" id="cfgRefund"><span></span></label>
       </div>
 
+      <p class="sect" data-i18n="settings.sect.pin">الحماية</p>
+      <div class="card">
+        <div class="row between">
+          <span><b data-i18n="settings.pinTitle">قفل المالك (أرقام)</b>
+            <small class="muted" data-i18n="settings.pinHint">يُطلب قبل الاسترجاع والتراجع وإغلاق اليوم والاستيراد والحذف</small></span>
+        </div>
+        <div class="row between">
+          <input type="password" id="pinInput" inputmode="numeric" maxlength="6" placeholder="••••" autocomplete="new-password">
+          <div class="row gr">
+            <button class="btn" id="btnPinSet" data-i18n="settings.pinSet">تعيين / تغيير</button>
+            <button class="btn ghost hidden" id="btnPinClear" data-i18n="settings.pinClear">إزالة القفل</button>
+          </div>
+        </div>
+        <p class="muted small" id="pinStatus"></p>
+      </div>
+
       <p class="sect" data-i18n="settings.sect.day">إدارة اليوم</p>
       <div class="card row between">
         <button class="btn" id="btnCloseDay" data-i18n="settings.closeDay">إغلاق يوم اليوم</button>
@@ -436,6 +452,35 @@
   </div>
 </div>
 
+<!-- ================= PIN keypad (owner lock on money actions) ================= -->
+<div id="pinPanel" class="receipt hidden" role="dialog" aria-modal="true">
+  <div class="receipt-card pin-card">
+    <div class="r-head">
+      <div class="r-brand">
+        <span class="r-logo">ق</span>
+        <div><b id="pinTitle" data-i18n="pin.title">كلمة مرور المالك</b></div>
+      </div>
+      <button class="btn ghost" id="btnPinCancel" data-i18n="receipt.close">تمام</button>
+    </div>
+    <div class="pin-dots" id="pinDots"></div>
+    <div class="pin-error hidden" id="pinError"></div>
+    <div class="keypad" id="keypad">
+      <button class="key" data-pin="1">1</button>
+      <button class="key" data-pin="2">2</button>
+      <button class="key" data-pin="3">3</button>
+      <button class="key" data-pin="4">4</button>
+      <button class="key" data-pin="5">5</button>
+      <button class="key" data-pin="6">6</button>
+      <button class="key" data-pin="7">7</button>
+      <button class="key" data-pin="8">8</button>
+      <button class="key" data-pin="9">9</button>
+      <button class="key" data-pin="clear" data-i18n="pin.clear">مسح</button>
+      <button class="key" data-pin="0">0</button>
+      <button class="key key-ok" id="keyOk" data-pin="ok" data-i18n="pin.ok">موافق</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast" class="toast hidden"></div>
 
 <script src="core/dekkan-core.js"></script>
@@ -448,6 +493,7 @@
 <script src="core/cashbox.js"></script>
 <script src="core/report.js"></script>
 <script src="core/shop.js"></script>
+<script src="core/pin.js"></script>
 <script src="js/lang.js"></script>
 <script src="js/fmt.js"></script>
 <script src="js/pages.js"></script>

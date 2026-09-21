@@ -29,37 +29,41 @@
     });
   }
 
-  // Refund the sale shown on the receipt: restock its stock lines, clear its
+// Refund the sale shown on the receipt: restock its stock lines, clear its
   // free lines, and keep the paper trail. The entry id comes from the ticket
-  // that opened this receipt (openTicket sets receiptEntryId).
+  // that opened this receipt (openTicket sets receiptEntryId). Money OUT — so
+  // it waits for the owner lock first.
   function receiptRefund(C) {
     const { state, receiptEntryId, $, T, D, fmt, save, render, toast } = C;
     const { n3 } = fmt;
     const hideReceipt = DEK.pages.hideReceipt;
-    if (!receiptEntryId) return toast(T.t('toast.refundPick'), true);
-    const entry = (state.day.entries || []).find(function (e) { return e.id === receiptEntryId; });
-    if (!entry || !entry.bill) return toast(T.t('toast.couldntSave'), true);
-    // if this was a full credit sale (nothing paid, a receivable still open),
-    // the refund undoes the DEBT — never touches physical cash.
-    const creditTo = entry.bill.paid === null && entry.bill.rest > 0 && entry.note ? String(entry.note) : null;
-    const items = [], freeNames = [];
-    let freeQty = 0, freePrice = 0;
-    (entry.bill.lines || []).forEach(function (l) {
-      if (l.id != null) items.push({ id: l.id, qty: l.qty, price: l.price });
-      else { freeNames.push(l.name); freeQty += l.qty || 1; freePrice += l.total || l.price || 0; }
-    });
-    try {
-      let s = state;
-      const saleNo = D.clientNoOf(s, receiptEntryId); // the # of the sale being reversed
-      if (items.length) s = D.refund(s, { items: items, reason: 'refund', saleNo: saleNo, creditTo: creditTo });
-      if (freeNames.length) s = D.refundFree(s, { name: freeNames.join(' + '), qty: 1, price: n3(freePrice), saleNo: saleNo, creditTo: creditTo });
-      C.state = s;
-      save();
-      C.receiptEntryId = null;
-      hideReceipt(C);
-      render();
-      toast(T.t('toast.refundOk'));
-    } catch (e) { toast(e.message, true); }
+    const doRefund = function () {
+      if (!receiptEntryId) return toast(T.t('toast.refundPick'), true);
+      const entry = (state.day.entries || []).find(function (e) { return e.id === receiptEntryId; });
+      if (!entry || !entry.bill) return toast(T.t('toast.couldntSave'), true);
+      // if this was a full credit sale (nothing paid, a receivable still open),
+      // the refund undoes the DEBT — never touches physical cash.
+      const creditTo = entry.bill.paid === null && entry.bill.rest > 0 && entry.note ? String(entry.note) : null;
+      const items = [], freeNames = [];
+      let freeQty = 0, freePrice = 0;
+      (entry.bill.lines || []).forEach(function (l) {
+        if (l.id != null) items.push({ id: l.id, qty: l.qty, price: l.price });
+        else { freeNames.push(l.name); freeQty += l.qty || 1; freePrice += l.total || l.price || 0; }
+      });
+      try {
+        let s = state;
+        const saleNo = D.clientNoOf(state, receiptEntryId); // the # of the sale being reversed
+        if (items.length) s = D.refund(s, { items: items, reason: 'refund', saleNo: saleNo, creditTo: creditTo });
+        if (freeNames.length) s = D.refundFree(s, { name: freeNames.join(' + '), qty: 1, price: n3(freePrice), saleNo: saleNo, creditTo: creditTo });
+        C.state = s;
+        save();
+        C.receiptEntryId = null;
+        hideReceipt(C);
+        render();
+        toast(T.t('toast.refundOk'));
+      } catch (e) { toast(e.message, true); }
+    };
+    withPin(C, T.t('pin.refund'), doRefund);
   }
 
   // Cancel on the record-sale form: drop the whole order, reset the till, back to products.
@@ -179,9 +183,12 @@
     if (!refundProductId) return toast(T.t('toast.refundPick'), true);
     const qty = parseFloat($('refundQty').value) || 1;
     const reason = $('refundReason').value.trim();
-    run(function (s) {
-      return D.refund(s, { items: [{ id: refundProductId, qty: qty }], reason: reason || null });
-    }, T.t('toast.refundOk'));
+    const apply = function () {
+      run(function (s) {
+        return D.refund(s, { items: [{ id: refundProductId, qty: qty }], reason: reason || null });
+      }, T.t('toast.refundOk'));
+    };
+    withPin(C, T.t('pin.refund'), apply);
   }
 
   function newProduct(C) {
@@ -357,15 +364,21 @@
   }
   function closeDay(C) {
     const { $, T, D, run } = C;
-    run(function (s) { return D.closeDay(s); }, T.t('toast.dayClosed'));
-    $('countedCash').value = '';
+    // money bookkeeping is done — only the owner may shut the day
+    withPin(C, T.t('pin.day'), function () {
+      run(function (s) { return D.closeDay(s); }, T.t('toast.dayClosed'));
+      $('countedCash').value = '';
+    });
   }
   function undoLastSale(C) {
     const { T, D, run } = C;
     if (!D.canUndoSale(C.state)) return toast(T.t('toast.nothingUndo'), true);
     if (!confirm(T.t('toast.undoConfirm'))) return;
-    run(function (s) { return D.undoLastSale(s); }, T.t('toast.undoOk'));
-    C.basket = []; C.freeItems = []; // the till resets with the undo
+    const apply = function () {
+      run(function (s) { return D.undoLastSale(s); }, T.t('toast.undoOk'));
+      C.basket = []; C.freeItems = []; // the till resets with the undo
+    };
+    withPin(C, T.t('pin.undo'), apply);
   }
   function exportBackup(C) {
     const { state, D } = C;
@@ -400,13 +413,16 @@
         return;
       }
       if (!confirm(T.t('toast.importConfirm'))) return;
-      C.state = parsed;
-      C.basket = [];
-      C.freeItems = [];
-      C.refundMode = false;
-      save();
-      render();
-      toast(T.t('toast.importOk'));
+      // replacing the whole shop deserves the owner lock too
+      withPin(C, T.t('pin.import'), function () {
+        C.state = parsed;
+        C.basket = [];
+        C.freeItems = [];
+        C.refundMode = false;
+        save();
+        render();
+        toast(T.t('toast.importOk'));
+      });
     };
     reader.onerror = function () { toast(T.t('toast.importBad'), true); };
     reader.readAsText(file);
@@ -414,12 +430,45 @@
   function resetAll(C) {
     const { $, T, D, LS_KEY, BK_KEY, save, render, toast } = C;
     if (!confirm(T.t('toast.resetConfirm'))) return;
-    localStorage.removeItem(LS_KEY);
-    localStorage.removeItem(BK_KEY);
-    C.state = D.createShop({ name: T.t('app.name') });
-    C.basket = []; C.freeItems = [];
-    save(); render();
-    toast(T.t('toast.resetOk'));
+    const apply = function () {
+      localStorage.removeItem(LS_KEY);
+      localStorage.removeItem(BK_KEY);
+      C.state = D.createShop({ name: T.t('app.name') });
+      C.basket = []; C.freeItems = [];
+      save(); render();
+      toast(T.t('toast.resetOk'));
+    };
+    withPin(C, T.t('pin.reset'), apply);
+  }
+
+  // ---------- owner lock ----------
+  // When a PIN is armed, the money actions stop here until the keypad confirms.
+  function withPin(C, label, fn) {
+    if (C.D.hasPin(C.state)) { C.pinPending = fn; DEK.pages.openPin(C, label); }
+    else fn();
+  }
+  function pinSet(C) {
+    const { $, T, D, save, render, toast } = C;
+    const pin = $('pinInput').value.trim();
+    if (!/^\d{4,6}$/.test(pin)) return toast(T.t('pin.badFormat'), true);
+    const apply = function () {
+      try {
+        C.state = D.setPin(C.state, pin);
+        $('pinInput').value = '';
+        save(); render(); toast(T.t('pin.saved'));
+      } catch (e) { toast(e.message, true); }
+    };
+    // changing an armed PIN still needs the current one first
+    withPin(C, T.t('pin.confirm'), apply);
+  }
+  function pinClear(C) {
+    const { $, T, D, save, render, toast } = C;
+    const apply = function () {
+      C.state = D.clearPin(C.state);
+      $('pinInput').value = '';
+      save(); render(); toast(T.t('pin.cleared'));
+    };
+    withPin(C, T.t('pin.confirm'), apply);
   }
 
   // ---------- events (bound once) ----------
@@ -476,7 +525,7 @@
       $('payAmount').value = '';
       $('payForm').classList.remove('hidden');
     }
-    if (act === 'debt-del') run(function (s) { return D.removeDebt(s, id); }, T.t('toast.debtDeleted'));
+    if (act === 'debt-del') withPin(C, T.t('pin.debt'), function () { run(function (s) { return D.removeDebt(s, id); }, T.t('toast.debtDeleted')); });
 
     if (act === 'ticket-day') { /* removed: past-day browsing merged into the open day */ }
     if (act === 'ticket-open') {
@@ -512,7 +561,7 @@
       $('staffForm').classList.remove('hidden');
       render();
     }
-    if (act === 'staff-fire') fireEmployee(C, id);
+    if (act === 'staff-fire') withPin(C, T.t('pin.fire'), function () { fireEmployee(C, id); });
   }
 
   DEK.actions = {
@@ -525,6 +574,6 @@
     undoLastSale: undoLastSale,
     exportBackup: exportBackup, importBackup: importBackup, onImportFile: onImportFile, resetAll: resetAll, onClick: onClick,
     newEmployee: newEmployee, cancelEmployee: cancelEmployee, saveEmployee: saveEmployee,
-    fireEmployee: fireEmployee
+    fireEmployee: fireEmployee, withPin: withPin, pinSet: pinSet, pinClear: pinClear
   };
 });

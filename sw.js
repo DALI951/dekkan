@@ -3,7 +3,7 @@
  * Bump SW_VERSION to force a refresh of the shell after a deploy. */
 'use strict';
 
-const SW_VERSION = 'v36';
+const SW_VERSION = 'v37';
 const SHELL = [
   './',
   './index.html',
@@ -25,6 +25,7 @@ const SHELL = [
   './core/cashbox.js',
   './core/report.js',
   './core/shop.js',
+  './core/pin.js',
   './icon/icon.svg',
   './icon/icon-192.png',
   './icon/icon-512.png'

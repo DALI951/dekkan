@@ -483,6 +483,23 @@ select:focus-visible{outline:2px solid var(--acc);outline-offset:2px;}
 /* the metric panel is a lightbox like the receipt */
 #metricPanel .receipt-card{max-height:80vh;overflow-y:auto;}
 
+/* owner-lock keypad */
+#pinPanel .receipt-card{max-width:290px;text-align:center;}
+.pin-card{display:flex;flex-direction:column;gap:14px;align-items:stretch;}
+.pin-card .r-head{width:100%;}
+.pin-dots{font-size:30px;letter-spacing:14px;color:var(--acc);min-height:34px;text-align:center;}
+.pin-error{color:var(--bad,#c0392b);font-size:13px;}
+.pin-status-ok{color:var(--ok,#27ae60);}
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;direction:ltr;}
+.key{border:1px solid var(--line);background:var(--panel2);border-radius:var(--rads);
+  padding:14px 0;font-size:20px;font-family:inherit;cursor:pointer;color:var(--txt);}
+.key:active{transform:scale(.96);background:var(--acc);color:var(--panel2);}
+.key-ok{background:var(--acc);color:var(--panel2);border-color:var(--acc);font-weight:700;}
+.key:disabled{opacity:.35;cursor:not-allowed;}
+.shake{animation:knn 0.35s;}
+@keyframes knn{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}
+  50%{transform:translateX(6px)}75%{transform:translateX(-4px)}}
+
 @media print{
   /* the facture: ONLY the white receipt paper prints */
   .page,.topnav,.sidebar,.topbar,#toast{display:none!important;}

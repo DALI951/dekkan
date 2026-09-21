@@ -488,6 +488,70 @@
     if ($('appVersion')) $('appVersion').textContent = version;
     P.renderThemes(C);
     P.updateStorage(C);
+    // owner lock: reflect current PIN state
+    const has = C.D && C.D.hasPin ? C.D.hasPin(state) : false;
+    const pinClear = $('btnPinClear');
+    if (pinClear) pinClear.classList.toggle('hidden', !has);
+    const pinStatus = $('pinStatus');
+    if (pinStatus) {
+      pinStatus.textContent = has
+        ? T.t('settings.pinActive')
+        : T.t('settings.pinOff');
+      pinStatus.classList.toggle('pin-status-ok', has);
+    }
+  }
+
+  // ----- OWNER PIN: a keypad gate in front of the money actions -----
+  function openPin(C, title) {
+    const { $, T } = C;
+    C.pinBuf = '';
+    C.pinTitle = title || T.t('pin.title');
+    renderPin(C);
+    $('pinPanel').classList.remove('hidden');
+    if (document.body) document.body.classList.add('no-scroll');
+  }
+  function closePin(C) {
+    const { $ } = C;
+    C.pinBuf = '';
+    C.pinPending = null;
+    $('pinPanel').classList.add('hidden');
+    if (document.body) document.body.classList.remove('no-scroll');
+  }
+  function renderPin(C) {
+    const { $, T } = C;
+    if (!$('pinPanel')) return;
+    $('pinTitle').textContent = C.pinTitle || T.t('pin.title');
+    const dots = '●●●●●●'.slice(0, (C.pinBuf || '').length);
+    $('pinDots').textContent = dots || '';
+    $('pinError').classList.add('hidden');
+    const ok = $('keyOk');
+    if (ok) ok.disabled = (C.pinBuf || '').length < 4;
+  }
+  function pinKey(C, key) {
+    if (key === 'clear') { C.pinBuf = ''; renderPin(C); return; }
+    if (key === 'ok') {
+      if ((C.pinBuf || '').length < 4) return;
+      if (!C.D.checkPin(C.state, C.pinBuf)) {
+        C.pinBuf = '';
+        renderPin(C); // clears dots + hides the error
+        C.$('pinError').textContent = C.T.t('pin.wrong'); // …then the error shows
+        C.$('pinError').classList.remove('hidden');
+        const el = C.$('pinDots');
+        if (el && el.classList) {
+          el.classList.add('shake');
+          setTimeout(function () { el.classList.remove('shake'); }, 400);
+        }
+        return;
+      }
+      const pending = C.pinPending;
+      closePin(C);
+      if (pending) pending();
+      return;
+    }
+    if (!/^\d$/.test(String(key))) return;
+    if ((C.pinBuf || '').length >= 6) return;
+    C.pinBuf += key;
+    renderPin(C);
   }
 
   // ----- THEMES (colors live in js/themes.js — the app just asks) -----
@@ -652,6 +716,7 @@
     renderCashBox: renderCashBox, catOptions: catOptions, catChips: catChips,
     renderSettings: renderSettings, renderThemes: renderThemes, updateStorage: updateStorage,
     showReceipt: showReceipt, hideReceipt: hideReceipt, revealProductForm: revealProductForm,
-    renderEmployees: renderEmployees, renderMonthly: renderMonthly
+    renderEmployees: renderEmployees, renderMonthly: renderMonthly,
+    openPin: openPin, closePin: closePin, pinKey: pinKey
   };
 });

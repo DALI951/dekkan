@@ -51,6 +51,7 @@
     'stock.left': 'متبقية', 'stock.leftEn': 'left',
     'basket.empty': 'السلة فارغة — اضغط على منتوج',
     'sell.none': 'لا منتوجات بعد — أضف واحدًا من تبويب المخزون',
+    'sell.searchPh': 'ابحث عن منتوج بالاسم...',
 
     'stock.title': 'المخزون', 'stock.sub': 'كل منتوج بثمنيه: شراء وبيع',
     'stock.new': 'منتج جديد', 'stock.edit': 'تعديل',
@@ -219,6 +220,7 @@
     'stock.left': 'left', 'stock.leftEn': 'left',
     'basket.empty': 'Basket empty — tap a product',
     'sell.none': 'No products yet — add one from Stock',
+    'sell.searchPh': 'Search products by name...',
 
     'stock.title': 'Stock', 'stock.sub': 'Every product, two prices: buy & sell',
     'stock.new': 'New product', 'stock.edit': 'Edit',

@@ -43,8 +43,12 @@
     $('btnRefundMode').classList.toggle('on', refundMode);
     $('refundPanel').classList.toggle('hidden', !refundMode);
 
+    // the search box filters the tiles as the shopkeeper types
+    const q = (($('sellSearch') || {}).value || '').trim().toLowerCase();
+
     let html = '';
     state.products.forEach(function (p) {
+      if (q && p.name.toLowerCase().indexOf(q) < 0) return;
       const low = p.lowAt > 0 && p.stock <= p.lowAt;
       const out = p.stock <= 0;
       html += '<button class="sell-tile' + (out ? ' out' : '') + '" data-id="' + p.id + '"' + (out ? ' disabled' : '') + ' data-action="sell-add">'

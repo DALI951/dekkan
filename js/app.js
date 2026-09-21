@@ -17,7 +17,7 @@
   const A = DEK.actions;
   const LS_KEY = 'dekkan.v1';
   const BK_KEY = 'dekkan.backup';
-  const A_VERSION = '0.13.0';
+  const A_VERSION = '0.14.0';
 
   // ---------- helpers ----------
   function $(id) { return document.getElementById(id); }
@@ -134,7 +134,7 @@
   $('btnAddFree').addEventListener('click', function () { A.addFree(C); });
 
   // the till: what was handed over + who owes the rest (live, before the sale is recorded)
-  ['paidCash', 'creditName', 'discPct', 'discAmt', 'freeName', 'freePrice', 'freeQty'].forEach(function (id) {
+  ['paidCash', 'creditName', 'discPct', 'discAmt', 'freeName', 'freePrice', 'freeQty', 'sellSearch'].forEach(function (id) {
     const el = $(id);
     if (el) el.addEventListener('input', function () { P.renderSell(C); });
   });

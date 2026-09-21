@@ -17,7 +17,7 @@
   const A = DEK.actions;
   const LS_KEY = 'dekkan.v1';
   const BK_KEY = 'dekkan.backup';
-  const A_VERSION = '0.10.0';
+  const A_VERSION = '0.11.0';
 
   // ---------- helpers ----------
   function $(id) { return document.getElementById(id); }
@@ -189,6 +189,11 @@
   $('cfgRefund').addEventListener('change', function () { A.toggleRefund(C); });
   $('btnCloseDay').addEventListener('click', function () { A.closeDay(C); });
   $('btnExport').addEventListener('click', function () { A.exportBackup(C); });
+  $('btnImport').addEventListener('click', function () { A.importBackup(C); });
+  $('importFile').addEventListener('change', function () {
+    if (importFile.files && importFile.files[0]) A.onImportFile(C, importFile.files[0]);
+    importFile.value = ''; // allow re-picking the same file later
+  });
   $('btnReset').addEventListener('click', function () { A.resetAll(C); });
 
   // language toggle

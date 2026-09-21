@@ -368,6 +368,41 @@
     a.click();
     URL.revokeObjectURL(a.href);
   }
+  // Import: the file <input> lives in settings; once a file is picked we
+  // validate the WHOLE backup before touching anything (core/restoreState),
+  // then confirm, replace state, re-render. A bad file never changes state.
+  function importBackup(C) {
+    C.$('importFile').click();
+  }
+  function onImportFile(C, file) {
+    const { T, D, save, render, toast } = C;
+    const reader = new FileReader();
+    reader.onload = function () {
+      let parsed;
+      try {
+        parsed = JSON.parse(String(reader.result));
+      } catch (e) {
+        toast(T.t('toast.importBad'), true);
+        return;
+      }
+      try {
+        parsed = D.restoreState(parsed);
+      } catch (e) {
+        toast(T.t('toast.importBad'), true);
+        return;
+      }
+      if (!confirm(T.t('toast.importConfirm'))) return;
+      C.state = parsed;
+      C.basket = [];
+      C.freeItems = [];
+      C.refundMode = false;
+      save();
+      render();
+      toast(T.t('toast.importOk'));
+    };
+    reader.onerror = function () { toast(T.t('toast.importBad'), true); };
+    reader.readAsText(file);
+  }
   function resetAll(C) {
     const { $, T, D, LS_KEY, BK_KEY, save, render, toast } = C;
     if (!confirm(T.t('toast.resetConfirm'))) return;
@@ -469,7 +504,7 @@
     openNewDebt: openNewDebt, saveDebt: saveDebt, cancelPay: cancelPay, doPay: doPay,
     addCat: addCat, bookCash: bookCash, doCheckCash: doCheckCash, saveCfg: saveCfg,
     toggleDiscount: toggleDiscount, toggleRefund: toggleRefund, closeDay: closeDay,
-    exportBackup: exportBackup, resetAll: resetAll, onClick: onClick,
+    exportBackup: exportBackup, importBackup: importBackup, onImportFile: onImportFile, resetAll: resetAll, onClick: onClick,
     newEmployee: newEmployee, cancelEmployee: cancelEmployee, saveEmployee: saveEmployee,
     fireEmployee: fireEmployee
   };

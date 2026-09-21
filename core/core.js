@@ -151,6 +151,28 @@ function clone(state) {
 }
 
 
+// ---------- backup import ----------
+
+// Validate a parsed backup and hand back a safe, usable state.
+// The SAME migration pass that app.js.load() runs on boot, so a backup from
+// an older version still lands as a working state. Throws on anything that
+// is not a shop backup — the UI must NOT touch the live state in that case.
+function restoreState(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('not a shop backup');
+  const s = clone(raw);
+  if (!Array.isArray(s.products)) throw new Error('products missing');
+  if (!Array.isArray(s.debts)) throw new Error('debts missing');
+  if (!Array.isArray(s.days)) throw new Error('days missing');
+  if (!s.day || !Array.isArray(s.day.entries)) throw new Error('open day missing');
+  if (!Array.isArray(s.customers)) s.customers = [];
+  if (!s.categories || !Array.isArray(s.categories.in) || !Array.isArray(s.categories.out)) {
+    s.categories = { in: [], out: [] };
+  }
+  if (!Array.isArray(s.employees)) s.employees = [];
+  return s;
+}
+
+
 // accept either the id string itself or { id } — small convenience
 function idTrusted(state, id) {
   if (id && typeof id === 'object' && id.id) return id.id;
@@ -170,5 +192,6 @@ function idTrusted(state, id) {
   K.rollover = rollover;
   K.closeDay = closeDay;
   K.clone = clone;
+  K.restoreState = restoreState;
   K.idTrusted = idTrusted;
 });

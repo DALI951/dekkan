@@ -368,7 +368,11 @@
       <p class="sect" data-i18n="settings.sect.day">إدارة اليوم</p>
       <div class="card row between">
         <button class="btn" id="btnCloseDay" data-i18n="settings.closeDay">إغلاق يوم اليوم</button>
-        <button class="btn ghost" id="btnExport" data-i18n="settings.export">حفظ نسخة (JSON)</button>
+        <div class="row gr">
+          <button class="btn ghost" id="btnImport" data-i18n="settings.import">استرجاع نسخة (JSON)</button>
+          <button class="btn ghost" id="btnExport" data-i18n="settings.export">حفظ نسخة (JSON)</button>
+          <input type="file" id="importFile" accept=".json,application/json" hidden>
+        </div>
       </div>
 
       <p class="sect" data-i18n="settings.sect.about">عن التطبيق</p>

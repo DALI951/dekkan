@@ -337,6 +337,52 @@ test.describe('onslaught: cashbox + settings guards', () => {
     expect(data.version).toBe(3);
   });
 
+  test('import: a valid backup restores the shop; a garbage file changes nothing', async ({ page }) => {
+    // build a shop with a product + a sale, export it as the backup
+    await open(page, '#/stock');
+    await addSoda(page, 7);
+    await gotoTab(page, '#/sell');
+    await sellOne(page, 3); // 1 x Soda @ 1.5, paid 3 (overpay -> change)
+    await closeReceipt(page);
+    await gotoTab(page, '#/settings');
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.locator('#btnExport').click(),
+    ]);
+    const backup = fs.readFileSync(await download.path(), 'utf8');
+    const stateNow = await page.evaluate(() => JSON.parse(localStorage.getItem('dekkan.v1')));
+    expect(stateNow.products.length).toBe(1);
+    expect(stateNow.day.entries.filter(e => e.kind === 'sale').length).toBe(1);
+
+    // 1) GARBAGE file: refused, state untouched
+    await page.locator('#importFile').setInputFiles({
+      name: 'garbage.json', mimeType: 'application/json', buffer: Buffer.from('{broken json!!')
+    });
+    expect(await toastText(page)).toBe('هذا الملف ليس نسخة صالحة');
+    const afterGarbage = await page.evaluate(() => JSON.parse(localStorage.getItem('dekkan.v1')));
+    expect(afterGarbage.products.length).toBe(1);
+
+    // 2) MUTILATED backup (no products): refused, state untouched
+    const mutilated = JSON.parse(backup);
+    delete mutilated.products;
+    await page.locator('#importFile').setInputFiles({
+      name: 'mut.json', mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(mutilated))
+    });
+    expect(await toastText(page)).toBe('هذا الملف ليس نسخة صالحة');
+
+    // 3) REAL backup: confirm dialog -> restore -> shop matches the backup
+    page.once('dialog', d => d.accept());
+    await page.locator('#importFile').setInputFiles({
+      name: 'real.json', mimeType: 'application/json', buffer: Buffer.from(backup)
+    });
+    await expect(page.locator('#toast')).toContainText('تمت الاستعادة بنجاح');
+    const restored = await page.evaluate(() => JSON.parse(localStorage.getItem('dekkan.v1')));
+    expect(restored.products.length).toBe(1);
+    expect(restored.day.entries.filter(e => e.kind === 'sale').length).toBe(1);
+    expect(restored.products[0].stock).toBe(6); // 7 - 1 sold = the exported numbers, not a fresh shop
+  });
+
   test('closing an EMPTY day is clean: no crash, cash intact', async ({ page }) => {
     await open(page, '#/settings');
     await page.locator('#btnCloseDay').click();

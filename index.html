@@ -126,6 +126,7 @@
         <label><span data-i18n="disc.flat">خصم ثابت</span><input type="number" id="discAmt" min="0" placeholder="0.000"></label>
       </div>
       <label><span data-i18n="credit.label">اسم الزبون</span><input type="text" id="creditName" list="customerList" data-i18n-ph="credit.ph"><datalist id="customerList"></datalist></label>
+      <label><span data-i18n="cashier.label">البائع</span><input type="text" id="cashierName" list="cashierList" data-i18n-ph="cashier.ph"><datalist id="cashierList"></datalist></label>
       <div class="due" id="dueBox">
         <div class="due-l">
           <span data-i18n="sell.due">المطلوب دفعه</span>
@@ -219,6 +220,7 @@
         <h3 data-i18n="report.movements">حركة اليوم</h3>
         <button class="btn ghost" id="btnUndoSale" data-i18n="report.undo" hidden>تراجع عن آخر بيع</button>
       </div>
+      <div id="byCashier" class="rows"></div>
       <div id="entriesList"></div>
     </div>
     <div class="grid3" id="reportChips"></div>

@@ -123,7 +123,8 @@
         discount: disc > 0
           ? (discAmt > 0 ? { amount: discAmt } : { percent: discPct })
           : null,
-        paid: paid === null ? undefined : paid
+        paid: paid === null ? undefined : paid,
+        who: $('cashierName').value.trim() || undefined
       };
       if (items.length) opts.items = items;
       if (free.length) opts.free = free;

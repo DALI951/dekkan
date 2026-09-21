@@ -45,6 +45,8 @@ function createShop(opts) {
     },
     // every customer name ever used (sales + notebook) — the counter's memory
     customers: [],
+    // every cashier name ever used, most recent first (who rang each sale)
+    cashiers: [],
     // cash-box categories: sources for money IN, purposes for money OUT
     categories: { in: [], out: [] },
     products: [],
@@ -165,6 +167,7 @@ function restoreState(raw) {
   if (!Array.isArray(s.days)) throw new Error('days missing');
   if (!s.day || !Array.isArray(s.day.entries)) throw new Error('open day missing');
   if (!Array.isArray(s.customers)) s.customers = [];
+  if (!Array.isArray(s.cashiers)) s.cashiers = [];
   if (!s.categories || !Array.isArray(s.categories.in) || !Array.isArray(s.categories.out)) {
     s.categories = { in: [], out: [] };
   }

@@ -1,0 +1,757 @@
+﻿Γ£ö a NEGATIVE free price is refused: nothing is sold, the till never drains (3.084ms)
+Γ£ö a NEGATIVE per-item price override on a stock sale is refused; stock and cash stay put (0.5031ms)
+Γ£ö NaN in the paid box is refused: no partial pay, no debt, till stays a real number (0.6845ms)
+Γ£ö discount percent over 100 or under 0 is refused; cash identity still holds (0.4711ms)
+Γ£ö absurd qty (0, negative, or 1e15) is refused: stock and cash never leave, till stays finite (0.551ms)
+Γ£ö restoreState: a valid exported backup restores the exact state (3.2453ms)
+Γ£ö restoreState: refuses non-objects and junk (0.5389ms)
+Γ£ö restoreState: refuses backups missing required arrays (0.6824ms)
+Γ£ö restoreState: repairs legacy v2 backups (no customers registry) (0.2993ms)
+Γ£ö cashbox: a fresh shop starts with empty in/out category pools (1.9146ms)
+Γ£ö cashbox: addCategory stores {id, name} on the right side (0.3972ms)
+Γ£ö cashbox: category names are trimmed and must not be empty (0.5864ms)
+Γ£ö cashbox: duplicate category names are refused per side (0.2961ms)
+Γ£ö cashbox: removeCategory deletes only that id from that side (0.3808ms)
+Γ£ö cashbox: income books a +entry and stores source + category (0.3356ms)
+Γ£ö cashbox: expense books a ΓêÆentry and stores purpose + category (0.245ms)
+Γ£ö cashbox: income/expense still work with no category (old behaviour) (0.2113ms)
+Γ£ö cashbox: deleting a category never touches entries that used it (0.3298ms)
+Γ£ö cashbox: invalid amount/side are refused everywhere (1.0762ms)
+Γ£ö sale remembers the cashier who rang it (2.7119ms)
+Γ£ö sale without a cashier has no who (legacy entries stay clean) (0.3739ms)
+Γ£ö credit sale keeps the cashier too (0.6683ms)
+Γ£ö sellFree tags the entry (0.3804ms)
+Γ£ö sellAll (full basket) tags one entry for all of it (0.5827ms)
+Γ£ö day report splits sales per cashier: count + total, richest first (1.0522ms)
+Γ£ö byCashier is empty when nobody is named (0.8771ms)
+Γ£ö report entries expose the cashier (0.3295ms)
+Γ£ö cashier registry remembers names, most recent first (0.5456ms)
+Γ£ö sale without cashier leaves the registry untouched (0.3592ms)
+Γ£ö a fresh shop: registry empty, day starts at #1 (3.3879ms)
+Γ£ö a checkout is ONE numbered sale ΓÇö mixed baskets are not split (0.9539ms)
+Γ£ö client numbers run 1..N in order and ride on the report (1.1751ms)
+Γ£ö refunds and debt payments never consume client numbers (1.8379ms)
+Γ£ö tomorrow, the counter starts at #1 again (0.4862ms)
+Γ£ö typed names go to the registry once; walk-ins add nothing (0.8417ms)
+Γ£ö a fully paid sale still records the typed name ΓÇö no debt is invented (0.3204ms)
+Γ£ö overpay with a name: change out, no debt, name remembered (0.2964ms)
+Γ£ö partial payment: the rest is a debt on the named customer; unnamed partial is refused (0.7555ms)
+Γ£ö full credit: cash does not move, the whole net is on the customer (0.4648ms)
+Γ£ö creditTo still means "on credit" ΓÇö the old dictation keeps working (0.3458ms)
+Γ£ö sell / sellFree still stand alone and feed the same counter (0.572ms)
+Γ£ö sellAll discount cuts the WHOLE bill ΓÇö stock and free together (0.2885ms)
+Γ£ö sellAll validation is strict ΓÇö a bad call changes NOTHING (0.6365ms)
+Γ£ö non-sale moves have no client number in the report (0.4355ms)
+Γ£ö the notebook feeds the registry, and sellAll can carry a phone (0.387ms)
+Γ£ö clientsReport: saved clients get purchases, refunds, debts and payments (13.6262ms)
+Γ£ö clientProfile: unknown names return an empty profile (0.7508ms)
+Γ£ö createShop: cash starts at startCash, zero entries (3.1097ms)
+Γ£ö cash identity holds after every kind of movement (1.5939ms)
+Γ£ö selling decreases stock, buying increases it; stock never goes negative (0.6888ms)
+Γ£ö insufficient-stock sale leaves cash and soldCost untouched (0.2685ms)
+Γ£ö basket sells several products and tracks cost of goods sold (0.7199ms)
+Γ£ö sell with a custom price override (negotiated / old price) (0.3414ms)
+Γ£ö sellFree sells services/items without stock tracking, profit zero cost (0.395ms)
+Γ£ö dayProfit = sales - costOfSold - buys - expenses (0.3141ms)
+Γ£ö credit sale: cash does NOT move, debt grows (0.4257ms)
+Γ£ö same customer second credit sale merges into the same open debt (0.5704ms)
+Γ£ö partial payments: cash in on each pay, settled only when fully paid, no overpay (0.3932ms)
+Γ£ö debt payment counts as revenue in today profit (0.3788ms)
+Γ£ö closeDay: closes the day with endCash, new day starts with that cash (0.3614ms)
+Γ£ö products need a name and a sell price (0.2283ms)
+Γ£ö removeProduct only when stock is zero (0.2947ms)
+Γ£ö inventory value = sum(stock * buy); low stock list flags thresholds (0.2392ms)
+Γ£ö every op returns a NEW state; the old one stays frozen (0.265ms)
+Γ£ö refund: cash back, goods back on shelf, cost undone, profit correct (0.5098ms)
+Γ£ö refund on credit: debt goes down, cash does NOT move (0.3257ms)
+Γ£ö refundFree for non-stock items (0.3469ms)
+Γ£ö refund respects the allowRefund toggle (0.1575ms)
+Γ£ö percent discount: customer pays less, cost unchanged (you eat the margin) (0.2745ms)
+Γ£ö flat discount is capped at the sale value (never a negative sale) (0.2131ms)
+Γ£ö discount respects the allowDiscount toggle (0.2764ms)
+Γ£ö credit sale with discount: the debt is the discounted amount (0.3021ms)
+Γ£ö checkCash compares the drawer to the computed cash and records it (0.3417ms)
+Γ£ö dayReport lists every move: start cash, each entry, totals, profit (1.0593ms)
+Γ£ö closed days are frozen history; new day starts from endCash (0.2939ms)
+Γ£ö updateShop renames the shop anytime (0.2244ms)
+Γ£ö updateShop changes startCash only while the day is empty (0.2799ms)
+Γ£ö updateShop validates name and start cash (0.2524ms)
+Γ£ö setSettings toggles allowDiscount and allowRefund (0.4839ms)
+Γ£ö setSettings rejects non-boolean values (0.1488ms)
+Γ£ö removeDebt deletes only settled (fully paid) debts (0.4008ms)
+Γ£ö partial pay: the till takes what was handed over, the rest is the customer debt (0.367ms)
+Γ£ö partial pay: paying MORE than the price keeps the box honest (the extra is change) (0.2367ms)
+Γ£ö partial pay: exact money is a normal cash sale (no debt, no leftover) (0.1893ms)
+Γ£ö partial pay: the unpaid rest NEEDS a name, and a failed sale changes nothing (0.2063ms)
+Γ£ö partial pay: a second trip to the same customer merges into the same open debt (0.3869ms)
+Γ£ö partial pay: a discount changes both halves (cash and rest) (0.2733ms)
+Γ£ö partial pay: free items (no stock) split the same way (0.7905ms)
+Γ£ö partial pay: a refund on the paid part still only moves real cash (0.3157ms)
+Γ£ö a mixed cart with one handout: cash = min(paid, net), debt = the rest (never double-counted) (0.9774ms)
+Γ£ö a NEGATIVE free-line price is refused: no entry, cash byte-identical (0.2174ms)
+Γ£ö a NEGATIVE per-item price override is refused too; basket and till stay put (0.1995ms)
+Γ£ö employees: a fresh shop starts with an empty team (1.8644ms)
+Γ£ö employees: addEmployee books the hire with every field (0.439ms)
+Γ£ö employees: names and types are trimmed and required (0.6316ms)
+Γ£ö employees: salary must be a finite number >= 0 (0.3694ms)
+Γ£ö employees: updateEmployee edits the editable fields only (0.405ms)
+Γ£ö employees: fireEmployee marks the hire ended with a date (0.3019ms)
+Γ£ö employees: salariesFor sums the payroll of one month (0.274ms)
+Γ£ö monthly: an empty month is a clean slate (2.5385ms)
+Γ£ö monthly: wins, losses and profit follow the money moves (1.0519ms)
+Γ£ö monthly: salaries are part of the month losses (0.2644ms)
+Γ£ö monthly: only the requested month counts (0.2034ms)
+Γ£ö monthly: the report breaks the month into per-day rows (0.2414ms)
+Γ£ö monthly: old saves without an employees key still report (0.1587ms)
+Γ£ö monthly: entries without a usable timestamp are ignored, not fatal (0.1586ms)
+Γ£ö sales feed the same per-day refund budget per product (2.6533ms)
+Γ£ö refund is capped at what was actually sold today (1.0232ms)
+Γ£ö a cash refund cannot take more out than the till physically holds (0.8538ms)
+Γ£ö free-item refunds are capped by the free-item sales budget (0.5606ms)
+Γ£ö expenses cannot push the till below zero (0.4251ms)
+Γ£ö incomes do not need a cash floor (money can always come in) (0.1722ms)
+(node:7932) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Γ£ö registry: at least 2 themes and souk is the default (1.1108ms)
+Γ£ö every theme carries the FULL base token set (no missing, no extras) (0.8614ms)
+Γ£ö every color token looks like a CSS color value (--shadow carries one) (1.22ms)
+Γ£ö every theme has id + nameKey + 3-color preview (0.2785ms)
+Γ£ö Themes.all lists every theme; get resolves ids only (0.1855ms)
+Γ£ö default current theme is souk (no storage in node) (0.1331ms)
+Γ£ö Themes.set applies, updates current, refuses unknown ids (0.3906ms)
+Γ£ö THEMES and Themes agree on ids (0.129ms)
+Γ£ö a plain cash sale stores its full bill on the sale entry (4.0917ms)
+Γ£ö overpay: the bill says what was handed and the change, entry.amount stays net (0.4707ms)
+Γ£ö partial payment: the bill splits handed money and the rest on the customer (0.8686ms)
+Γ£ö full credit: no paid, the whole net is the rest, entry.amount is 0 (0.4021ms)
+Γ£ö discount: the bill keeps the discount and the reduced net (0.3059ms)
+Γ£ö a mixed basket (stock + free) is ONE bill with ALL its lines (0.3978ms)
+Γ£ö legacy sell() and sellFree() also stamp their bills on the entry (1.4539ms)
+Γ£ö non-sale entries carry NO bill (0.5593ms)
+Γ£ö bills survive a day close ΓÇö history tickets keep their detail (0.9269ms)
+Γ£ö refund carries the number of the sale it reversed (0.8888ms)
+Γ£û the amount due is on screen, follows the basket, and moves while typing (17.1781ms)
+Γ£û the no-stock line previews its own total while typing (3.4922ms)
+Γ£û checkout: a part payment puts the rest on the customer (4.7465ms)
+Γ£û debts: paying MORE than the balance is refused at the till ΓÇö nothing moves (5.3075ms)
+Γ£û debts: paying exactly the balance works and settles the debt (4.2811ms)
+Γ£û till: Enter in the paid field runs the sale (same as pressing the button) (4.1391ms)
+Γ£û till: Enter in the free-item row adds the line (no checkout) (3.2864ms)
+Γ£û debts: Enter in the pay box settles the debt (same as the pay button) (3.377ms)
+Γ£û debts: Enter in the new-debt form books it (same as the save button) (3.1928ms)
+Γ£û stock: Enter in the product form adds the product (same as save) (3.1674ms)
+Γ£û checkout: paying too much shows the change and never inflates the box (3.9356ms)
+Γ£û checkout: a shortage with no name is refused, and nothing changes (3.0453ms)
+Γ£û report: ONE moves list ΓÇö no separate tickets vault, sales open their ticket (3.0503ms)
+Γ£û report: opening a ticket reprints the STORED facture detail (2.9821ms)
+Γ£û report: tapping a metric box opens the detail behind the number (3.0687ms)
+Γ£û report: the debts metric lists who owes what (4.7597ms)
+Γ£û cashbox: cash out asks a purpose and drops the till (2.8603ms)
+Γ£û cashbox: cash in asks a source and fills the till (2.8542ms)
+Γ£û cashbox: categories are created and appear in the pickers (2.8131ms)
+Γ£û cashbox: Enter in the cash-out form books it (same as the button) (3.2253ms)
+Γ£û lang: a hard refresh restores the LAYOUT (dir) with the language, not just the text (4.3204ms)
+Γ£û lang: the default (nothing saved) stays on the Arabic side ΓÇö the app's birth direction (3.0439ms)
+Γ£û stock: the edit label is invisible by default and only appears on action (2.8137ms)
+Γ£û stock: a sold-out product cannot be added to the basket (2.7309ms)
+Γ£û stock: the + never takes the basket over what is in stock (2.8905ms)
+Γ£û receipt refund: the sale on the receipt is refundable in one tap (3.0658ms)
+Γ£û receipt refund: free lines are cleared without stock, the sale stays filed (3.4086ms)
+Γ£û today's moves: bare number rows and refunds name the sale they undid (3.2678ms)
+Γ£û the staff page hires a worker into the book (2.9951ms)
+Γ£û the staff page fires a worker and the monthly page counts a month of money (3.6019ms)
+Γ£û the month picker switches the review to any month (3.1401ms)
+Γ£û the clients page shows saved client data, purchases, refunds and debt history (4.022ms)
+Γ£ö undo a CASH sale: till back, stock back, sold costs back, entry gone (2.8664ms)
+Γ£ö undo a CREDIT sale: the whole debt it created disappears (0.798ms)
+Γ£ö undo a PARTIAL sale: cash AND debt both revert (0.4167ms)
+Γ£ö undo a second credit on the SAME customer only removes that part (0.5707ms)
+Γ£ö a sale with FREE items undoes cleanly too (0.3508ms)
+Γ£ö canUndoSale is false when the day is empty or the last action is not a sale (1.2813ms)
+Γ£ö undo trips the day rollover guard: only TODAYS last sale (0.3191ms)
+Γä╣ tests 169
+Γä╣ suites 0
+Γä╣ pass 137
+Γä╣ fail 32
+Γä╣ cancelled 0
+Γä╣ skipped 0
+Γä╣ todo 0
+Γä╣ duration_ms 647.6457
+
+Γ£û failing tests:
+
+test at test\ui.test.js:108:1
+Γ£û the amount due is on screen, follows the basket, and moves while typing (17.1781ms)
+  js/pages.js:120
+      if (ci && !ci.dataset.touched) {
+                            ^
+  
+  TypeError: Cannot read properties of undefined (reading 'touched')
+      at renderSell (js/pages.js:120:27)
+      at Object.render (js/pages.js:17:5)
+      at render (js/app.js:98:25)
+      at navigate (js/app.js:228:5)
+      at js/app.js:231:3
+      at js/app.js:232:3
+      at Script.runInContext (node:vm:150:12)
+      at Object.runInContext (node:vm:302:6)
+      at C:\Users\Dali\Projects\dekkan\test\ui.test.js:78:8
+      at Array.forEach (<anonymous>)
+
+test at test\ui.test.js:136:1
+Γ£û the no-stock line previews its own total while typing (3.4922ms)
+  js/pages.js:120
+      if (ci && !ci.dataset.touched) {
+                            ^
+  
+  TypeError: Cannot read properties of undefined (reading 'touched')
+      at renderSell (js/pages.js:120:27)
+      at Object.render (js/pages.js:17:5)
+      at render (js/app.js:98:25)
+      at navigate (js/app.js:228:5)
+      at js/app.js:231:3
+      at js/app.js:232:3
+      at Script.runInContext (node:vm:150:12)
+      at Object.runInContext (node:vm:302:6)
+      at C:\Users\Dali\Projects\dekkan\test\ui.test.js:78:8
+      at Array.forEach (<anonymous>)
+
+test at test\ui.test.js:147:1
+Γ£û checkout: a part payment puts the rest on the customer (4.7465ms)
+  js/pages.js:120
+      if (ci && !ci.dataset.touched) {
+                            ^
+  
+  TypeError: Cannot read properties of undefined (reading 'touched')
+      at renderSell (js/pages.js:120:27)
+      at Object.render (js/pages.js:17:5)
+      at render (js/app.js:98:25)
+      at navigate (js/app.js:228:5)
+      at js/app.js:231:3
+      at js/app.js:232:3
+      at Script.runInContext (node:vm:150:12)
+      at Object.runInContext (node:vm:302:6)
+      at C:\Users\Dali\Projects\dekkan\test\ui.test.js:78:8
+      at Array.forEach (<anonymous>)
+
+test at test\ui.test.js:167:1
+Γ£û debts: paying MORE than the balance is refused at the till ΓÇö nothing moves (5.3075ms)
+  js/pages.js:120
+      if (ci && !ci.dataset.touched) {
+                            ^
+  
+  TypeError: Cannot read properties of undefined (reading 'touched')
+      at renderSell (js/pages.js:120:27)
+      at Object.render (js/pages.js:17:5)
+      at render (js/app.js:98:25)
+      at navigate (js/app.js:228:5)
+      at js/app.js:231:3
+      at js/app.js:232:3
+      at Script.runInContext (node:vm:150:12)
+      at Object.runInContext (node:vm:302:6)
+      at C:\Users\Dali\Projects\dekkan\test\ui.test.js:78:8
+      at Array.forEach (<anonymous>)
+
+test at test\ui.test.js:185:1
+Γ£û debts: paying exactly the balance works and settles the debt (4.2811ms)
+  js/pages.js:120
+      if (ci && !ci.dataset.touched) {
+                            ^
+  
+  TypeError: Cannot read properties of undefined (reading 'touched')
+      at renderSell (js/pages.js:120:27)
+      at Object.render (js/pages.js:17:5)
+      at render (js/app.js:98:25)
+      at navigate (js/app.js:228:5)
+      at js/app.js:231:3
+      at js/app.js:232:3
+      at Script.runInContext (node:vm:150:12)
+      at Object.runInContext (node:vm:302:6)
+      at C:\Users\Dali\Projects\dekkan\test\ui.test.js:78:8
+      at Array.forEach (<anonymous>)
+
+test at test\ui.test.js:199:1
+Γ£û till: Enter in the paid field runs the sale (same as pressing the button) (4.1391ms)
+  js/pages.js:120
+      if (ci && !ci.dataset.touched) {
+                            ^
+  
+  TypeError: Cannot read properties of undefined (reading 'touched')
+      at renderSell (js/pages.js:120:27)
+      at Object.render (js/pages.js:17:5)
+      at render (js/app.js:98:25)
+      at navigate (js/app.js:228:5)
+      at js/app.js:231:3
+      at js/app.js:232:3
+      at Script.runInContext (node:vm:150:12)
+      at Object.runInContext (node:vm:302:6)
+      at C:\Users\Dali\Projects\dekkan\test\ui.test.js:78:8
+      at Array.forEach (<anonymous>)
+
+test at test\ui.test.js:211:1
+Γ£û till: Enter in the free-item row adds the line (no checkout) (3.2864ms)
+  js/pages.js:120
+      if (ci && !ci.dataset.touched) {
+                            ^
+  
+  TypeError: Cannot read properties of undefined (reading 'touched')
+      at renderSell (js/pages.js:120:27)
+      at Object.render (js/pages.js:17:5)
+      at render (js/app.js:98:25)
+      at navigate (js/app.js:228:5)
+      at js/app.js:231:3
+      at js/app.js:232:3
+      at Script.runInContext (node:vm:150:12)
+      at Object.runInContext (node:vm:302:6)
+      at C:\Users\Dali\Projects\dekkan\test\ui.test.js:78:8
+      at Array.forEach (<anonymous>)
+
+test at test\ui.test.js:222:1
+Γ£û debts: Enter in the pay box settles the debt (same as the pay button) (3.377ms)
+  js/pages.js:120
+      if (ci && !ci.dataset.touched) {
+                            ^
+  
+  TypeError: Cannot read properties of undefined (reading 'touched')
+      at renderSell (js/pages.js:120:27)
+      at Object.render (js/pages.js:17:5)
+      at render (js/app.js:98:25)
+      at navigate (js/app.js:228:5)
+      at js/app.js:231:3
+      at js/app.js:232:3
+      at Script.runInContext (node:vm:150:12)
+      at Object.runInContext (node:vm:302:6)
+      at C:\Users\Dali\Projects\dekkan\test\ui.test.js:78:8
+      at Array.forEach (<anonymous>)
+
+test at test\ui.test.js:233:1
+Γ£û debts: Enter in the new-debt form books it (same as the save button) (3.1928ms)
+  js/pages.js:120
+      if (ci && !ci.dataset.touched) {
+                            ^
+  
+  TypeError: Cannot read properties of undefined (reading 'touched')
+      at renderSell (js/pages.js:120:27)
+      at Object.render (js/pages.js:17:5)
+      at render (js/app.js:98:25)
+      at navigate (js/app.js:228:5)
+      at js/app.js:231:3
+      at js/app.js:232:3
+      at Script.runInContext (node:vm:150:12)
+      at Object.runInContext (node:vm:302:6)
+      at C:\Users\Dali\Projects\dekkan\test\ui.test.js:78:8
+      at Array.forEach (<anonymous>)
+
+test at test\ui.test.js:243:1
+Γ£û stock: Enter in the product form adds the product (same as save) (3.1674ms)
+  js/pages.js:120
+      if (ci && !ci.dataset.touched) {
+                            ^
+  
+  TypeError: Cannot read properties of undefined (reading 'touched')
+      at renderSell (js/pages.js:120:27)
+      at Object.render (js/pages.js:17:5)
+      at render (js/app.js:98:25)
+      at navigate (js/app.js:228:5)
+      at js/app.js:231:3
+      at js/app.js:232:3
+      at Script.runInContext (node:vm:150:12)
+      at Object.runInContext (node:vm:302:6)
+      at C:\Users\Dali\Projects\dekkan\test\ui.test.js:78:8
+      at Array.forEach (<anonymous>)
+
+test at test\ui.test.js:257:1
+Γ£û checkout: paying too much shows the change and never inflates the box (3.9356ms)
+  js/pages.js:120
+      if (ci && !ci.dataset.touched) {
+                            ^
+  
+  TypeError: Cannot read properties of undefined (reading 'touched')
+      at renderSell (js/pages.js:120:27)
+      at Object.render (js/pages.js:17:5)
+      at render (js/app.js:98:25)
+      at navigate (js/app.js:228:5)
+      at js/app.js:231:3
+      at js/app.js:232:3
+      at Script.runInContext (node:vm:150:12)
+      at Object.runInContext (node:vm:302:6)
+      at C:\Users\Dali\Projects\dekkan\test\ui.test.js:78:8
+      at Array.forEach (<anonymous>)
+
+test at test\ui.test.js:272:1
+Γ£û checkout: a shortage with no name is refused, and nothing changes (3.0453ms)
+  js/pages.js:120
+      if (ci && !ci.dataset.touched) {
+                            ^
+  
+  TypeError: Cannot read properties of undefined (reading 'touched')
+      at renderSell (js/pages.js:120:27)
+      at Object.render (js/pages.js:17:5)
+      at render (js/app.js:98:25)
+      at navigate (js/app.js:228:5)
+      at js/app.js:231:3
+      at js/app.js:232:3
+      at Script.runInContext (node:vm:150:12)
+      at Object.runInContext (node:vm:302:6)
+      at C:\Users\Dali\Projects\dekkan\test\ui.test.js:78:8
+      at Array.forEach (<anonymous>)
+
+test at test\ui.test.js:285:1
+Γ£û report: ONE moves list ΓÇö no separate tickets vault, sales open their ticket (3.0503ms)
+  js/pages.js:120
+      if (ci && !ci.dataset.touched) {
+                            ^
+  
+  TypeError: Cannot read properties of undefined (reading 'touched')
+      at renderSell (js/pages.js:120:27)
+      at Object.render (js/pages.js:17:5)
+      at render (js/app.js:98:25)
+      at navigate (js/app.js:228:5)
+      at js/app.js:231:3
+      at js/app.js:232:3
+      at Script.runInContext (node:vm:150:12)
+      at Object.runInContext (node:vm:302:6)
+      at C:\Users\Dali\Projects\dekkan\test\ui.test.js:78:8
+      at Array.forEach (<anonymous>)
+
+test at test\ui.test.js:299:1
+Γ£û report: opening a ticket reprints the STORED facture detail (2.9821ms)
+  js/pages.js:120
+      if (ci && !ci.dataset.touched) {
+                            ^
+  
+  TypeError: Cannot read properties of undefined (reading 'touched')
+      at renderSell (js/pages.js:120:27)
+      at Object.render (js/pages.js:17:5)
+      at render (js/app.js:98:25)
+      at navigate (js/app.js:228:5)
+      at js/app.js:231:3
+      at js/app.js:232:3
+      at Script.runInContext (node:vm:150:12)
+      at Object.runInContext (node:vm:302:6)
+      at C:\Users\Dali\Projects\dekkan\test\ui.test.js:78:8
+      at Array.forEach (<anonymous>)
+
+test at test\ui.test.js:318:1
+Γ£û report: tapping a metric box opens the detail behind the number (3.0687ms)
+  js/pages.js:120
+      if (ci && !ci.dataset.touched) {
+                            ^
+  
+  TypeError: Cannot read properties of undefined (reading 'touched')
+      at renderSell (js/pages.js:120:27)
+      at Object.render (js/pages.js:17:5)
+      at render (js/app.js:98:25)
+      at navigate (js/app.js:228:5)
+      at js/app.js:231:3
+      at js/app.js:232:3
+      at Script.runInContext (node:vm:150:12)
+      at Object.runInContext (node:vm:302:6)
+      at C:\Users\Dali\Projects\dekkan\test\ui.test.js:78:8
+      at Array.forEach (<anonymous>)
+
+test at test\ui.test.js:334:1
+Γ£û report: the debts metric lists who owes what (4.7597ms)
+  js/pages.js:120
+      if (ci && !ci.dataset.touched) {
+                            ^
+  
+  TypeError: Cannot read properties of undefined (reading 'touched')
+      at renderSell (js/pages.js:120:27)
+      at Object.render (js/pages.js:17:5)
+      at render (js/app.js:98:25)
+      at navigate (js/app.js:228:5)
+      at js/app.js:231:3
+      at js/app.js:232:3
+      at Script.runInContext (node:vm:150:12)
+      at Object.runInContext (node:vm:302:6)
+      at C:\Users\Dali\Projects\dekkan\test\ui.test.js:78:8
+      at Array.forEach (<anonymous>)
+
+test at test\ui.test.js:346:1
+Γ£û cashbox: cash out asks a purpose and drops the till (2.8603ms)
+  js/pages.js:120
+      if (ci && !ci.dataset.touched) {
+                            ^
+  
+  TypeError: Cannot read properties of undefined (reading 'touched')
+      at renderSell (js/pages.js:120:27)
+      at Object.render (js/pages.js:17:5)
+      at render (js/app.js:98:25)
+      at navigate (js/app.js:228:5)
+      at js/app.js:231:3
+      at js/app.js:232:3
+      at Script.runInContext (node:vm:150:12)
+      at Object.runInContext (node:vm:302:6)
+      at C:\Users\Dali\Projects\dekkan\test\ui.test.js:78:8
+      at Array.forEach (<anonymous>)
+
+test at test\ui.test.js:359:1
+Γ£û cashbox: cash in asks a source and fills the till (2.8542ms)
+  js/pages.js:120
+      if (ci && !ci.dataset.touched) {
+                            ^
+  
+  TypeError: Cannot read properties of undefined (reading 'touched')
+      at renderSell (js/pages.js:120:27)
+      at Object.render (js/pages.js:17:5)
+      at render (js/app.js:98:25)
+      at navigate (js/app.js:228:5)
+      at js/app.js:231:3
+      at js/app.js:232:3
+      at Script.runInContext (node:vm:150:12)
+      at Object.runInContext (node:vm:302:6)
+      at C:\Users\Dali\Projects\dekkan\test\ui.test.js:78:8
+      at Array.forEach (<anonymous>)
+
+test at test\ui.test.js:372:1
+Γ£û cashbox: categories are created and appear in the pickers (2.8131ms)
+  js/pages.js:120
+      if (ci && !ci.dataset.touched) {
+                            ^
+  
+  TypeError: Cannot read properties of undefined (reading 'touched')
+      at renderSell (js/pages.js:120:27)
+      at Object.render (js/pages.js:17:5)
+      at render (js/app.js:98:25)
+      at navigate (js/app.js:228:5)
+      at js/app.js:231:3
+      at js/app.js:232:3
+      at Script.runInContext (node:vm:150:12)
+      at Object.runInContext (node:vm:302:6)
+      at C:\Users\Dali\Projects\dekkan\test\ui.test.js:78:8
+      at Array.forEach (<anonymous>)
+
+test at test\ui.test.js:385:1
+Γ£û cashbox: Enter in the cash-out form books it (same as the button) (3.2253ms)
+  js/pages.js:120
+      if (ci && !ci.dataset.touched) {
+                            ^
+  
+  TypeError: Cannot read properties of undefined (reading 'touched')
+      at renderSell (js/pages.js:120:27)
+      at Object.render (js/pages.js:17:5)
+      at render (js/app.js:98:25)
+      at navigate (js/app.js:228:5)
+      at js/app.js:231:3
+      at js/app.js:232:3
+      at Script.runInContext (node:vm:150:12)
+      at Object.runInContext (node:vm:302:6)
+      at C:\Users\Dali\Projects\dekkan\test\ui.test.js:78:8
+      at Array.forEach (<anonymous>)
+
+test at test\ui.test.js:395:1
+Γ£û lang: a hard refresh restores the LAYOUT (dir) with the language, not just the text (4.3204ms)
+  js/pages.js:120
+      if (ci && !ci.dataset.touched) {
+                            ^
+  
+  TypeError: Cannot read properties of undefined (reading 'touched')
+      at renderSell (js/pages.js:120:27)
+      at Object.render (js/pages.js:17:5)
+      at render (js/app.js:98:25)
+      at navigate (js/app.js:228:5)
+      at js/app.js:231:3
+      at js/app.js:232:3
+      at Script.runInContext (node:vm:150:12)
+      at Object.runInContext (node:vm:302:6)
+      at C:\Users\Dali\Projects\dekkan\test\ui.test.js:78:8
+      at Array.forEach (<anonymous>)
+
+test at test\ui.test.js:403:1
+Γ£û lang: the default (nothing saved) stays on the Arabic side ΓÇö the app's birth direction (3.0439ms)
+  js/pages.js:120
+      if (ci && !ci.dataset.touched) {
+                            ^
+  
+  TypeError: Cannot read properties of undefined (reading 'touched')
+      at renderSell (js/pages.js:120:27)
+      at Object.render (js/pages.js:17:5)
+      at render (js/app.js:98:25)
+      at navigate (js/app.js:228:5)
+      at js/app.js:231:3
+      at js/app.js:232:3
+      at Script.runInContext (node:vm:150:12)
+      at Object.runInContext (node:vm:302:6)
+      at C:\Users\Dali\Projects\dekkan\test\ui.test.js:78:8
+      at Array.forEach (<anonymous>)
+
+test at test\ui.test.js:410:1
+Γ£û stock: the edit label is invisible by default and only appears on action (2.8137ms)
+  js/pages.js:120
+      if (ci && !ci.dataset.touched) {
+                            ^
+  
+  TypeError: Cannot read properties of undefined (reading 'touched')
+      at renderSell (js/pages.js:120:27)
+      at Object.render (js/pages.js:17:5)
+      at render (js/app.js:98:25)
+      at navigate (js/app.js:228:5)
+      at js/app.js:231:3
+      at js/app.js:232:3
+      at Script.runInContext (node:vm:150:12)
+      at Object.runInContext (node:vm:302:6)
+      at C:\Users\Dali\Projects\dekkan\test\ui.test.js:78:8
+      at Array.forEach (<anonymous>)
+
+test at test\ui.test.js:424:1
+Γ£û stock: a sold-out product cannot be added to the basket (2.7309ms)
+  js/pages.js:120
+      if (ci && !ci.dataset.touched) {
+                            ^
+  
+  TypeError: Cannot read properties of undefined (reading 'touched')
+      at renderSell (js/pages.js:120:27)
+      at Object.render (js/pages.js:17:5)
+      at render (js/app.js:98:25)
+      at navigate (js/app.js:228:5)
+      at js/app.js:231:3
+      at js/app.js:232:3
+      at Script.runInContext (node:vm:150:12)
+      at Object.runInContext (node:vm:302:6)
+      at C:\Users\Dali\Projects\dekkan\test\ui.test.js:78:8
+      at Array.forEach (<anonymous>)
+
+test at test\ui.test.js:437:1
+Γ£û stock: the + never takes the basket over what is in stock (2.8905ms)
+  js/pages.js:120
+      if (ci && !ci.dataset.touched) {
+                            ^
+  
+  TypeError: Cannot read properties of undefined (reading 'touched')
+      at renderSell (js/pages.js:120:27)
+      at Object.render (js/pages.js:17:5)
+      at render (js/app.js:98:25)
+      at navigate (js/app.js:228:5)
+      at js/app.js:231:3
+      at js/app.js:232:3
+      at Script.runInContext (node:vm:150:12)
+      at Object.runInContext (node:vm:302:6)
+      at C:\Users\Dali\Projects\dekkan\test\ui.test.js:78:8
+      at Array.forEach (<anonymous>)
+
+test at test\ui.test.js:452:1
+Γ£û receipt refund: the sale on the receipt is refundable in one tap (3.0658ms)
+  js/pages.js:120
+      if (ci && !ci.dataset.touched) {
+                            ^
+  
+  TypeError: Cannot read properties of undefined (reading 'touched')
+      at renderSell (js/pages.js:120:27)
+      at Object.render (js/pages.js:17:5)
+      at render (js/app.js:98:25)
+      at navigate (js/app.js:228:5)
+      at js/app.js:231:3
+      at js/app.js:232:3
+      at Script.runInContext (node:vm:150:12)
+      at Object.runInContext (node:vm:302:6)
+      at C:\Users\Dali\Projects\dekkan\test\ui.test.js:78:8
+      at Array.forEach (<anonymous>)
+
+test at test\ui.test.js:471:1
+Γ£û receipt refund: free lines are cleared without stock, the sale stays filed (3.4086ms)
+  js/pages.js:120
+      if (ci && !ci.dataset.touched) {
+                            ^
+  
+  TypeError: Cannot read properties of undefined (reading 'touched')
+      at renderSell (js/pages.js:120:27)
+      at Object.render (js/pages.js:17:5)
+      at render (js/app.js:98:25)
+      at navigate (js/app.js:228:5)
+      at js/app.js:231:3
+      at js/app.js:232:3
+      at Script.runInContext (node:vm:150:12)
+      at Object.runInContext (node:vm:302:6)
+      at C:\Users\Dali\Projects\dekkan\test\ui.test.js:78:8
+      at Array.forEach (<anonymous>)
+
+test at test\ui.test.js:490:1
+Γ£û today's moves: bare number rows and refunds name the sale they undid (3.2678ms)
+  js/pages.js:120
+      if (ci && !ci.dataset.touched) {
+                            ^
+  
+  TypeError: Cannot read properties of undefined (reading 'touched')
+      at renderSell (js/pages.js:120:27)
+      at Object.render (js/pages.js:17:5)
+      at render (js/app.js:98:25)
+      at navigate (js/app.js:228:5)
+      at js/app.js:231:3
+      at js/app.js:232:3
+      at Script.runInContext (node:vm:150:12)
+      at Object.runInContext (node:vm:302:6)
+      at C:\Users\Dali\Projects\dekkan\test\ui.test.js:78:8
+      at Array.forEach (<anonymous>)
+
+test at test\ui.test.js:507:1
+Γ£û the staff page hires a worker into the book (2.9951ms)
+  js/pages.js:120
+      if (ci && !ci.dataset.touched) {
+                            ^
+  
+  TypeError: Cannot read properties of undefined (reading 'touched')
+      at renderSell (js/pages.js:120:27)
+      at Object.render (js/pages.js:17:5)
+      at render (js/app.js:98:25)
+      at navigate (js/app.js:228:5)
+      at js/app.js:231:3
+      at js/app.js:232:3
+      at Script.runInContext (node:vm:150:12)
+      at Object.runInContext (node:vm:302:6)
+      at C:\Users\Dali\Projects\dekkan\test\ui.test.js:78:8
+      at Array.forEach (<anonymous>)
+
+test at test\ui.test.js:523:1
+Γ£û the staff page fires a worker and the monthly page counts a month of money (3.6019ms)
+  js/pages.js:120
+      if (ci && !ci.dataset.touched) {
+                            ^
+  
+  TypeError: Cannot read properties of undefined (reading 'touched')
+      at renderSell (js/pages.js:120:27)
+      at Object.render (js/pages.js:17:5)
+      at render (js/app.js:98:25)
+      at navigate (js/app.js:228:5)
+      at js/app.js:231:3
+      at js/app.js:232:3
+      at Script.runInContext (node:vm:150:12)
+      at Object.runInContext (node:vm:302:6)
+      at C:\Users\Dali\Projects\dekkan\test\ui.test.js:78:8
+      at Array.forEach (<anonymous>)
+
+test at test\ui.test.js:544:1
+Γ£û the month picker switches the review to any month (3.1401ms)
+  js/pages.js:120
+      if (ci && !ci.dataset.touched) {
+                            ^
+  
+  TypeError: Cannot read properties of undefined (reading 'touched')
+      at renderSell (js/pages.js:120:27)
+      at Object.render (js/pages.js:17:5)
+      at render (js/app.js:98:25)
+      at navigate (js/app.js:228:5)
+      at js/app.js:231:3
+      at js/app.js:232:3
+      at Script.runInContext (node:vm:150:12)
+      at Object.runInContext (node:vm:302:6)
+      at C:\Users\Dali\Projects\dekkan\test\ui.test.js:78:8
+      at Array.forEach (<anonymous>)
+
+test at test\ui.test.js:558:1
+Γ£û the clients page shows saved client data, purchases, refunds and debt history (4.022ms)
+  js/pages.js:120
+      if (ci && !ci.dataset.touched) {
+                            ^
+  
+  TypeError: Cannot read properties of undefined (reading 'touched')
+      at renderSell (js/pages.js:120:27)
+      at Object.render (js/pages.js:17:5)
+      at render (js/app.js:98:25)
+      at navigate (js/app.js:228:5)
+      at js/app.js:231:3
+      at js/app.js:232:3
+      at Script.runInContext (node:vm:150:12)
+      at Object.runInContext (node:vm:302:6)
+      at C:\Users\Dali\Projects\dekkan\test\ui.test.js:78:8
+      at Array.forEach (<anonymous>)

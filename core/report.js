@@ -51,13 +51,28 @@ function dayReport(state) {
       let n = 0;
       return state.day.entries.map(function (e) {
         if (e.kind === 'sale') n++;
-        return { id: e.id, kind: e.kind, amount: e.amount, at: e.at, ref: e.ref, note: e.note, no: e.kind === 'sale' ? n : null };
+        return { id: e.id, kind: e.kind, amount: e.amount, at: e.at, ref: e.ref, note: e.note, no: e.kind === 'sale' ? n : null, who: e.who || '' };
       });
     })(),
     checks: state.day.checks.map(function (c) { return { at: c.at, counted: c.counted, expected: c.expected, diff: c.diff, ok: c.ok }; }),
     lastCheck: state.day.checks.length ? state.day.checks[state.day.checks.length - 1] : null,
 
     totals: { sales: sales, debtPays: debtPays, refunds: refunds, buys: buys, expenses: expenses, incomes: incomes, checks: checkCount },
+
+    // who rang what today: { who, count, total } per cashier, richest first.
+    // only sales carry a cashier — debts/refunds/expenses are shop moves.
+    byCashier: (function () {
+      const by = {};
+      state.day.entries.forEach(function (e) {
+        if (e.kind !== 'sale' || !e.who || !String(e.who).trim()) return;
+        const w = String(e.who).trim();
+        by[w] = by[w] || { who: w, count: 0, total: 0 };
+        by[w].count++;
+        by[w].total = money(by[w].total + e.amount);
+      });
+      return Object.keys(by).map(function (k) { return by[k]; })
+        .sort(function (a, b) { return b.total - a.total; });
+    })(),
 
     // the money lines
     grossSales: gross,

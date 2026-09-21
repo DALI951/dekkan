@@ -235,6 +235,23 @@ function paidValOf(opts) {
 }
 
 
+// Remember a cashier name so the till can suggest it later (most recent first).
+function ensureCashier(state, who) {
+  state = rollover(clone(state));
+  const trimmed = String(who || '').trim();
+  if (!trimmed) return state;
+  const hit = state.cashiers.findIndex(function (n) { return n.toLowerCase() === trimmed.toLowerCase(); });
+  if (hit >= 0) state.cashiers.splice(hit, 1);
+  state.cashiers.unshift(trimmed);
+  return state;
+}
+
+// Every cashier who ever rang a sale, most recent first (for the datalist).
+function cashierNames(state) {
+  return Array.isArray(state.cashiers) ? state.cashiers.slice() : [];
+}
+
+
 // How a sale gets paid — ONE place, so cash and debts can never disagree:
 //   customer = the client's NAME (optional — walk-ins happen; Dali's rule).
 //              creditTo is the old alias for "full credit on this name".
@@ -246,16 +263,20 @@ function paidValOf(opts) {
 //                           the shop gives back, it never enters the cash box.
 // A typed name is ALWAYS recorded (entry note + registry) — even for exact
 // cash or overpay. The number on the receipt comes from the sale entry.
+// who: the cashier at the till — every entry remembers who rang the sale.
 function applyPayment(state, net, opts, refText, bill) {
   const customer = String(opts.customer || opts.creditTo || '').trim();
   const hasPaid = opts.paid !== undefined && opts.paid !== null && opts.paid !== '';
+  const extra = { bill: bill || null };
+  if (opts.who && String(opts.who).trim()) extra.who = String(opts.who).trim();
+  if (extra.who) state = ensureCashier(state, extra.who);
   if (!hasPaid) {
     if (customer) {
-      pushEntry(state, 'sale', 0, refText, opts.note || customer, { bill: bill || null });
+      pushEntry(state, 'sale', 0, refText, opts.note || customer, extra);
       state = ensureCustomer(state, customer, opts.phone);
       return addDebt(state, { name: customer, phone: opts.phone, amount: net, note: opts.note || refText });
     }
-    pushEntry(state, 'sale', net, refText, opts.note || null, { bill: bill || null });
+    pushEntry(state, 'sale', net, refText, opts.note || null, extra);
     return state;
   }
   const paid = money(Number(opts.paid));
@@ -264,11 +285,11 @@ function applyPayment(state, net, opts, refText, bill) {
   const left = money(net - cashIn);
   if (left > 0) {
     if (!customer) throw new Error('the unpaid rest needs a customer name');
-    pushEntry(state, 'sale', cashIn, refText, opts.note || customer, { bill: bill || null });
+    pushEntry(state, 'sale', cashIn, refText, opts.note || customer, extra);
     state = ensureCustomer(state, customer, opts.phone);
     return addDebt(state, { name: customer, phone: opts.phone, amount: left, note: opts.note || refText });
   }
-  pushEntry(state, 'sale', cashIn, refText, opts.note || customer || null, { bill: bill || null });
+  pushEntry(state, 'sale', cashIn, refText, opts.note || customer || null, extra);
   if (customer) state = ensureCustomer(state, customer, opts.phone);
   return state;
 }
@@ -281,4 +302,6 @@ function applyPayment(state, net, opts, refText, bill) {
   K.applyPayment = applyPayment;
   K.canUndoSale = canUndoSale;
   K.undoLastSale = undoLastSale;
+  K.ensureCashier = ensureCashier;
+  K.cashierNames = cashierNames;
 });

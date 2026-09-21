@@ -110,6 +110,18 @@
     $('customerList').innerHTML = D.customerNames(state).map(function (n) {
       return '<option value="' + esc(n) + '"></option>';
     }).join('');
+    // the till's memory: who's on the register today
+    const cl = $('cashierList');
+    if (cl) cl.innerHTML = D.cashierNames(state).map(function (n) {
+      return '<option value="' + esc(n) + '"></option>';
+    }).join('');
+
+    var ci = $('cashierName');
+    if (ci && ci.dataset && !ci.dataset.touched) {
+      // offer the last-used cashier as the default (owner opens the till once)
+      const last = D.cashierNames(state)[0];
+      if (last) ci.value = last;
+    }
 
     P.renderChange(C, net);
     P.renderFreePrev(C);
@@ -317,6 +329,20 @@
         : '<div class="entry">' + guts + '</div>';
     });
     $('entriesList').innerHTML = eh || '<div class="empty">' + T.t('report.noMoves') + '</div>';
+
+    // per-cashier attribution: who rang what today
+    const byC = $('byCashier');
+    if (byC) {
+      const rows = r.byCashier || [];
+      byC.innerHTML = rows.length
+        ? rows.map(function (w) {
+          return '<div class="byc"><span class="e-note">' + esc(w.who) + '</span>'
+            + '<span class="growx">' + T.t('report.sales') + ' ' + w.count + '</span>'
+            + '<b>' + money(w.total) + '</b></div>';
+        }).join('')
+        : '<div class="empty">' + T.t('report.noCashier') + '</div>';
+      byC.classList.toggle('hidden', !rows.length);
+    }
 
     // the fat-finger valve: only when the very last move of today is a sale
     const undoBtn = $('btnUndoSale');

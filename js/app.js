@@ -17,7 +17,7 @@
   const A = DEK.actions;
   const LS_KEY = 'dekkan.v1';
   const BK_KEY = 'dekkan.backup';
-  const A_VERSION = '0.12.0';
+  const A_VERSION = '0.13.0';
 
   // ---------- helpers ----------
   function $(id) { return document.getElementById(id); }
@@ -138,6 +138,12 @@
     const el = $(id);
     if (el) el.addEventListener('input', function () { P.renderSell(C); });
   });
+  // the cashier field is a person, not a form value: once typed, keep it
+  const s_csv = $('cashierName');
+  if (s_csv) {
+    s_csv.addEventListener('input', function () { if (s_csv.dataset) s_csv.dataset.touched = '1'; });
+    s_csv.addEventListener('input', function () { P.renderSell(C); });
+  }
 
   $('btnRefundMode').addEventListener('click', function () { A.toggleRefundMode(C); });
   $('btnDoRefund').addEventListener('click', function () { A.doRefund(C); });

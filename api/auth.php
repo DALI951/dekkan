@@ -36,6 +36,10 @@ function dekkan_user_json(array $u): array
     return ['id' => (int)$u['id'], 'email' => $u['email'], 'shopName' => $u['shop_name']];
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && $action === 'me') {
+    $u = dekkan_require_user();
+    dekkan_json(200, ['ok' => true, 'user' => dekkan_user_json($u)]);
+}
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     dekkan_json(405, ['error' => 'method_not_allowed']);
 }

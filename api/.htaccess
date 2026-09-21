@@ -7,3 +7,11 @@ Options -Indexes
     Require all denied
   </IfModule>
 </Files>
+
+# The shared host strips the Authorization header when PHP runs as CGI/FPM —
+# feed it back into the request environment so Bearer tokens actually arrive.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTP:Authorization} .
+  RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+</IfModule>

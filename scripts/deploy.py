@@ -36,9 +36,10 @@ FILES = [
     'core/pin.js',
     'icon/icon.svg', 'icon/icon-192.png', 'icon/icon-512.png',
     'icon/maskable-512.png',
-    # the account API (config.php is created on the server, never shipped)
+    # the account API (config.php is created on the server, never shipped;
+    # setup.php is one-shot: run it manually on the server AFTER schema changes)
     'api/.htaccess', 'api/config.example.php', 'api/db.php',
-    'api/setup.php', 'api/auth.php', 'api/state.php',
+    'api/auth.php', 'api/state.php',
 ]
 
 

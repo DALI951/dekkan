@@ -52,6 +52,7 @@
     'basket.empty': 'السلة فارغة — اضغط على منتوج',
     'sell.none': 'لا منتوجات بعد — أضف واحدًا من تبويب المخزون',
     'sell.searchPh': 'ابحث عن منتوج بالاسم...',
+    'sell.lowBanner': '⚠ {n} منتوج قارب على النفاد — اضغط لإعادة التخزين',
 
     'stock.title': 'المخزون', 'stock.sub': 'كل منتوج بثمنيه: شراء وبيع',
     'stock.new': 'منتج جديد', 'stock.edit': 'تعديل',
@@ -83,7 +84,7 @@
     'report.noCashier': 'لا يوجد بائعون بعد — اذكر اسم البائع في صفحة البيع',
     'report.sales': 'مبيعات',
     'report.matched': 'مطابق', 'report.diff': 'فرق: ',
-    'report.noChecks': 'لم تعدَّ الصندوق اليوم بعد',
+    'report.noChecks': 'لم تعدَّ الصندوق اليوم بعد', 'report.left': 'باقي',
     'report.noMoves': 'لا حركة اليوم بعد',
     'report.chip.start': 'فلوس الصبح', 'report.chip.now': 'في الصندوق الآن',
     'report.chip.sales': 'مبيعات اليوم', 'report.chip.refunds': 'استرجاعات',
@@ -221,6 +222,7 @@
     'basket.empty': 'Basket empty — tap a product',
     'sell.none': 'No products yet — add one from Stock',
     'sell.searchPh': 'Search products by name...',
+    'sell.lowBanner': '⚠ {n} product left in thin supply — tap to restock',
 
     'stock.title': 'Stock', 'stock.sub': 'Every product, two prices: buy & sell',
     'stock.new': 'New product', 'stock.edit': 'Edit',
@@ -252,7 +254,7 @@
     'report.noCashier': 'No cashier yet — type a name on the sell page',
     'report.sales': 'sales',
     'report.matched': 'Matches', 'report.diff': 'diff: ',
-    'report.noChecks': 'No box counts yet today',
+    'report.noChecks': 'No box counts yet today', 'report.left': 'left',
     'report.noMoves': 'No movement today',
     'report.chip.start': 'MORNING CASH', 'report.chip.now': 'IN BOX NOW',
     'report.chip.sales': "TODAY'S SALES", 'report.chip.refunds': 'REFUNDS',

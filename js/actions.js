@@ -484,6 +484,16 @@
       if (e) P.openTicket(C, e, parseInt(i, 10) || 1);
     }
     if (act === 'metric-open') P.openMetric(C, el.getAttribute('data-metric') || id);
+    if (act === 'restock-need') {
+      // fill the shelf back to double its alert line right from the list
+      const qty = parseInt(el.getAttribute('data-qty'), 10) || 10;
+      const p = D.getProduct(C.state, id);
+      if (p) {
+        run(function (s) { return D.buyStock(s, id, qty, p.buy); },
+          T.t('toast.restock') + ' ' + p.name + ' +' + qty);
+        P.openMetric(C, 'low'); // refresh the list: it may already be empty
+      }
+    }
     if (act === 'cat-del') {
       try { C.state = D.removeCategory(C.state, { side: i, id: id }); save(); } catch (err) { /* already gone */ }
       render();

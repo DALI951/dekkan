@@ -59,6 +59,16 @@
     });
     $('sellGrid').innerHTML = html || '<div class="empty">' + T.t('sell.none') + '</div>';
 
+    // the low-stock banner: a nudge the moment the shelves run thin
+    const lowN = D.restockNeed(state);
+    const banner = $('lowBanner');
+    if (banner) {
+      banner.classList.toggle('hidden', lowN.length === 0);
+      if (lowN.length) {
+        banner.textContent = T.t('sell.lowBanner').replace('{n}', String(lowN.length));
+      }
+    }
+
     let rh = '';
     state.products.forEach(function (p) {
       rh += '<button class="sell-tile' + (refundProductId === p.id ? ' refundable' : '') + '" data-id="' + p.id + '" data-action="refund-pick">'
@@ -381,9 +391,12 @@
       return '<div class="entry"><span class="growx">' + a + '</span><b class="e-amt ' + (cls || 'in') + '">' + b + '</b></div>';
     };
     if (m === 'low') {
-      r.lowStock.forEach(function (p) {
-        rows += line(esc(p.name) + ' <span class="e-note">' + T.t('stock.lowAt') + ' ' + money(p.lowAt) + '</span>',
-          money(p.stock), 'bad');
+      D.restockNeed(state).forEach(function (x) {
+        rows += '<div class="entry"><span class="growx">' + esc(x.name)
+          + ' <span class="e-note">' + T.t('report.left') + ' ' + money(x.stock)
+          + ' · ' + T.t('stock.lowAt') + ' ' + money(x.lowAt) + '</span></span>'
+          + '<button class="btn ghost" data-action="restock-need" data-id="' + x.id + '" data-qty="' + x.need + '">'
+          + '+ ' + x.need + '</button></div>';
       });
       $('metricTitle').textContent = T.t('report.chip.low');
     } else if (m === 'inventory') {

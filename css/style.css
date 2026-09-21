@@ -146,6 +146,7 @@ main{padding:16px 14px 86px;}
 .searchbox{margin-block:10px 4px;}
 .searchbox input{width:100%;padding:10px 14px;border-radius:14px;border:1px solid var(--line, rgba(255,255,255,.1));background:var(--panel2,#111);color:var(--txt);font:inherit;}
 .searchbox input::placeholder{color:var(--dim,#888);}
+.lowbanner{margin:8px 0 4px;padding:10px 14px;border-radius:14px;background:var(--accbg);border:1px solid var(--accborder);color:var(--acc2);font-weight:800;cursor:pointer;}
 .grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));}
 .grid2{display:grid;gap:12px 14px;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));}
 .grid3{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));}

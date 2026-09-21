@@ -17,7 +17,7 @@
   const A = DEK.actions;
   const LS_KEY = 'dekkan.v1';
   const BK_KEY = 'dekkan.backup';
-  const A_VERSION = '0.14.0';
+  const A_VERSION = '0.15.0';
 
   // ---------- helpers ----------
   function $(id) { return document.getElementById(id); }

@@ -111,3 +111,41 @@ test('search with no match shows the empty state, not a crash', async ({ page })
   await expect(page.locator('#sellGrid .sell-tile')).toHaveCount(0);
   await expect(page.locator('#sellGrid .empty')).toBeVisible();
 });
+
+test('low stock: banner appears on the sell page, restock button refills', async ({ page }) => {
+  await open(page, '#/stock');
+  await page.locator('#btnAddProduct').click();
+  await page.locator('#pName').fill('Chips');
+  await page.locator('#pBuy').fill('0.4');
+  await page.locator('#pSell').fill('1');
+  await page.locator('#pStock').fill('4');
+  await page.locator('#pLow').fill('5'); // alert line: 4 <= 5, already low
+  await page.locator('#btnSaveProduct').click();
+
+  // the banner is visible on the sell page, tap it opens the need list
+  await gotoTab(page, '#/sell');
+  await expect(page.locator('#lowBanner')).toBeVisible();
+  await page.locator('#lowBanner').click();
+  await expect(page.locator('#metricPanel')).toBeVisible();
+  await expect(page.locator('#metricBody')).toContainText('Chips');
+  await expect(page.locator('#metricBody')).toContainText('+ 6'); // need 2*5 - 4
+
+  // tapping the +6 restocks to 10 and the banner disappears
+  await page.locator('[data-action="restock-need"]').click();
+  await expect(page.locator('#metricBody .entry')).toHaveCount(0);
+  await page.locator('#btnMetricClose').click();
+  await expect(page.locator('#lowBanner')).toBeHidden();
+});
+
+test('low stock: healthy shelves show no banner', async ({ page }) => {
+  await open(page, '#/stock');
+  await page.locator('#btnAddProduct').click();
+  await page.locator('#pName').fill('Chips');
+  await page.locator('#pBuy').fill('0.4');
+  await page.locator('#pSell').fill('1');
+  await page.locator('#pStock').fill('20');
+  await page.locator('#pLow').fill('5');
+  await page.locator('#btnSaveProduct').click();
+  await gotoTab(page, '#/sell');
+  await expect(page.locator('#lowBanner')).toBeHidden();
+});

@@ -102,6 +102,23 @@ function stats(state) {
   return dayReport(state);
 }
 
+// ---------- restock needs (what to order when the shelves run thin) ----------
+// Only products with a lowAt alert line count. need = how many units to buy
+// to bring stock back to DOUBLE the alert line (a sane refill: enough headroom
+// to sell without re-ordering every day). Most urgent first: fewer units left
+// (in real count) ranks higher.
+function restockNeed(state) {
+  const need = [];
+  (state.products || []).forEach(function (p) {
+    if (!p || !(p.lowAt > 0) || !(p.stock <= p.lowAt)) return;
+    need.push({
+      id: p.id, name: p.name, stock: Math.floor(p.stock), lowAt: Math.floor(p.lowAt),
+      need: Math.max(0, Math.floor(p.lowAt) * 2 - Math.floor(p.stock))
+    });
+  });
+  return need.sort(function (a, b) { return (a.stock - b.stock) || (b.need - a.need); });
+}
+
 
 // ---------- the MONTHLY report (the month in review) ----------
 
@@ -306,6 +323,7 @@ function clientProfile(state, name) {
 
   K.dayReport = dayReport;
   K.stats = stats;
+  K.restockNeed = restockNeed;
   K.monthlyReport = monthlyReport;
   K.clientsReport = clientsReport;
   K.clientProfile = clientProfile;

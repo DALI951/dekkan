@@ -17,7 +17,7 @@
   const A = DEK.actions;
   const LS_KEY = 'dekkan.v1';
   const BK_KEY = 'dekkan.backup';
-  const A_VERSION = '0.17.0';
+  const A_VERSION = '0.18.0';
 
   // ---------- helpers ----------
   function $(id) { return document.getElementById(id); }
@@ -58,6 +58,17 @@
     } catch (e) {
       toast(T.t('toast.couldntSave'), true);
     }
+    schedulePush();
+  }
+  // the cloud copy rides on every local save, quietly, debounced
+  let pushTimer = null;
+  function schedulePush() {
+    const A = C.auth;
+    if (!A || !A.isLoggedIn() || typeof fetch !== 'function') return;
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(function () {
+      A.pushState(C.state).catch(function () { /* offline: next save retries */ });
+    }, 1200);
   }
   function load() {
     try {
@@ -83,6 +94,11 @@
   C.state = load();
   C.save = save;
   C.load = load;
+
+  // the account layer (js/auth.js): session + cloud sync — available to every render
+  const AUTH = window.DEK.Auth;
+  AUTH.init();
+  C.auth = AUTH;
 
   // ---------- the two verbs every handler ends with ----------
   function run(fn, okMsg) {
@@ -258,4 +274,91 @@
   }
   window.addEventListener('hashchange', navigate);
   navigate();
+
+  // ---------- the account: gate, cloud sync, sign-out ----------
+  // js/auth.js talks to the API; this block decides when the gate is up.
+  // The app keeps working below the gate — a buyer can skip an account and
+  // run 100% locally, exactly like before.
+  let gateMode = 'login'; // 'login' | 'register'
+
+  function gateError(msg) {
+    const el = $('gateError');
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.toggle('hidden', !msg);
+  }
+  function showGate() {
+    if (!$('gate')) return;
+    fillGate();
+    $('gate').style.display = '';
+    $('gate').classList.remove('hidden');
+  }
+  function hideGate() {
+    if (!$('gate')) return;
+    $('gate').style.display = 'none';
+    $('gate').classList.add('hidden');
+  }
+  function fillGate() {
+    const reg = gateMode === 'register';
+    $('gateTitle').textContent = T.t('auth.title');
+    $('gateSub').textContent = T.t('auth.sub');
+    $('gateName').style.display = reg ? '' : 'none';
+    $('gateSubmit').textContent = T.t(reg ? 'auth.submitRegister' : 'auth.submitLogin');
+    $('gateSwitch').textContent = T.t(reg ? 'auth.switchToLogin' : 'auth.switchToRegister');
+    $('gateSkip').textContent = T.t('auth.skip');
+  }
+  function gateBusy(on) { $('gateSubmit').disabled = !!on; }
+  function mergeCloud(remote) {
+    // the cloud copy replaces the local one ONLY if it's a real dekkan state
+    if (!remote || !remote.days) return;
+    C.state = migrate(remote);
+    save();
+    render();
+    toast(T.t('auth.synced'));
+  }
+  function gateSubmit() {
+    const email = $('gateEmail').value.trim().toLowerCase();
+    const pass = $('gatePass').value;
+    const name = $('gateName').value.trim();
+    gateError('');
+    gateBusy(true);
+    const p = gateMode === 'register' ? AUTH.register(email, pass, name) : AUTH.login(email, pass);
+    p.then(function (user) {
+      gateBusy(false);
+      if (!user) { gateError(T.t('auth.err.generic')); return; }
+      hideGate();
+      toast(T.t('auth.welcome'));
+      render();
+      return AUTH.fetchState().then(mergeCloud).catch(function () {});
+    }).catch(function (e) {
+      gateBusy(false);
+      gateError(T.t((e && e.code) || 'auth.err.generic'));
+    });
+  }
+
+  // boot: a saved session skips the gate + pulls the cloud copy; otherwise gate up
+  if (AUTH.isLoggedIn()) {
+    hideGate();
+    AUTH.fetchState().then(mergeCloud).catch(function () {}); // offline: keep local
+  } else {
+    showGate();
+  }
+  const gateForm = $('gateForm');
+  if (gateForm) gateForm.addEventListener('submit', function (ev) { ev.preventDefault(); gateSubmit(); });
+  const gateSwitch = $('gateSwitch');
+  if (gateSwitch) gateSwitch.addEventListener('click', function () {
+    gateMode = gateMode === 'register' ? 'login' : 'register';
+    gateError('');
+    fillGate();
+  });
+  const gateSkip = $('gateSkip');
+  if (gateSkip) gateSkip.addEventListener('click', hideGate);
+  const btnSignOut = $('btnSignOut');
+  if (btnSignOut) btnSignOut.addEventListener('click', function () {
+    AUTH.logout().then(function () {
+      toast(T.t('toast.signedOut'));
+      render();
+      showGate();
+    });
+  });
 })();

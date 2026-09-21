@@ -11,7 +11,7 @@ const ROOT = path.join(__dirname, '..');
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const lang = fs.readFileSync(path.join(ROOT, 'js', 'lang.js'), 'utf8');
 // the UI layer is split across several files now — scan them all
-const uiFiles = ['js/app.js', 'js/fmt.js', 'js/pages.js', 'js/actions.js'];
+const uiFiles = ['js/app.js', 'js/fmt.js', 'js/pages.js', 'js/actions.js', 'js/auth.js'];
 
 // load the dicts exactly like the browser would (lang.js only touches
 // localStorage/document inside try/catch + set/apply, which never run at load)

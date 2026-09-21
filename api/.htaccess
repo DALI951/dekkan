@@ -1,0 +1,9 @@
+# The dekkan API folder — keep secrets inside, keep the lameness out.
+Options -Indexes
+
+<Files "config.php">
+  Require all denied
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+</Files>

@@ -499,6 +499,12 @@
         : T.t('settings.pinOff');
       pinStatus.classList.toggle('pin-status-ok', has);
     }
+    // account row
+    const acc = C.auth;
+    const signed = !!(acc && acc.isLoggedIn());
+    if ($('accountEmail')) $('accountEmail').textContent = signed && acc.getUser() ? acc.getUser().email : '—';
+    if ($('accountMode')) $('accountMode').textContent = signed ? T.t('settings.accountSigned') : T.t('settings.accountLocal');
+    if ($('btnSignOut')) $('btnSignOut').classList.toggle('hidden', !signed);
   }
 
   // ----- OWNER PIN: a keypad gate in front of the money actions -----

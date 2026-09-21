@@ -29,13 +29,16 @@ LOCAL_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 FILES = [
     'index.html', 'manifest.webmanifest', 'sw.js',
     'css/style.css',
-    'js/app.js', 'js/fmt.js', 'js/pages.js', 'js/actions.js', 'js/lang.js', 'js/themes.js',
+    'js/app.js', 'js/fmt.js', 'js/pages.js', 'js/actions.js', 'js/lang.js', 'js/themes.js', 'js/auth.js',
     'core/dekkan-core.js',
     'core/core.js', 'core/products.js', 'core/debts.js', 'core/sales.js',
     'core/refunds.js', 'core/employees.js', 'core/cashbox.js', 'core/report.js', 'core/shop.js',
     'core/pin.js',
     'icon/icon.svg', 'icon/icon-192.png', 'icon/icon-512.png',
     'icon/maskable-512.png',
+    # the account API (config.php is created on the server, never shipped)
+    'api/.htaccess', 'api/config.example.php', 'api/db.php',
+    'api/setup.php', 'api/auth.php', 'api/state.php',
 ]
 
 

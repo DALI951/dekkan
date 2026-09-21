@@ -45,8 +45,13 @@ function boot(seed, pre) {
   const sandbox = {
     console, setTimeout, clearTimeout, document: doc, Promise, Object, JSON, Math,
     Number, String, Array, Date, RegExp, Error, parseInt, parseFloat, isFinite,
-    navigator: { storage: { estimate: () => ({ then() { return this; }, catch() { return this; } }) } },
+    navigator: {
+      onLine: true,
+      storage: { estimate: () => ({ then() { return this; }, catch() { return this; } }) }
+    },
     location: { hash: '' },
+    // no server in the harness: every cloud call answers 404 "no state"
+    fetch: () => Promise.resolve({ ok: false, status: 404, json: () => Promise.resolve({ error: 'no_state' }) }),
     localStorage: {
       getItem: k => (k in store ? store[k] : null),
       setItem: (k, v) => { store[k] = String(v); },
@@ -74,7 +79,7 @@ function boot(seed, pre) {
 
   ['core/dekkan-core.js', 'core/core.js', 'core/products.js', 'core/debts.js',
     'core/sales.js', 'core/refunds.js', 'core/employees.js', 'core/cashbox.js', 'core/report.js', 'core/shop.js', 'core/pin.js',
-    'js/themes.js', 'js/lang.js', 'js/fmt.js', 'js/pages.js', 'js/actions.js', 'js/app.js'].forEach(f => {
+    'js/themes.js', 'js/lang.js', 'js/fmt.js', 'js/pages.js', 'js/actions.js', 'js/auth.js', 'js/app.js'].forEach(f => {
     vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f });
   });
 
@@ -571,5 +576,33 @@ test('the clients page shows saved client data, purchases, refunds and debt hist
   assert.ok(html.indexOf('Coca x2') !== -1, 'purchase lines are shown');
   assert.ok(html.indexOf('Delivery x1') !== -1, 'free purchase lines are shown');
   assert.ok(html.indexOf('#1') !== -1, 'refund points back to the sale number');
-  assert.ok(html.indexOf('1.000') !== -1, 'open owed total is shown');
+assert.ok(html.indexOf('1.000') !== -1, 'open owed total is shown');
+});
+
+// ---------- ACCOUNT (login gate + cloud session) ----------
+
+test('no saved session: the login gate is up on boot', () => {
+  const ui = boot();
+  assert.strictEqual(ui.$('gate').style.display, '', 'gate visible without a token');
+  assert.ok(ui.T.t('auth.title').length > 0, 'gate title is translated');
+  assert.ok(ui.T.t('auth.err.badCredentials').length > 0, 'error strings are translated');
+});
+
+test('a saved session skips the gate and the settings page shows the signed-in email', () => {
+  const ui = boot(null, store => {
+    store['dekkan.token'] = 'a'.repeat(64);
+    store['dekkan.user'] = JSON.stringify({ id: 7, email: 'boss@shop.tn', shopName: 'Test Shop' });
+  });
+  assert.strictEqual(ui.$('gate').style.display, 'none', 'gate hidden for a signed-in session');
+  ui.goto('#/settings');
+  assert.strictEqual(ui.$('accountEmail').textContent, 'boss@shop.tn', 'signed-in email is shown');
+  assert.strictEqual(ui.$('accountMode').textContent, ui.T.t('settings.accountSigned'), 'mode says signed in');
+  assert.ok(ui.$('btnSignOut').classList.contains('hidden') === false, 'sign-out button is visible');
+});
+
+test('no session: settings shows local mode and hides the sign-out button', () => {
+  const ui = boot();
+  ui.goto('#/settings');
+  assert.strictEqual(ui.$('accountEmail').textContent, '—', 'no email to show');
+  assert.strictEqual(ui.$('accountMode').textContent, ui.T.t('settings.accountLocal'), 'mode says local');
 });

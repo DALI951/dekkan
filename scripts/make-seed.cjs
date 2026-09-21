@@ -5,28 +5,32 @@
  * report (all entry kinds), past-day picker, monthly review (2 months), clients,
  * debts (open + settled), cashbox categories, employees, cashiers, low stock.
  *
- * Usage: node Temp/opencode/make-seed.cjs
- * Output: C:\Users\Dali\Projects\dekkan\seed-demo.json
+ * Usage: node scripts/make-seed.cjs
+ * Output: seed-demo.json (repo root)
+ *
+ * NOTE: keep this file UTF-8. Never round-trip it through PowerShell
+ * Get-Content/Set-Content (ANSI default re-encodes and mojibakes Arabic).
  */
 'use strict';
 const fs = require('fs');
-const D = require('C:/Users/Dali/Projects/dekkan/core/dekkan-core.js');
+const path = require('path');
+const D = require('../core/dekkan-core.js');
 
-let s = D.createShop({ name: 'CafÃ© Ben Arous', startCash: 150 });
-s = D.updateShop(s, { name: 'CafÃ© Ben Arous â€” Demo' });
+let s = D.createShop({ name: 'Café Ben Arous', startCash: 150 });
+s = D.updateShop(s, { name: 'Café Ben Arous — Demo' });
 
 // ---------- products: normal / low-stock / sold-out / big stock / no low line ----------
 const prods = [
-  ['Ù‚Ù‡ÙˆØ©', 0.6, 1.5, 40, 10],
-  ['Ø´Ø§ÙŠ', 0.4, 1.0, 30, 10],
-  ['ÙƒÙˆÙƒØ§', 0.9, 1.8, 12, 5],
-  ['Ù…ÙŠØ±Ù†Ø¯Ø§', 0.9, 1.8, 2, 5],          // LOW -> red banner + restock list
-  ['Ù…Ø§Ø¡', 0.4, 0.8, 24, 6],
-  ['Ø´ÙŠØ¨Ø³', 0.7, 1.5, 0, 5],            // SOLD OUT
-  ['ÙƒØ±ÙˆØ§Ø³ÙˆÙ†', 0.5, 1.2, 18, 8],
-  ['Ø³Ø§Ù†Ø¯ÙˆÙŠØªØ´ ØªÙˆÙ†Ø©', 1.2, 3.0, 8, 4],
-  ['Ø­Ù„ÙŠØ¨', 0.8, 1.5, 15, 6],
-  ['Ø³Ø¬Ø§Ø¦Ø±', 3.5, 4.5, 20, 10]          // fixed-price, no per-lot buy trick
+  ['قهوة', 0.6, 1.5, 40, 10],
+  ['شاي', 0.4, 1.0, 30, 10],
+  ['كوكا', 0.9, 1.8, 12, 5],
+  ['ميرندا', 0.9, 1.8, 2, 5],          // LOW -> red banner + restock list
+  ['ماء', 0.4, 0.8, 24, 6],
+  ['شيبس', 0.7, 1.5, 0, 5],            // SOLD OUT
+  ['كرواسون', 0.5, 1.2, 18, 8],
+  ['ساندويتش تونة', 1.2, 3.0, 8, 4],
+  ['حليب', 0.8, 1.5, 15, 6],
+  ['سجائر', 3.5, 4.5, 20, 10]
 ];
 for (const [name, buy, sell, stock, lowAt] of prods) {
   s = D.addProduct(s, { name, buy, sell, stock, lowAt });
@@ -34,109 +38,91 @@ for (const [name, buy, sell, stock, lowAt] of prods) {
 const P = {}; s.products.forEach(p => { P[p.name] = p.id; });
 
 // ---------- cashbox categories ----------
-s = D.addCategory(s, { name: 'Ø£Ù…ÙˆØ§Ù„ Ø®Ø§ØµØ©', side: 'in' });
-s = D.addCategory(s, { name: 'Ø§Ø³ØªØ±Ø¬Ø§Ø¹ Ù„Ù…Ø³ØªÙ‡Ù„Ùƒ', side: 'in' });
-s = D.addCategory(s, { name: 'ÙÙˆØ§ØªÙŠØ±', side: 'out' });
-s = D.addCategory(s, { name: 'Ù…Ø´ØªØ±ÙŠØ§Øª Ù…Ø­Ù„', side: 'out' });
+s = D.addCategory(s, { name: 'أموال خاصة', side: 'in' });
+s = D.addCategory(s, { name: 'استرجاع لمستهلك', side: 'in' });
+s = D.addCategory(s, { name: 'فواتير', side: 'out' });
+s = D.addCategory(s, { name: 'مشتريات محل', side: 'out' });
 
 // ---------- employees ----------
-let e1 = D.addEmployee(s, { name: 'Ø£Ø­Ù…Ø¯ Ø§Ù„Ù…Ø±Ø²ÙˆÙ‚ÙŠ', type: 'ÙƒØ§Ø´ÙŠØ±', salary: 400, phone: '+216 22 111 111', note: 'Ø¯ÙˆØ§Ù… ØµØ¨Ø§Ø­ÙŠ' });
+const e1 = D.addEmployee(s, { name: 'أحمد المرزوقي', type: 'كاشير', salary: 400, phone: '+216 22 111 111', note: 'دوام صباحي' });
 s = e1;
-let e2 = D.addEmployee(s, { name: 'Ù„ÙŠÙ„Ù‰ Ø¨Ù† ØµØ§Ù„Ø­', type: 'ÙƒØ§Ø´ÙŠØ±', salary: 450, phone: '+216 98 222 222', note: 'Ø¯ÙˆØ§Ù… Ù…Ø³Ø§Ø¦ÙŠ' });
+const e2 = D.addEmployee(s, { name: 'ليلى بن صالح', type: 'كاشير', salary: 450, phone: '+216 98 222 222', note: 'دوام مسائي' });
 s = e2;
-let e3 = D.addEmployee(s, { name: 'Ù…Ø­Ù…Ø¯ Ø§Ù„Ø¹Ø¨Ø§Ø³ÙŠ', type: 'Ù…Ø´Ø±Ù', salary: 600, phone: null, note: '' });
-s = D.fireEmployee(e3, e3.employees.find(e => e.name === 'Ù…Ø­Ù…Ø¯ Ø§Ù„Ø¹Ø¨Ø§Ø³ÙŠ').id); // fired -> monthly shows tiny salary history
-
-// tiny helper: sell some stock items under a cashier
-function sellDay(state, items, opts) {
-  const opts2 = { items, who: 'Ø£Ø­Ù…Ø¯' };
-  if (opts.customer) opts2.customer = opts.customer;
-  if (opts.paid != null) opts2.paid = opts.paid;
-  if (opts.discount) opts2.discount = opts.discount;
-  if (opts.who) opts2.who = opts.who;
-  if (opts.free) opts2.free = opts.free;
-  return D.sellAll(state, opts2);
-}
+const e3 = D.addEmployee(s, { name: 'محمد العباسي', type: 'مشرف', salary: 600, phone: null, note: '' });
+s = D.fireEmployee(e3, e3.employees.find(e => e.name === 'محمد العباسي').id); // fired -> monthly shows his salary
 
 // =====================================================================
-// DAY 1 â€” 2026-08-14 (previous month): opens, sells, refund, expense, check
+// DAY 1 — 2026-08-14 (previous month): opens, sells, refund, expense, check
 // =====================================================================
-// (entries keep real `at` for now â€” rewritten to the story dates at the end)
-s = D.sellAll(s, { items: [{ id: P['Ù‚Ù‡ÙˆØ©'], qty: 12 }, { id: P['ÙƒÙˆÙƒØ§'], qty: 4 }], paid: 30, who: 'Ø£Ø­Ù…Ø¯' });
-s = D.sellAll(s, { items: [{ id: P['Ø´Ø§ÙŠ'], qty: 5 }], paid: 5, who: 'Ù„ÙŠÙ„Ù‰' });
+s = D.sellAll(s, { items: [{ id: P['قهوة'], qty: 12 }, { id: P['كوكا'], qty: 4 }], paid: 30, who: 'أحمد' });
+s = D.sellAll(s, { items: [{ id: P['شاي'], qty: 5 }], paid: 5, who: 'ليلى' });
 // a full-credit sale -> adds a debt to Salma, no cash in
-s = D.sellAll(s, { items: [{ id: P['Ø³Ø§Ù†Ø¯ÙˆÙŠØªØ´ ØªÙˆÙ†Ø©'], qty: 2 }], customer: 'Ø³Ù„Ù…Ù‰', who: 'Ø£Ø­Ù…Ø¯' });
-// refund one coffee (bought today) â€” needs the sale no
-const day1Entries = s.day.entries;
-s = D.refund(s, { items: [{ id: P['Ù‚Ù‡ÙˆØ©'], qty: 1 }], reason: 'Ø²Ø¨ÙˆÙ† Ø±Ø¬Ø¹Ù‡Ø§', saleNo: D.nextClientNo(s) - 1 });
+s = D.sellAll(s, { items: [{ id: P['ساندويتش تونة'], qty: 2 }], customer: 'سلمى', who: 'أحمد' });
+// refund one coffee — the last sale entry number is nextClientNo - 1
+s = D.refund(s, { items: [{ id: P['قهوة'], qty: 1 }], reason: 'زبون رجعها', saleNo: D.nextClientNo(s) - 1 });
 // expense: electricity
-s = D.expense(s, { amount: 20, note: 'ÙØ§ØªÙˆØ±Ø© ÙƒÙ‡Ø±Ø¨Ø§Ø¡ Ø§Ù„Ø´Ù‡Ø±', category: 'ÙÙˆØ§ØªÙŠØ±' });
+s = D.expense(s, { amount: 20, note: 'فاتورة كهرباء الشهر', category: 'فواتير' });
 // income: owner pocket money
-s = D.income(s, { amount: 50, note: 'ÙÙ„ÙˆØ³ Ù…Ù† Ø¬ÙŠØ¨ Ø§Ù„Ù…Ø§Ù„Ùƒ', category: 'Ø£Ù…ÙˆØ§Ù„ Ø®Ø§ØµØ©' });
+s = D.income(s, { amount: 50, note: 'فلوس من جيب المالك', category: 'أموال خاصة' });
 // buy stock (cash out)
-s = D.buyStock(s, P['ÙƒÙˆÙƒØ§'], 10, 0.9);
-s = D.buyStock(s, P['Ø´ÙŠØ¨Ø³'], 3, 0.7);   // chips stocked on day 1, sold out again day 2
-// morning-count check: drawer has X
-s = D.checkCash(s, { counted: D.cash(s) }); // exact match
+s = D.buyStock(s, P['كوكا'], 10, 0.9);
+s = D.buyStock(s, P['شيبس'], 3, 0.7);   // chips stocked day 1, sold out again day 2
+// morning-count check: drawer has the exact sum
+s = D.checkCash(s, { counted: D.cash(s) });
 s = D.closeDay(s); // -> closed, day 1 done
 
 // =====================================================================
-// DAY 2 â€” 2026-08-28: sales, partial debt pay, another check
+// DAY 2 — 2026-08-28: sales, partial debt pay, another check
 // =====================================================================
-s = D.sellAll(s, { items: [{ id: P['Ù‚Ù‡ÙˆØ©'], qty: 8 }, { id: P['Ù…Ø§Ø¡'], qty: 3 }], paid: 15, who: 'Ø£Ø­Ù…Ø¯' });
-s = D.sellAll(s, { items: [{ id: P['Ø´ÙŠØ¨Ø³'], qty: 3 }], paid: 4.5, who: 'Ù„ÙŠÙ„Ù‰' }); // chips -> 0 again (sold-out demo for today)
+s = D.sellAll(s, { items: [{ id: P['قهوة'], qty: 8 }, { id: P['ماء'], qty: 3 }], paid: 15, who: 'أحمد' });
+s = D.sellAll(s, { items: [{ id: P['شيبس'], qty: 3 }], paid: 4.5, who: 'ليلى' }); // -> 0 again (sold-out for today)
 // Salma pays half her 6 TND debt
-const salmaDebt = D.getDebtByName(s, 'Ø³Ù„Ù…Ù‰');
+const salmaDebt = D.getDebtByName(s, 'سلمى');
 s = D.payDebt(s, salmaDebt.id, { amount: 3 });
-// flat discount sale
-s = D.sellAll(s, { items: [{ id: P['ÙƒØ±ÙˆØ§Ø³ÙˆÙ†'], qty: 4 }], discount: { amount: 1 }, paid: 3.8, who: 'Ø£Ø­Ù…Ø¯' });
+// flat-discount sale
+s = D.sellAll(s, { items: [{ id: P['كرواسون'], qty: 4 }], discount: { amount: 1 }, paid: 3.8, who: 'أحمد' });
 s = D.closeDay(s);
 
 // =====================================================================
-// DAY 3 â€” 2026-09-07: free-item sale + expense + check
+// DAY 3 — 2026-09-07: free-item sale + expense + check (with 0.5 mismatch)
 // =====================================================================
-s = D.sellFree(s, { name: 'Ù‚Ù‡ÙˆØ© Ù„Ù„Ø²Ø¨ÙˆÙ† Ø§Ù„Ø¶ÙŠÙ', qty: 1, price: 0, who: 'Ø£Ø­Ù…Ø¯' });
-s = D.sellAll(s, { items: [{ id: P['Ø´Ø§ÙŠ'], qty: 6 }, { id: P['Ø­Ù„ÙŠØ¨'], qty: 2 }], paid: 9, who: 'Ù„ÙŠÙ„Ù‰' });
-const day3 = D.cash(s);
-s = D.checkCash(s, { counted: day3 + 0.5 }); // 0.5 off -> mismatch shows in report
-s = D.expense(s, { amount: 15, note: 'Ù…Ù†Ø¸ÙØ§Øª', category: 'Ù…Ø´ØªØ±ÙŠØ§Øª Ù…Ø­Ù„' });
+s = D.sellFree(s, { name: 'قهوة للضيف', qty: 1, price: 0, who: 'أحمد' });
+s = D.sellAll(s, { items: [{ id: P['شاي'], qty: 6 }, { id: P['حليب'], qty: 2 }], paid: 9, who: 'ليلى' });
+s = D.checkCash(s, { counted: D.cash(s) + 0.5 }); // 0.5 difference -> red diff in report
+s = D.expense(s, { amount: 15, note: 'منظفات', category: 'مشتريات محل' });
 s = D.closeDay(s);
 
 // =====================================================================
-// DAY 4 â€” 2026-09-18: the week before today
+// DAY 4 — 2026-09-18: the week before today
 // =====================================================================
-s = D.sellAll(s, { items: [{ id: P['Ù‚Ù‡ÙˆØ©'], qty: 10 }], paid: 15, who: 'Ø£Ø­Ù…Ø¯' });
-s = D.sellAll(s, { items: [{ id: P['ÙƒÙˆÙƒØ§'], qty: 2 }, { id: P['Ø³Ø¬Ø§Ø¦Ø±'], qty: 1 }], paid: 8.1, who: 'Ù„ÙŠÙ„Ù‰' });
-// second debt: full credit to ÙØ±ÙŠØ¯
-s = D.sellAll(s, { items: [{ id: P['Ø³Ø§Ù†Ø¯ÙˆÙŠØªØ´ ØªÙˆÙ†Ø©'], qty: 1 }], customer: 'ÙØ±ÙŠØ¯', who: 'Ø£Ø­Ù…Ø¯' });
+s = D.sellAll(s, { items: [{ id: P['قهوة'], qty: 10 }], paid: 15, who: 'أحمد' });
+s = D.sellAll(s, { items: [{ id: P['كوكا'], qty: 2 }, { id: P['سجائر'], qty: 1 }], paid: 8.1, who: 'ليلى' });
+// second debtor: full credit to Farid
+s = D.sellAll(s, { items: [{ id: P['ساندويتش تونة'], qty: 1 }], customer: 'فريد', who: 'أحمد' });
 s = D.closeDay(s);
 
 // =====================================================================
-// TODAY â€” 2026-09-21 (OPEN): morning cash = last day's endCash
+// TODAY — 2026-09-21 (OPEN): morning cash = last day's endCash
 // =====================================================================
-s = D.sellAll(s, { items: [{ id: P['Ù‚Ù‡ÙˆØ©'], qty: 6 }], paid: 9, who: 'Ø£Ø­Ù…Ø¯' });
-s = D.sellAll(s, { items: [{ id: P['Ø´Ø§ÙŠ'], qty: 4 }], paid: 4, who: 'Ù„ÙŠÙ„Ù‰' });
-// a debt PAY today to show same-day payments
-const faridDebt = D.getDebtByName(s, 'ÙØ±ÙŠØ¯');
+s = D.sellAll(s, { items: [{ id: P['قهوة'], qty: 6 }], paid: 9, who: 'أحمد' });
+s = D.sellAll(s, { items: [{ id: P['شاي'], qty: 4 }], paid: 4, who: 'ليلى' });
+const faridDebt = D.getDebtByName(s, 'فريد');
 if (faridDebt) s = D.payDebt(s, faridDebt.id, { amount: 3 });
-// today's refund (of yesterday's coffee is not possible â€” refund must be same open day,
-// so refund a qty of today's own stock only if it was sold today; skip to keep honest)
 
 // ---------- THE STORY DATES (rewrite timestamps) ----------
 const daysMap = [
-  { idx: 0, date: '2026-08-14', span: 2 },
-  { idx: 1, date: '2026-08-28', span: 2 },
-  { idx: 2, date: '2026-09-07', span: 2 },
-  { idx: 3, date: '2026-09-18', span: 2 }
+  { idx: 0, date: '2026-08-14' },
+  { idx: 1, date: '2026-08-28' },
+  { idx: 2, date: '2026-09-07' },
+  { idx: 3, date: '2026-09-18' }
 ];
-// we closed 4 days; find them in order and give each a date + times
 const closed = s.days.slice();
 closed.forEach((d, i) => {
   const info = daysMap[i];
   d.date = info.date;
   d.openedAt = info.date + 'T07:' + String(10 + i).padStart(2, '0') + ':00.000Z';
   d.closedAt = info.date + 'T20:30:00.000Z';
-  let t = 8 * 60; // minutes
+  let t = 8 * 60;
   d.entries.forEach(e => {
     const h = Math.floor(t / 60), m = t % 60;
     e.at = info.date + 'T' + String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':00.000Z';
@@ -149,7 +135,7 @@ closed.forEach((d, i) => {
     t += 60;
   });
 });
-// open day stays real-today; just make its entries slightly earlier today
+// the open day stays real-today with morning-ish times
 const today = D.todayStr();
 s.day.date = today;
 s.day.openedAt = today + 'T07:30:00.000Z';
@@ -161,26 +147,20 @@ s.day.entries.forEach(e => {
 });
 
 // ---------- write + verify ----------
-const out = 'C:/Users/Dali/Projects/dekkan/seed-demo.json';
+const out = path.join(__dirname, '..', 'seed-demo.json');
 fs.writeFileSync(out, JSON.stringify(s, null, 2), 'utf8');
 
-// prove restore + every report engine agrees
 const r = D.restoreState(JSON.parse(JSON.stringify(s)));
-const checks = {
-  'restoreState': !!r,
-  'stats.cash': D.cash(r),
-  'dayReport today': D.dayReport(r).daySales,
-  'past-day pick (09-07)': !!D.dayReportFor(r, '2026-09-07'),
-  'monthly 2026-08 days': D.monthlyReport(r, '2026-08').days.length,
-  'monthly 2026-09 days': D.monthlyReport(r, '2026-09').days.length,
-  'clients': D.clientsReport(r).clients.map(c => c.name + ':' + c.owed).join(', '),
-  'low stock': D.restockNeed(r).map(x => x.name).join(', '),
-  'cashiers': D.cashierNames(r).join(', '),
-  'debts open': r.debts.filter(d => d.total > d.paid).map(d => d.name).join(', '),
-  'entries today': r.day.entries.length,
-  'closed days': r.days.length
-};
-console.log(JSON.stringify(checks, null, 1));
-const kinds = new Set(r.day.entries.map(e => e.kind));
-r.days.forEach(d => d.entries.forEach(e => kinds.add(e.kind)));
-console.log('entry kinds present:', [...kinds].join(', '));
+console.log('WROTE', out);
+console.log('cash            :', D.cash(r));
+console.log('closed days     :', r.days.length);
+console.log('monthly 08 days :', D.monthlyReport(r, '2026-08').days.length);
+console.log('monthly 09 days :', D.monthlyReport(r, '2026-09').days.length);
+console.log('past-day 09-07  :', !!D.dayReportFor(r, '2026-09-07'));
+console.log('clients         :', D.clientsReport(r).clients.map(c => c.name + ':' + c.owed).join(', '));
+console.log('cashiers        :', D.cashierNames(r).join(', '));
+console.log('low stock       :', D.restockNeed(r).map(x => x.name).join(', '));
+console.log('open debts      :', r.debts.filter(d => d.total > d.paid).map(d => d.name).join(', '));
+// mojibake self-check: double-encoded Arabic produces 'Ø'/'Ã' garbage
+const raw = fs.readFileSync(out, 'utf8');
+console.log('mojibake check  :', /Ã|Ø|Ù|Ø£/.test(raw) ? 'FAIL — bad bytes present!' : 'clean (no double-encoded bytes)');

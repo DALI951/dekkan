@@ -1,7 +1,7 @@
 {
   "version": 3,
   "shop": {
-    "name": "CafÃ© Ben Arous â€” Demo",
+    "name": "Café Ben Arous — Demo",
     "currency": "TND"
   },
   "settings": {
@@ -10,122 +10,122 @@
   },
   "customers": [
     {
-      "id": "mubh4tn9-epgeco",
-      "name": "ÙØ±ÙŠØ¯",
+      "id": "mubhwx91-v86bov",
+      "name": "فريد",
       "phone": null,
-      "createdAt": "2026-09-21T16:43:06.645Z",
-      "lastSeenAt": "2026-09-21T16:43:06.646Z"
+      "createdAt": "2026-09-21T17:04:57.685Z",
+      "lastSeenAt": "2026-09-21T17:04:57.685Z"
     },
     {
-      "id": "mubh4tn3-fauxtg",
-      "name": "Ø³Ù„Ù…Ù‰",
+      "id": "mubhwx8v-xq4rzc",
+      "name": "سلمى",
       "phone": null,
-      "createdAt": "2026-09-21T16:43:06.639Z",
-      "lastSeenAt": "2026-09-21T16:43:06.640Z"
+      "createdAt": "2026-09-21T17:04:57.679Z",
+      "lastSeenAt": "2026-09-21T17:04:57.679Z"
     }
   ],
   "cashiers": [
-    "Ù„ÙŠÙ„Ù‰",
-    "Ø£Ø­Ù…Ø¯"
+    "ليلى",
+    "أحمد"
   ],
   "categories": {
     "in": [
       {
-        "id": "mubh4tn1-v7pmhh",
-        "name": "Ø£Ù…ÙˆØ§Ù„ Ø®Ø§ØµØ©"
+        "id": "mubhwx8t-eo42hz",
+        "name": "أموال خاصة"
       },
       {
-        "id": "mubh4tn2-ax3tdk",
-        "name": "Ø§Ø³ØªØ±Ø¬Ø§Ø¹ Ù„Ù…Ø³ØªÙ‡Ù„Ùƒ"
+        "id": "mubhwx8t-nn68l2",
+        "name": "استرجاع لمستهلك"
       }
     ],
     "out": [
       {
-        "id": "mubh4tn2-qin0a5",
-        "name": "ÙÙˆØ§ØªÙŠØ±"
+        "id": "mubhwx8t-xjasvs",
+        "name": "فواتير"
       },
       {
-        "id": "mubh4tn2-gypgoi",
-        "name": "Ù…Ø´ØªØ±ÙŠØ§Øª Ù…Ø­Ù„"
+        "id": "mubhwx8t-m0um9j",
+        "name": "مشتريات محل"
       }
     ]
   },
   "products": [
     {
-      "id": "mubh4tn1-q3v9o7",
-      "name": "Ù‚Ù‡ÙˆØ©",
+      "id": "mubhwx8t-ujze7d",
+      "name": "قهوة",
       "buy": 0.6,
       "sell": 1.5,
       "stock": 5,
       "lowAt": 10
     },
     {
-      "id": "mubh4tn1-2nivi3",
-      "name": "Ø´Ø§ÙŠ",
+      "id": "mubhwx8t-9id2jb",
+      "name": "شاي",
       "buy": 0.4,
       "sell": 1,
       "stock": 15,
       "lowAt": 10
     },
     {
-      "id": "mubh4tn1-he5b0z",
-      "name": "ÙƒÙˆÙƒØ§",
+      "id": "mubhwx8t-zpsr5l",
+      "name": "كوكا",
       "buy": 0.9,
       "sell": 1.8,
       "stock": 16,
       "lowAt": 5
     },
     {
-      "id": "mubh4tn1-wk80kc",
-      "name": "Ù…ÙŠØ±Ù†Ø¯Ø§",
+      "id": "mubhwx8t-2mkmkk",
+      "name": "ميرندا",
       "buy": 0.9,
       "sell": 1.8,
       "stock": 2,
       "lowAt": 5
     },
     {
-      "id": "mubh4tn1-7p58d5",
-      "name": "Ù…Ø§Ø¡",
+      "id": "mubhwx8t-e7p6vk",
+      "name": "ماء",
       "buy": 0.4,
       "sell": 0.8,
       "stock": 21,
       "lowAt": 6
     },
     {
-      "id": "mubh4tn1-8ziji5",
-      "name": "Ø´ÙŠØ¨Ø³",
+      "id": "mubhwx8t-ibbvrv",
+      "name": "شيبس",
       "buy": 0.7,
       "sell": 1.5,
       "stock": 0,
       "lowAt": 5
     },
     {
-      "id": "mubh4tn1-uwlnyf",
-      "name": "ÙƒØ±ÙˆØ§Ø³ÙˆÙ†",
+      "id": "mubhwx8t-xxj76v",
+      "name": "كرواسون",
       "buy": 0.5,
       "sell": 1.2,
       "stock": 14,
       "lowAt": 8
     },
     {
-      "id": "mubh4tn1-9rg998",
-      "name": "Ø³Ø§Ù†Ø¯ÙˆÙŠØªØ´ ØªÙˆÙ†Ø©",
+      "id": "mubhwx8t-wngjwr",
+      "name": "ساندويتش تونة",
       "buy": 1.2,
       "sell": 3,
       "stock": 5,
       "lowAt": 4
     },
     {
-      "id": "mubh4tn1-9h860m",
-      "name": "Ø­Ù„ÙŠØ¨",
+      "id": "mubhwx8t-cszsxd",
+      "name": "حليب",
       "buy": 0.8,
       "sell": 1.5,
       "stock": 13,
       "lowAt": 6
     },
     {
-      "id": "mubh4tn1-92d4wp",
-      "name": "Ø³Ø¬Ø§Ø¦Ø±",
+      "id": "mubhwx8t-jwuyod",
+      "name": "سجائر",
       "buy": 3.5,
       "sell": 4.5,
       "stock": 19,
@@ -134,77 +134,77 @@
   ],
   "debts": [
     {
-      "id": "mubh4tn3-ciu23c",
-      "name": "Ø³Ù„Ù…Ù‰",
+      "id": "mubhwx8v-fdcq5i",
+      "name": "سلمى",
       "phone": null,
       "total": 6,
       "paid": 3,
       "payments": [
         {
           "amount": 6,
-          "at": "2026-09-21T16:43:06.639Z",
+          "at": "2026-09-21T17:04:57.679Z",
           "kind": "debt",
-          "note": "Ø³Ø§Ù†Ø¯ÙˆÙŠØªØ´ ØªÙˆÙ†Ø©x2"
+          "note": "ساندويتش تونةx2"
         },
         {
           "amount": -3,
-          "at": "2026-09-21T16:43:06.642Z",
+          "at": "2026-09-21T17:04:57.682Z",
           "kind": "pay",
           "note": null
         }
       ],
-      "createdAt": "2026-09-21T16:43:06.639Z",
+      "createdAt": "2026-09-21T17:04:57.679Z",
       "settled": false
     },
     {
-      "id": "mubh4tna-bmfh38",
-      "name": "ÙØ±ÙŠØ¯",
+      "id": "mubhwx91-ed6zbd",
+      "name": "فريد",
       "phone": null,
       "total": 3,
       "paid": 3,
       "payments": [
         {
           "amount": 3,
-          "at": "2026-09-21T16:43:06.646Z",
+          "at": "2026-09-21T17:04:57.685Z",
           "kind": "debt",
-          "note": "Ø³Ø§Ù†Ø¯ÙˆÙŠØªØ´ ØªÙˆÙ†Ø©x1"
+          "note": "ساندويتش تونةx1"
         },
         {
           "amount": -3,
-          "at": "2026-09-21T16:43:06.647Z",
+          "at": "2026-09-21T17:04:57.687Z",
           "kind": "pay",
           "note": null
         }
       ],
-      "createdAt": "2026-09-21T16:43:06.646Z",
+      "createdAt": "2026-09-21T17:04:57.685Z",
       "settled": true
     }
   ],
   "employees": [
     {
-      "id": "mubh4tn2-4ymddm",
-      "name": "Ø£Ø­Ù…Ø¯ Ø§Ù„Ù…Ø±Ø²ÙˆÙ‚ÙŠ",
-      "type": "ÙƒØ§Ø´ÙŠØ±",
+      "id": "mubhwx8u-6svcmw",
+      "name": "أحمد المرزوقي",
+      "type": "كاشير",
       "salary": 400,
       "phone": "+216 22 111 111",
-      "note": "Ø¯ÙˆØ§Ù… ØµØ¨Ø§Ø­ÙŠ",
+      "note": "دوام صباحي",
       "hiredAt": "2026-09-21",
       "active": true
     },
     {
-      "id": "mubh4tn2-ps0x3t",
-      "name": "Ù„ÙŠÙ„Ù‰ Ø¨Ù† ØµØ§Ù„Ø­",
-      "type": "ÙƒØ§Ø´ÙŠØ±",
+      "id": "mubhwx8u-o2f7a2",
+      "name": "ليلى بن صالح",
+      "type": "كاشير",
       "salary": 450,
       "phone": "+216 98 222 222",
-      "note": "Ø¯ÙˆØ§Ù… Ù…Ø³Ø§Ø¦ÙŠ",
+      "note": "دوام مسائي",
       "hiredAt": "2026-09-21",
       "active": true
     },
     {
-      "id": "mubh4tn2-42v9l3",
-      "name": "Ù…Ø­Ù…Ø¯ Ø§Ù„Ø¹Ø¨Ø§Ø³ÙŠ",
-      "type": "Ù…Ø´Ø±Ù",
+      "id": "mubhwx8u-hppu5y",
+      "name": "محمد العباسي",
+      "type": "مشرف",
       "salary": 600,
       "phone": "",
       "note": "",
@@ -223,24 +223,24 @@
       "soldCost": 14.6,
       "entries": [
         {
-          "id": "mubh4tn3-xfke4p",
+          "id": "mubhwx8u-mtikw5",
           "kind": "sale",
           "amount": 25.2,
           "at": "2026-08-14T08:00:00.000Z",
-          "ref": "Ù‚Ù‡ÙˆØ©x12, ÙƒÙˆÙƒØ§x4",
+          "ref": "قهوةx12, كوكاx4",
           "note": null,
           "bill": {
             "lines": [
               {
-                "id": "mubh4tn1-q3v9o7",
-                "name": "Ù‚Ù‡ÙˆØ©",
+                "id": "mubhwx8t-ujze7d",
+                "name": "قهوة",
                 "qty": 12,
                 "price": 1.5,
                 "total": 18
               },
               {
-                "id": "mubh4tn1-he5b0z",
-                "name": "ÙƒÙˆÙƒØ§",
+                "id": "mubhwx8t-zpsr5l",
+                "name": "كوكا",
                 "qty": 4,
                 "price": 1.8,
                 "total": 7.2
@@ -252,20 +252,20 @@
             "rest": 0,
             "change": 4.8
           },
-          "who": "Ø£Ø­Ù…Ø¯"
+          "who": "أحمد"
         },
         {
-          "id": "mubh4tn3-3ux684",
+          "id": "mubhwx8v-tolaem",
           "kind": "sale",
           "amount": 5,
-          "at": "2026-08-14T09:01:00.000Z",
-          "ref": "Ø´Ø§ÙŠx5",
+          "at": "2026-08-14T09:13:00.000Z",
+          "ref": "شايx5",
           "note": null,
           "bill": {
             "lines": [
               {
-                "id": "mubh4tn1-2nivi3",
-                "name": "Ø´Ø§ÙŠ",
+                "id": "mubhwx8t-9id2jb",
+                "name": "شاي",
                 "qty": 5,
                 "price": 1,
                 "total": 5
@@ -277,20 +277,20 @@
             "rest": 0,
             "change": 0
           },
-          "who": "Ù„ÙŠÙ„Ù‰"
+          "who": "ليلى"
         },
         {
-          "id": "mubh4tn3-lhueuz",
+          "id": "mubhwx8v-0asuwh",
           "kind": "sale",
           "amount": 0,
-          "at": "2026-08-14T10:12:00.000Z",
-          "ref": "Ø³Ø§Ù†Ø¯ÙˆÙŠØªØ´ ØªÙˆÙ†Ø©x2",
-          "note": "Ø³Ù„Ù…Ù‰",
+          "at": "2026-08-14T09:53:00.000Z",
+          "ref": "ساندويتش تونةx2",
+          "note": "سلمى",
           "bill": {
             "lines": [
               {
-                "id": "mubh4tn1-9rg998",
-                "name": "Ø³Ø§Ù†Ø¯ÙˆÙŠØªØ´ ØªÙˆÙ†Ø©",
+                "id": "mubhwx8t-wngjwr",
+                "name": "ساندويتش تونة",
                 "qty": 2,
                 "price": 3,
                 "total": 6
@@ -302,61 +302,61 @@
             "rest": 6,
             "change": 0
           },
-          "who": "Ø£Ø­Ù…Ø¯"
+          "who": "أحمد"
         },
         {
-          "id": "mubh4tn4-dyjjo9",
+          "id": "mubhwx8w-w76vx1",
           "kind": "refund",
           "amount": -1.5,
-          "at": "2026-08-14T11:13:00.000Z",
-          "ref": "Ù‚Ù‡ÙˆØ©x1",
-          "note": "Ø²Ø¨ÙˆÙ† Ø±Ø¬Ø¹Ù‡Ø§",
+          "at": "2026-08-14T10:45:00.000Z",
+          "ref": "قهوةx1",
+          "note": "زبون رجعها",
           "bill": null,
           "saleNo": 3
         },
         {
-          "id": "mubh4tn4-j48tq2",
+          "id": "mubhwx8w-iaermb",
           "kind": "expense",
           "amount": -20,
-          "at": "2026-08-14T12:30:00.000Z",
+          "at": "2026-08-14T11:41:00.000Z",
           "ref": null,
-          "note": "ÙØ§ØªÙˆØ±Ø© ÙƒÙ‡Ø±Ø¨Ø§Ø¡ Ø§Ù„Ø´Ù‡Ø±",
+          "note": "فاتورة كهرباء الشهر",
           "bill": null,
-          "cat": "ÙÙˆØ§ØªÙŠØ±"
+          "cat": "فواتير"
         },
         {
-          "id": "mubh4tn4-yl9a1f",
+          "id": "mubhwx8w-nt5ubq",
           "kind": "income",
           "amount": 50,
-          "at": "2026-08-14T13:47:00.000Z",
+          "at": "2026-08-14T12:47:00.000Z",
           "ref": null,
-          "note": "ÙÙ„ÙˆØ³ Ù…Ù† Ø¬ÙŠØ¨ Ø§Ù„Ù…Ø§Ù„Ùƒ",
+          "note": "فلوس من جيب المالك",
           "bill": null,
-          "cat": "Ø£Ù…ÙˆØ§Ù„ Ø®Ø§ØµØ©"
+          "cat": "أموال خاصة"
         },
         {
-          "id": "mubh4tn4-j3dax1",
+          "id": "mubhwx8w-lbjzgw",
           "kind": "buy",
           "amount": -9,
-          "at": "2026-08-14T15:10:00.000Z",
-          "ref": "mubh4tn1-he5b0z",
-          "note": "ÙƒÙˆÙƒØ§ x10",
+          "at": "2026-08-14T13:37:00.000Z",
+          "ref": "mubhwx8t-zpsr5l",
+          "note": "كوكا x10",
           "bill": null
         },
         {
-          "id": "mubh4tn4-6j3qaa",
+          "id": "mubhwx8w-9lmb67",
           "kind": "buy",
           "amount": -2.1,
-          "at": "2026-08-14T16:14:00.000Z",
-          "ref": "mubh4tn1-8ziji5",
-          "note": "Ø´ÙŠØ¨Ø³ x3",
+          "at": "2026-08-14T14:49:00.000Z",
+          "ref": "mubhwx8t-ibbvrv",
+          "note": "شيبس x3",
           "bill": null
         },
         {
-          "id": "mubh4tn5-2bindj",
+          "id": "mubhwx8w-uzjloo",
           "kind": "check",
           "amount": 0,
-          "at": "2026-08-14T17:31:00.000Z",
+          "at": "2026-08-14T15:30:00.000Z",
           "ref": null,
           "note": "counted 197.6, diff +0",
           "bill": null
@@ -364,7 +364,7 @@
       ],
       "checks": [
         {
-          "at": "2026-08-14T18:16:00.000Z",
+          "at": "2026-08-14T16:52:00.000Z",
           "counted": 197.6,
           "expected": 197.6,
           "diff": 0,
@@ -381,24 +381,24 @@
       "soldCost": 10.1,
       "entries": [
         {
-          "id": "mubh4tn5-4vz09u",
+          "id": "mubhwx8x-684v5i",
           "kind": "sale",
           "amount": 14.4,
           "at": "2026-08-28T08:00:00.000Z",
-          "ref": "Ù‚Ù‡ÙˆØ©x8, Ù…Ø§Ø¡x3",
+          "ref": "قهوةx8, ماءx3",
           "note": null,
           "bill": {
             "lines": [
               {
-                "id": "mubh4tn1-q3v9o7",
-                "name": "Ù‚Ù‡ÙˆØ©",
+                "id": "mubhwx8t-ujze7d",
+                "name": "قهوة",
                 "qty": 8,
                 "price": 1.5,
                 "total": 12
               },
               {
-                "id": "mubh4tn1-7p58d5",
-                "name": "Ù…Ø§Ø¡",
+                "id": "mubhwx8t-e7p6vk",
+                "name": "ماء",
                 "qty": 3,
                 "price": 0.8,
                 "total": 2.4
@@ -410,20 +410,20 @@
             "rest": 0,
             "change": 0.6
           },
-          "who": "Ø£Ø­Ù…Ø¯"
+          "who": "أحمد"
         },
         {
-          "id": "mubh4tn5-0l67k9",
+          "id": "mubhwx8y-eisbkv",
           "kind": "sale",
           "amount": 4.5,
-          "at": "2026-08-28T08:41:00.000Z",
-          "ref": "Ø´ÙŠØ¨Ø³x3",
+          "at": "2026-08-28T09:02:00.000Z",
+          "ref": "شيبسx3",
           "note": null,
           "bill": {
             "lines": [
               {
-                "id": "mubh4tn1-8ziji5",
-                "name": "Ø´ÙŠØ¨Ø³",
+                "id": "mubhwx8t-ibbvrv",
+                "name": "شيبس",
                 "qty": 3,
                 "price": 1.5,
                 "total": 4.5
@@ -435,29 +435,29 @@
             "rest": 0,
             "change": 0
           },
-          "who": "Ù„ÙŠÙ„Ù‰"
+          "who": "ليلى"
         },
         {
-          "id": "mubh4tn6-cdcevq",
+          "id": "mubhwx8y-gpu1dd",
           "kind": "debt-pay",
           "amount": 3,
-          "at": "2026-08-28T09:38:00.000Z",
-          "ref": "Ø³Ù„Ù…Ù‰",
+          "at": "2026-08-28T10:03:00.000Z",
+          "ref": "سلمى",
           "note": "debt payment",
           "bill": null
         },
         {
-          "id": "mubh4tn6-2nfluj",
+          "id": "mubhwx8z-hbm5g1",
           "kind": "sale",
           "amount": 3.8,
-          "at": "2026-08-28T10:34:00.000Z",
-          "ref": "ÙƒØ±ÙˆØ§Ø³ÙˆÙ†x4",
+          "at": "2026-08-28T11:20:00.000Z",
+          "ref": "كرواسونx4",
           "note": null,
           "bill": {
             "lines": [
               {
-                "id": "mubh4tn1-uwlnyf",
-                "name": "ÙƒØ±ÙˆØ§Ø³ÙˆÙ†",
+                "id": "mubhwx8t-xxj76v",
+                "name": "كرواسون",
                 "qty": 4,
                 "price": 1.2,
                 "total": 4.8
@@ -469,7 +469,7 @@
             "rest": 0,
             "change": 0
           },
-          "who": "Ø£Ø­Ù…Ø¯"
+          "who": "أحمد"
         }
       ],
       "checks": []
@@ -483,16 +483,16 @@
       "soldCost": 4,
       "entries": [
         {
-          "id": "mubh4tn7-hxrcz7",
+          "id": "mubhwx8z-rd49ms",
           "kind": "sale",
           "amount": 0,
           "at": "2026-09-07T08:00:00.000Z",
-          "ref": "Ù‚Ù‡ÙˆØ© Ù„Ù„Ø²Ø¨ÙˆÙ† Ø§Ù„Ø¶ÙŠÙx1",
+          "ref": "قهوة للضيفx1",
           "note": null,
           "bill": {
             "lines": [
               {
-                "name": "Ù‚Ù‡ÙˆØ© Ù„Ù„Ø²Ø¨ÙˆÙ† Ø§Ù„Ø¶ÙŠÙ",
+                "name": "قهوة للضيف",
                 "qty": 1,
                 "price": 0,
                 "total": 0
@@ -504,27 +504,27 @@
             "rest": 0,
             "change": 0
           },
-          "who": "Ø£Ø­Ù…Ø¯"
+          "who": "أحمد"
         },
         {
-          "id": "mubh4tn7-wqr34a",
+          "id": "mubhwx90-4nvfie",
           "kind": "sale",
           "amount": 9,
-          "at": "2026-09-07T09:14:00.000Z",
-          "ref": "Ø´Ø§ÙŠx6, Ø­Ù„ÙŠØ¨x2",
+          "at": "2026-09-07T08:41:00.000Z",
+          "ref": "شايx6, حليبx2",
           "note": null,
           "bill": {
             "lines": [
               {
-                "id": "mubh4tn1-2nivi3",
-                "name": "Ø´Ø§ÙŠ",
+                "id": "mubhwx8t-9id2jb",
+                "name": "شاي",
                 "qty": 6,
                 "price": 1,
                 "total": 6
               },
               {
-                "id": "mubh4tn1-9h860m",
-                "name": "Ø­Ù„ÙŠØ¨",
+                "id": "mubhwx8t-cszsxd",
+                "name": "حليب",
                 "qty": 2,
                 "price": 1.5,
                 "total": 3
@@ -536,31 +536,31 @@
             "rest": 0,
             "change": 0
           },
-          "who": "Ù„ÙŠÙ„Ù‰"
+          "who": "ليلى"
         },
         {
-          "id": "mubh4tn8-jnyu0m",
+          "id": "mubhwx90-3hyzzp",
           "kind": "check",
           "amount": 0,
-          "at": "2026-09-07T10:31:00.000Z",
+          "at": "2026-09-07T09:45:00.000Z",
           "ref": null,
           "note": "counted 232.8, diff +0.5",
           "bill": null
         },
         {
-          "id": "mubh4tn8-jeskez",
+          "id": "mubhwx90-rxcp7d",
           "kind": "expense",
           "amount": -15,
-          "at": "2026-09-07T11:19:00.000Z",
+          "at": "2026-09-07T10:31:00.000Z",
           "ref": null,
-          "note": "Ù…Ù†Ø¸ÙØ§Øª",
+          "note": "منظفات",
           "bill": null,
-          "cat": "Ù…Ø´ØªØ±ÙŠØ§Øª Ù…Ø­Ù„"
+          "cat": "مشتريات محل"
         }
       ],
       "checks": [
         {
-          "at": "2026-09-07T12:18:00.000Z",
+          "at": "2026-09-07T11:12:00.000Z",
           "counted": 232.8,
           "expected": 232.3,
           "diff": 0.5,
@@ -577,17 +577,17 @@
       "soldCost": 12.5,
       "entries": [
         {
-          "id": "mubh4tn8-mqj4dw",
+          "id": "mubhwx90-3zdfvu",
           "kind": "sale",
           "amount": 15,
           "at": "2026-09-18T08:00:00.000Z",
-          "ref": "Ù‚Ù‡ÙˆØ©x10",
+          "ref": "قهوةx10",
           "note": null,
           "bill": {
             "lines": [
               {
-                "id": "mubh4tn1-q3v9o7",
-                "name": "Ù‚Ù‡ÙˆØ©",
+                "id": "mubhwx8t-ujze7d",
+                "name": "قهوة",
                 "qty": 10,
                 "price": 1.5,
                 "total": 15
@@ -599,27 +599,27 @@
             "rest": 0,
             "change": 0
           },
-          "who": "Ø£Ø­Ù…Ø¯"
+          "who": "أحمد"
         },
         {
-          "id": "mubh4tn8-wo4l55",
+          "id": "mubhwx91-015x8d",
           "kind": "sale",
           "amount": 8.1,
-          "at": "2026-09-18T08:50:00.000Z",
-          "ref": "ÙƒÙˆÙƒØ§x2, Ø³Ø¬Ø§Ø¦Ø±x1",
+          "at": "2026-09-18T08:51:00.000Z",
+          "ref": "كوكاx2, سجائرx1",
           "note": null,
           "bill": {
             "lines": [
               {
-                "id": "mubh4tn1-he5b0z",
-                "name": "ÙƒÙˆÙƒØ§",
+                "id": "mubhwx8t-zpsr5l",
+                "name": "كوكا",
                 "qty": 2,
                 "price": 1.8,
                 "total": 3.6
               },
               {
-                "id": "mubh4tn1-92d4wp",
-                "name": "Ø³Ø¬Ø§Ø¦Ø±",
+                "id": "mubhwx8t-jwuyod",
+                "name": "سجائر",
                 "qty": 1,
                 "price": 4.5,
                 "total": 4.5
@@ -631,20 +631,20 @@
             "rest": 0,
             "change": 0
           },
-          "who": "Ù„ÙŠÙ„Ù‰"
+          "who": "ليلى"
         },
         {
-          "id": "mubh4tn9-h4c0fu",
+          "id": "mubhwx91-4i86oo",
           "kind": "sale",
           "amount": 0,
-          "at": "2026-09-18T10:14:00.000Z",
-          "ref": "Ø³Ø§Ù†Ø¯ÙˆÙŠØªØ´ ØªÙˆÙ†Ø©x1",
-          "note": "ÙØ±ÙŠØ¯",
+          "at": "2026-09-18T10:11:00.000Z",
+          "ref": "ساندويتش تونةx1",
+          "note": "فريد",
           "bill": {
             "lines": [
               {
-                "id": "mubh4tn1-9rg998",
-                "name": "Ø³Ø§Ù†Ø¯ÙˆÙŠØªØ´ ØªÙˆÙ†Ø©",
+                "id": "mubhwx8t-wngjwr",
+                "name": "ساندويتش تونة",
                 "qty": 1,
                 "price": 3,
                 "total": 3
@@ -656,7 +656,7 @@
             "rest": 3,
             "change": 0
           },
-          "who": "Ø£Ø­Ù…Ø¯"
+          "who": "أحمد"
         }
       ],
       "checks": []
@@ -669,17 +669,17 @@
     "soldCost": 5.2,
     "entries": [
       {
-        "id": "mubh4tna-6x8er4",
+        "id": "mubhwx92-sg8z0p",
         "kind": "sale",
         "amount": 9,
         "at": "2026-09-21T08:00:00.000Z",
-        "ref": "Ù‚Ù‡ÙˆØ©x6",
+        "ref": "قهوةx6",
         "note": null,
         "bill": {
           "lines": [
             {
-              "id": "mubh4tn1-q3v9o7",
-              "name": "Ù‚Ù‡ÙˆØ©",
+              "id": "mubhwx8t-ujze7d",
+              "name": "قهوة",
               "qty": 6,
               "price": 1.5,
               "total": 9
@@ -691,20 +691,20 @@
           "rest": 0,
           "change": 0
         },
-        "who": "Ø£Ø­Ù…Ø¯"
+        "who": "أحمد"
       },
       {
-        "id": "mubh4tnb-kxq5vk",
+        "id": "mubhwx92-0nesan",
         "kind": "sale",
         "amount": 4,
         "at": "2026-09-21T08:50:00.000Z",
-        "ref": "Ø´Ø§ÙŠx4",
+        "ref": "شايx4",
         "note": null,
         "bill": {
           "lines": [
             {
-              "id": "mubh4tn1-2nivi3",
-              "name": "Ø´Ø§ÙŠ",
+              "id": "mubhwx8t-9id2jb",
+              "name": "شاي",
               "qty": 4,
               "price": 1,
               "total": 4
@@ -716,22 +716,22 @@
           "rest": 0,
           "change": 0
         },
-        "who": "Ù„ÙŠÙ„Ù‰"
+        "who": "ليلى"
       },
       {
-        "id": "mubh4tnb-qbopdy",
+        "id": "mubhwx93-h8drdp",
         "kind": "debt-pay",
         "amount": 3,
         "at": "2026-09-21T09:40:00.000Z",
-        "ref": "ÙØ±ÙŠØ¯",
+        "ref": "فريد",
         "note": "debt payment",
         "bill": null
       }
     ],
     "checks": [],
     "soldByProduct": {
-      "mubh4tn1-q3v9o7": 6,
-      "mubh4tn1-2nivi3": 4
+      "mubhwx8t-ujze7d": 6,
+      "mubhwx8t-9id2jb": 4
     },
     "soldFree": {}
   }

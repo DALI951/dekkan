@@ -1,0 +1,738 @@
+{
+  "version": 3,
+  "shop": {
+    "name": "CafÃ© Ben Arous â€” Demo",
+    "currency": "TND"
+  },
+  "settings": {
+    "allowDiscount": true,
+    "allowRefund": true
+  },
+  "customers": [
+    {
+      "id": "mubh4tn9-epgeco",
+      "name": "ÙØ±ÙŠØ¯",
+      "phone": null,
+      "createdAt": "2026-09-21T16:43:06.645Z",
+      "lastSeenAt": "2026-09-21T16:43:06.646Z"
+    },
+    {
+      "id": "mubh4tn3-fauxtg",
+      "name": "Ø³Ù„Ù…Ù‰",
+      "phone": null,
+      "createdAt": "2026-09-21T16:43:06.639Z",
+      "lastSeenAt": "2026-09-21T16:43:06.640Z"
+    }
+  ],
+  "cashiers": [
+    "Ù„ÙŠÙ„Ù‰",
+    "Ø£Ø­Ù…Ø¯"
+  ],
+  "categories": {
+    "in": [
+      {
+        "id": "mubh4tn1-v7pmhh",
+        "name": "Ø£Ù…ÙˆØ§Ù„ Ø®Ø§ØµØ©"
+      },
+      {
+        "id": "mubh4tn2-ax3tdk",
+        "name": "Ø§Ø³ØªØ±Ø¬Ø§Ø¹ Ù„Ù…Ø³ØªÙ‡Ù„Ùƒ"
+      }
+    ],
+    "out": [
+      {
+        "id": "mubh4tn2-qin0a5",
+        "name": "ÙÙˆØ§ØªÙŠØ±"
+      },
+      {
+        "id": "mubh4tn2-gypgoi",
+        "name": "Ù…Ø´ØªØ±ÙŠØ§Øª Ù…Ø­Ù„"
+      }
+    ]
+  },
+  "products": [
+    {
+      "id": "mubh4tn1-q3v9o7",
+      "name": "Ù‚Ù‡ÙˆØ©",
+      "buy": 0.6,
+      "sell": 1.5,
+      "stock": 5,
+      "lowAt": 10
+    },
+    {
+      "id": "mubh4tn1-2nivi3",
+      "name": "Ø´Ø§ÙŠ",
+      "buy": 0.4,
+      "sell": 1,
+      "stock": 15,
+      "lowAt": 10
+    },
+    {
+      "id": "mubh4tn1-he5b0z",
+      "name": "ÙƒÙˆÙƒØ§",
+      "buy": 0.9,
+      "sell": 1.8,
+      "stock": 16,
+      "lowAt": 5
+    },
+    {
+      "id": "mubh4tn1-wk80kc",
+      "name": "Ù…ÙŠØ±Ù†Ø¯Ø§",
+      "buy": 0.9,
+      "sell": 1.8,
+      "stock": 2,
+      "lowAt": 5
+    },
+    {
+      "id": "mubh4tn1-7p58d5",
+      "name": "Ù…Ø§Ø¡",
+      "buy": 0.4,
+      "sell": 0.8,
+      "stock": 21,
+      "lowAt": 6
+    },
+    {
+      "id": "mubh4tn1-8ziji5",
+      "name": "Ø´ÙŠØ¨Ø³",
+      "buy": 0.7,
+      "sell": 1.5,
+      "stock": 0,
+      "lowAt": 5
+    },
+    {
+      "id": "mubh4tn1-uwlnyf",
+      "name": "ÙƒØ±ÙˆØ§Ø³ÙˆÙ†",
+      "buy": 0.5,
+      "sell": 1.2,
+      "stock": 14,
+      "lowAt": 8
+    },
+    {
+      "id": "mubh4tn1-9rg998",
+      "name": "Ø³Ø§Ù†Ø¯ÙˆÙŠØªØ´ ØªÙˆÙ†Ø©",
+      "buy": 1.2,
+      "sell": 3,
+      "stock": 5,
+      "lowAt": 4
+    },
+    {
+      "id": "mubh4tn1-9h860m",
+      "name": "Ø­Ù„ÙŠØ¨",
+      "buy": 0.8,
+      "sell": 1.5,
+      "stock": 13,
+      "lowAt": 6
+    },
+    {
+      "id": "mubh4tn1-92d4wp",
+      "name": "Ø³Ø¬Ø§Ø¦Ø±",
+      "buy": 3.5,
+      "sell": 4.5,
+      "stock": 19,
+      "lowAt": 10
+    }
+  ],
+  "debts": [
+    {
+      "id": "mubh4tn3-ciu23c",
+      "name": "Ø³Ù„Ù…Ù‰",
+      "phone": null,
+      "total": 6,
+      "paid": 3,
+      "payments": [
+        {
+          "amount": 6,
+          "at": "2026-09-21T16:43:06.639Z",
+          "kind": "debt",
+          "note": "Ø³Ø§Ù†Ø¯ÙˆÙŠØªØ´ ØªÙˆÙ†Ø©x2"
+        },
+        {
+          "amount": -3,
+          "at": "2026-09-21T16:43:06.642Z",
+          "kind": "pay",
+          "note": null
+        }
+      ],
+      "createdAt": "2026-09-21T16:43:06.639Z",
+      "settled": false
+    },
+    {
+      "id": "mubh4tna-bmfh38",
+      "name": "ÙØ±ÙŠØ¯",
+      "phone": null,
+      "total": 3,
+      "paid": 3,
+      "payments": [
+        {
+          "amount": 3,
+          "at": "2026-09-21T16:43:06.646Z",
+          "kind": "debt",
+          "note": "Ø³Ø§Ù†Ø¯ÙˆÙŠØªØ´ ØªÙˆÙ†Ø©x1"
+        },
+        {
+          "amount": -3,
+          "at": "2026-09-21T16:43:06.647Z",
+          "kind": "pay",
+          "note": null
+        }
+      ],
+      "createdAt": "2026-09-21T16:43:06.646Z",
+      "settled": true
+    }
+  ],
+  "employees": [
+    {
+      "id": "mubh4tn2-4ymddm",
+      "name": "Ø£Ø­Ù…Ø¯ Ø§Ù„Ù…Ø±Ø²ÙˆÙ‚ÙŠ",
+      "type": "ÙƒØ§Ø´ÙŠØ±",
+      "salary": 400,
+      "phone": "+216 22 111 111",
+      "note": "Ø¯ÙˆØ§Ù… ØµØ¨Ø§Ø­ÙŠ",
+      "hiredAt": "2026-09-21",
+      "active": true
+    },
+    {
+      "id": "mubh4tn2-ps0x3t",
+      "name": "Ù„ÙŠÙ„Ù‰ Ø¨Ù† ØµØ§Ù„Ø­",
+      "type": "ÙƒØ§Ø´ÙŠØ±",
+      "salary": 450,
+      "phone": "+216 98 222 222",
+      "note": "Ø¯ÙˆØ§Ù… Ù…Ø³Ø§Ø¦ÙŠ",
+      "hiredAt": "2026-09-21",
+      "active": true
+    },
+    {
+      "id": "mubh4tn2-42v9l3",
+      "name": "Ù…Ø­Ù…Ø¯ Ø§Ù„Ø¹Ø¨Ø§Ø³ÙŠ",
+      "type": "Ù…Ø´Ø±Ù",
+      "salary": 600,
+      "phone": "",
+      "note": "",
+      "hiredAt": "2026-09-21",
+      "active": false,
+      "firedAt": "2026-09-21"
+    }
+  ],
+  "days": [
+    {
+      "date": "2026-08-14",
+      "openedAt": "2026-08-14T07:10:00.000Z",
+      "closedAt": "2026-08-14T20:30:00.000Z",
+      "startCash": 150,
+      "endCash": 197.6,
+      "soldCost": 14.6,
+      "entries": [
+        {
+          "id": "mubh4tn3-xfke4p",
+          "kind": "sale",
+          "amount": 25.2,
+          "at": "2026-08-14T08:00:00.000Z",
+          "ref": "Ù‚Ù‡ÙˆØ©x12, ÙƒÙˆÙƒØ§x4",
+          "note": null,
+          "bill": {
+            "lines": [
+              {
+                "id": "mubh4tn1-q3v9o7",
+                "name": "Ù‚Ù‡ÙˆØ©",
+                "qty": 12,
+                "price": 1.5,
+                "total": 18
+              },
+              {
+                "id": "mubh4tn1-he5b0z",
+                "name": "ÙƒÙˆÙƒØ§",
+                "qty": 4,
+                "price": 1.8,
+                "total": 7.2
+              }
+            ],
+            "discount": 0,
+            "net": 25.2,
+            "paid": 30,
+            "rest": 0,
+            "change": 4.8
+          },
+          "who": "Ø£Ø­Ù…Ø¯"
+        },
+        {
+          "id": "mubh4tn3-3ux684",
+          "kind": "sale",
+          "amount": 5,
+          "at": "2026-08-14T09:01:00.000Z",
+          "ref": "Ø´Ø§ÙŠx5",
+          "note": null,
+          "bill": {
+            "lines": [
+              {
+                "id": "mubh4tn1-2nivi3",
+                "name": "Ø´Ø§ÙŠ",
+                "qty": 5,
+                "price": 1,
+                "total": 5
+              }
+            ],
+            "discount": 0,
+            "net": 5,
+            "paid": 5,
+            "rest": 0,
+            "change": 0
+          },
+          "who": "Ù„ÙŠÙ„Ù‰"
+        },
+        {
+          "id": "mubh4tn3-lhueuz",
+          "kind": "sale",
+          "amount": 0,
+          "at": "2026-08-14T10:12:00.000Z",
+          "ref": "Ø³Ø§Ù†Ø¯ÙˆÙŠØªØ´ ØªÙˆÙ†Ø©x2",
+          "note": "Ø³Ù„Ù…Ù‰",
+          "bill": {
+            "lines": [
+              {
+                "id": "mubh4tn1-9rg998",
+                "name": "Ø³Ø§Ù†Ø¯ÙˆÙŠØªØ´ ØªÙˆÙ†Ø©",
+                "qty": 2,
+                "price": 3,
+                "total": 6
+              }
+            ],
+            "discount": 0,
+            "net": 6,
+            "paid": null,
+            "rest": 6,
+            "change": 0
+          },
+          "who": "Ø£Ø­Ù…Ø¯"
+        },
+        {
+          "id": "mubh4tn4-dyjjo9",
+          "kind": "refund",
+          "amount": -1.5,
+          "at": "2026-08-14T11:13:00.000Z",
+          "ref": "Ù‚Ù‡ÙˆØ©x1",
+          "note": "Ø²Ø¨ÙˆÙ† Ø±Ø¬Ø¹Ù‡Ø§",
+          "bill": null,
+          "saleNo": 3
+        },
+        {
+          "id": "mubh4tn4-j48tq2",
+          "kind": "expense",
+          "amount": -20,
+          "at": "2026-08-14T12:30:00.000Z",
+          "ref": null,
+          "note": "ÙØ§ØªÙˆØ±Ø© ÙƒÙ‡Ø±Ø¨Ø§Ø¡ Ø§Ù„Ø´Ù‡Ø±",
+          "bill": null,
+          "cat": "ÙÙˆØ§ØªÙŠØ±"
+        },
+        {
+          "id": "mubh4tn4-yl9a1f",
+          "kind": "income",
+          "amount": 50,
+          "at": "2026-08-14T13:47:00.000Z",
+          "ref": null,
+          "note": "ÙÙ„ÙˆØ³ Ù…Ù† Ø¬ÙŠØ¨ Ø§Ù„Ù…Ø§Ù„Ùƒ",
+          "bill": null,
+          "cat": "Ø£Ù…ÙˆØ§Ù„ Ø®Ø§ØµØ©"
+        },
+        {
+          "id": "mubh4tn4-j3dax1",
+          "kind": "buy",
+          "amount": -9,
+          "at": "2026-08-14T15:10:00.000Z",
+          "ref": "mubh4tn1-he5b0z",
+          "note": "ÙƒÙˆÙƒØ§ x10",
+          "bill": null
+        },
+        {
+          "id": "mubh4tn4-6j3qaa",
+          "kind": "buy",
+          "amount": -2.1,
+          "at": "2026-08-14T16:14:00.000Z",
+          "ref": "mubh4tn1-8ziji5",
+          "note": "Ø´ÙŠØ¨Ø³ x3",
+          "bill": null
+        },
+        {
+          "id": "mubh4tn5-2bindj",
+          "kind": "check",
+          "amount": 0,
+          "at": "2026-08-14T17:31:00.000Z",
+          "ref": null,
+          "note": "counted 197.6, diff +0",
+          "bill": null
+        }
+      ],
+      "checks": [
+        {
+          "at": "2026-08-14T18:16:00.000Z",
+          "counted": 197.6,
+          "expected": 197.6,
+          "diff": 0,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "date": "2026-08-28",
+      "openedAt": "2026-08-28T07:11:00.000Z",
+      "closedAt": "2026-08-28T20:30:00.000Z",
+      "startCash": 197.6,
+      "endCash": 223.3,
+      "soldCost": 10.1,
+      "entries": [
+        {
+          "id": "mubh4tn5-4vz09u",
+          "kind": "sale",
+          "amount": 14.4,
+          "at": "2026-08-28T08:00:00.000Z",
+          "ref": "Ù‚Ù‡ÙˆØ©x8, Ù…Ø§Ø¡x3",
+          "note": null,
+          "bill": {
+            "lines": [
+              {
+                "id": "mubh4tn1-q3v9o7",
+                "name": "Ù‚Ù‡ÙˆØ©",
+                "qty": 8,
+                "price": 1.5,
+                "total": 12
+              },
+              {
+                "id": "mubh4tn1-7p58d5",
+                "name": "Ù…Ø§Ø¡",
+                "qty": 3,
+                "price": 0.8,
+                "total": 2.4
+              }
+            ],
+            "discount": 0,
+            "net": 14.4,
+            "paid": 15,
+            "rest": 0,
+            "change": 0.6
+          },
+          "who": "Ø£Ø­Ù…Ø¯"
+        },
+        {
+          "id": "mubh4tn5-0l67k9",
+          "kind": "sale",
+          "amount": 4.5,
+          "at": "2026-08-28T08:41:00.000Z",
+          "ref": "Ø´ÙŠØ¨Ø³x3",
+          "note": null,
+          "bill": {
+            "lines": [
+              {
+                "id": "mubh4tn1-8ziji5",
+                "name": "Ø´ÙŠØ¨Ø³",
+                "qty": 3,
+                "price": 1.5,
+                "total": 4.5
+              }
+            ],
+            "discount": 0,
+            "net": 4.5,
+            "paid": 4.5,
+            "rest": 0,
+            "change": 0
+          },
+          "who": "Ù„ÙŠÙ„Ù‰"
+        },
+        {
+          "id": "mubh4tn6-cdcevq",
+          "kind": "debt-pay",
+          "amount": 3,
+          "at": "2026-08-28T09:38:00.000Z",
+          "ref": "Ø³Ù„Ù…Ù‰",
+          "note": "debt payment",
+          "bill": null
+        },
+        {
+          "id": "mubh4tn6-2nfluj",
+          "kind": "sale",
+          "amount": 3.8,
+          "at": "2026-08-28T10:34:00.000Z",
+          "ref": "ÙƒØ±ÙˆØ§Ø³ÙˆÙ†x4",
+          "note": null,
+          "bill": {
+            "lines": [
+              {
+                "id": "mubh4tn1-uwlnyf",
+                "name": "ÙƒØ±ÙˆØ§Ø³ÙˆÙ†",
+                "qty": 4,
+                "price": 1.2,
+                "total": 4.8
+              }
+            ],
+            "discount": 1,
+            "net": 3.8,
+            "paid": 3.8,
+            "rest": 0,
+            "change": 0
+          },
+          "who": "Ø£Ø­Ù…Ø¯"
+        }
+      ],
+      "checks": []
+    },
+    {
+      "date": "2026-09-07",
+      "openedAt": "2026-09-07T07:12:00.000Z",
+      "closedAt": "2026-09-07T20:30:00.000Z",
+      "startCash": 223.3,
+      "endCash": 217.3,
+      "soldCost": 4,
+      "entries": [
+        {
+          "id": "mubh4tn7-hxrcz7",
+          "kind": "sale",
+          "amount": 0,
+          "at": "2026-09-07T08:00:00.000Z",
+          "ref": "Ù‚Ù‡ÙˆØ© Ù„Ù„Ø²Ø¨ÙˆÙ† Ø§Ù„Ø¶ÙŠÙx1",
+          "note": null,
+          "bill": {
+            "lines": [
+              {
+                "name": "Ù‚Ù‡ÙˆØ© Ù„Ù„Ø²Ø¨ÙˆÙ† Ø§Ù„Ø¶ÙŠÙ",
+                "qty": 1,
+                "price": 0,
+                "total": 0
+              }
+            ],
+            "discount": 0,
+            "net": 0,
+            "paid": null,
+            "rest": 0,
+            "change": 0
+          },
+          "who": "Ø£Ø­Ù…Ø¯"
+        },
+        {
+          "id": "mubh4tn7-wqr34a",
+          "kind": "sale",
+          "amount": 9,
+          "at": "2026-09-07T09:14:00.000Z",
+          "ref": "Ø´Ø§ÙŠx6, Ø­Ù„ÙŠØ¨x2",
+          "note": null,
+          "bill": {
+            "lines": [
+              {
+                "id": "mubh4tn1-2nivi3",
+                "name": "Ø´Ø§ÙŠ",
+                "qty": 6,
+                "price": 1,
+                "total": 6
+              },
+              {
+                "id": "mubh4tn1-9h860m",
+                "name": "Ø­Ù„ÙŠØ¨",
+                "qty": 2,
+                "price": 1.5,
+                "total": 3
+              }
+            ],
+            "discount": 0,
+            "net": 9,
+            "paid": 9,
+            "rest": 0,
+            "change": 0
+          },
+          "who": "Ù„ÙŠÙ„Ù‰"
+        },
+        {
+          "id": "mubh4tn8-jnyu0m",
+          "kind": "check",
+          "amount": 0,
+          "at": "2026-09-07T10:31:00.000Z",
+          "ref": null,
+          "note": "counted 232.8, diff +0.5",
+          "bill": null
+        },
+        {
+          "id": "mubh4tn8-jeskez",
+          "kind": "expense",
+          "amount": -15,
+          "at": "2026-09-07T11:19:00.000Z",
+          "ref": null,
+          "note": "Ù…Ù†Ø¸ÙØ§Øª",
+          "bill": null,
+          "cat": "Ù…Ø´ØªØ±ÙŠØ§Øª Ù…Ø­Ù„"
+        }
+      ],
+      "checks": [
+        {
+          "at": "2026-09-07T12:18:00.000Z",
+          "counted": 232.8,
+          "expected": 232.3,
+          "diff": 0.5,
+          "ok": false
+        }
+      ]
+    },
+    {
+      "date": "2026-09-18",
+      "openedAt": "2026-09-18T07:13:00.000Z",
+      "closedAt": "2026-09-18T20:30:00.000Z",
+      "startCash": 217.3,
+      "endCash": 240.4,
+      "soldCost": 12.5,
+      "entries": [
+        {
+          "id": "mubh4tn8-mqj4dw",
+          "kind": "sale",
+          "amount": 15,
+          "at": "2026-09-18T08:00:00.000Z",
+          "ref": "Ù‚Ù‡ÙˆØ©x10",
+          "note": null,
+          "bill": {
+            "lines": [
+              {
+                "id": "mubh4tn1-q3v9o7",
+                "name": "Ù‚Ù‡ÙˆØ©",
+                "qty": 10,
+                "price": 1.5,
+                "total": 15
+              }
+            ],
+            "discount": 0,
+            "net": 15,
+            "paid": 15,
+            "rest": 0,
+            "change": 0
+          },
+          "who": "Ø£Ø­Ù…Ø¯"
+        },
+        {
+          "id": "mubh4tn8-wo4l55",
+          "kind": "sale",
+          "amount": 8.1,
+          "at": "2026-09-18T08:50:00.000Z",
+          "ref": "ÙƒÙˆÙƒØ§x2, Ø³Ø¬Ø§Ø¦Ø±x1",
+          "note": null,
+          "bill": {
+            "lines": [
+              {
+                "id": "mubh4tn1-he5b0z",
+                "name": "ÙƒÙˆÙƒØ§",
+                "qty": 2,
+                "price": 1.8,
+                "total": 3.6
+              },
+              {
+                "id": "mubh4tn1-92d4wp",
+                "name": "Ø³Ø¬Ø§Ø¦Ø±",
+                "qty": 1,
+                "price": 4.5,
+                "total": 4.5
+              }
+            ],
+            "discount": 0,
+            "net": 8.1,
+            "paid": 8.1,
+            "rest": 0,
+            "change": 0
+          },
+          "who": "Ù„ÙŠÙ„Ù‰"
+        },
+        {
+          "id": "mubh4tn9-h4c0fu",
+          "kind": "sale",
+          "amount": 0,
+          "at": "2026-09-18T10:14:00.000Z",
+          "ref": "Ø³Ø§Ù†Ø¯ÙˆÙŠØªØ´ ØªÙˆÙ†Ø©x1",
+          "note": "ÙØ±ÙŠØ¯",
+          "bill": {
+            "lines": [
+              {
+                "id": "mubh4tn1-9rg998",
+                "name": "Ø³Ø§Ù†Ø¯ÙˆÙŠØªØ´ ØªÙˆÙ†Ø©",
+                "qty": 1,
+                "price": 3,
+                "total": 3
+              }
+            ],
+            "discount": 0,
+            "net": 3,
+            "paid": null,
+            "rest": 3,
+            "change": 0
+          },
+          "who": "Ø£Ø­Ù…Ø¯"
+        }
+      ],
+      "checks": []
+    }
+  ],
+  "day": {
+    "date": "2026-09-21",
+    "openedAt": "2026-09-21T07:30:00.000Z",
+    "startCash": 240.4,
+    "soldCost": 5.2,
+    "entries": [
+      {
+        "id": "mubh4tna-6x8er4",
+        "kind": "sale",
+        "amount": 9,
+        "at": "2026-09-21T08:00:00.000Z",
+        "ref": "Ù‚Ù‡ÙˆØ©x6",
+        "note": null,
+        "bill": {
+          "lines": [
+            {
+              "id": "mubh4tn1-q3v9o7",
+              "name": "Ù‚Ù‡ÙˆØ©",
+              "qty": 6,
+              "price": 1.5,
+              "total": 9
+            }
+          ],
+          "discount": 0,
+          "net": 9,
+          "paid": 9,
+          "rest": 0,
+          "change": 0
+        },
+        "who": "Ø£Ø­Ù…Ø¯"
+      },
+      {
+        "id": "mubh4tnb-kxq5vk",
+        "kind": "sale",
+        "amount": 4,
+        "at": "2026-09-21T08:50:00.000Z",
+        "ref": "Ø´Ø§ÙŠx4",
+        "note": null,
+        "bill": {
+          "lines": [
+            {
+              "id": "mubh4tn1-2nivi3",
+              "name": "Ø´Ø§ÙŠ",
+              "qty": 4,
+              "price": 1,
+              "total": 4
+            }
+          ],
+          "discount": 0,
+          "net": 4,
+          "paid": 4,
+          "rest": 0,
+          "change": 0
+        },
+        "who": "Ù„ÙŠÙ„Ù‰"
+      },
+      {
+        "id": "mubh4tnb-qbopdy",
+        "kind": "debt-pay",
+        "amount": 3,
+        "at": "2026-09-21T09:40:00.000Z",
+        "ref": "ÙØ±ÙŠØ¯",
+        "note": "debt payment",
+        "bill": null
+      }
+    ],
+    "checks": [],
+    "soldByProduct": {
+      "mubh4tn1-q3v9o7": 6,
+      "mubh4tn1-2nivi3": 4
+    },
+    "soldFree": {}
+  }
+}

@@ -17,7 +17,7 @@
   const A = DEK.actions;
   const LS_KEY = 'dekkan.v1';
   const BK_KEY = 'dekkan.backup';
-  const A_VERSION = '0.15.0';
+  const A_VERSION = '0.16.0';
 
   // ---------- helpers ----------
   function $(id) { return document.getElementById(id); }
@@ -105,6 +105,19 @@
 
   // ---------- events (bound once) ----------
   document.addEventListener('click', function (ev) { A.onClick(C, ev); });
+
+  // ----- the report: pick a past day or jump back to today -----
+  const dp = $('dayPicker'), bt = $('btnDayToday');
+  if (dp) dp.addEventListener('change', function () {
+    C.reportDate = dp.value || '';
+    C._lastReportDate = null;
+    P.render(C);
+  });
+  if (bt) bt.addEventListener('click', function () {
+    C.reportDate = '';
+    C._lastReportDate = null;
+    P.render(C);
+  });
 
   // ----- the till: one checkout = one client = one receipt -----
   $('btnReceiptRefund').addEventListener('click', function () { A.receiptRefund(C); });

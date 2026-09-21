@@ -11,9 +11,9 @@
 
 // ---------- the daily REPORT (how the money moved today) ----------
 
-function dayReport(state) {
+function _dayReport(state, day, cashNow) {
   let sales = 0, debtPays = 0, refunds = 0, buys = 0, expenses = 0, incomes = 0, checkCount = 0;
-  for (const e of state.day.entries) {
+  for (const e of day.entries) {
     if (e.kind === 'sale') sales += e.amount;
     else if (e.kind === 'debt-pay') debtPays += e.amount;
     else if (e.kind === 'refund') refunds += -e.amount;
@@ -33,29 +33,29 @@ function dayReport(state) {
   buys = money(buys);
   expenses = money(expenses);
   incomes = money(incomes);
-  const costOfSold = money(state.day.soldCost);
+  const costOfSold = money(day.soldCost);
   const gross = money(sales + debtPays);        // everything that came in from selling today
   const net = money(gross - refunds);           // after giving refunds back
 
   return {
-    date: state.day.date,
-    openedAt: state.day.openedAt,
+    date: day.date,
+    openedAt: day.openedAt,
     shop: state.shop,
     currency: state.shop.currency,
 
     // the cashbox story: started here, ended here, and every single move between
     // (sale moves carry their client number of the day: #1, #2, ...)
-    startCash: state.day.startCash,
-    cash: cash(state),
+    startCash: day.startCash,
+    cash: money(cashNow),
     entries: (function () {
       let n = 0;
-      return state.day.entries.map(function (e) {
+      return day.entries.map(function (e) {
         if (e.kind === 'sale') n++;
         return { id: e.id, kind: e.kind, amount: e.amount, at: e.at, ref: e.ref, note: e.note, no: e.kind === 'sale' ? n : null, who: e.who || '' };
       });
     })(),
-    checks: state.day.checks.map(function (c) { return { at: c.at, counted: c.counted, expected: c.expected, diff: c.diff, ok: c.ok }; }),
-    lastCheck: state.day.checks.length ? state.day.checks[state.day.checks.length - 1] : null,
+    checks: day.checks.map(function (c) { return { at: c.at, counted: c.counted, expected: c.expected, diff: c.diff, ok: c.ok }; }),
+    lastCheck: day.checks.length ? day.checks[day.checks.length - 1] : null,
 
     totals: { sales: sales, debtPays: debtPays, refunds: refunds, buys: buys, expenses: expenses, incomes: incomes, checks: checkCount },
 
@@ -63,7 +63,7 @@ function dayReport(state) {
     // only sales carry a cashier — debts/refunds/expenses are shop moves.
     byCashier: (function () {
       const by = {};
-      state.day.entries.forEach(function (e) {
+      day.entries.forEach(function (e) {
         if (e.kind !== 'sale' || !e.who || !String(e.who).trim()) return;
         const w = String(e.who).trim();
         by[w] = by[w] || { who: w, count: 0, total: 0 };
@@ -94,6 +94,22 @@ function dayReport(state) {
     // THE profit line: money in - everything money went to
     dayProfit: money(net - costOfSold - buys - expenses)
   };
+}
+
+function dayReport(state) {
+  return _dayReport(state, state.day, cash(state));
+}
+
+// The report of ANY past day as if it were today — same shape, same fights.
+// Returns null when no such day exists (UI shows the empty state).
+// Closed days win over the open day (a day closed twice keeps both its halves
+// in history; the LAST closed half is what browsing shows, cash included).
+function dayReportFor(state, date) {
+  if (!date) return dayReport(state);
+  const closed = (state.days || []).slice().reverse().find(function (d) { return d.date === date; });
+  if (closed) return _dayReport(state, closed, closed.endCash != null ? closed.endCash : closed.startCash);
+  if (state.day && state.day.date === date) return dayReport(state);
+  return null;
 }
 
 
@@ -324,6 +340,7 @@ function clientProfile(state, name) {
   K.dayReport = dayReport;
   K.stats = stats;
   K.restockNeed = restockNeed;
+  K.dayReportFor = dayReportFor;
   K.monthlyReport = monthlyReport;
   K.clientsReport = clientsReport;
   K.clientProfile = clientProfile;

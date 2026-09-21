@@ -290,11 +290,23 @@
   function renderReport(C) {
     const { state, $, T, D, fmt } = C;
     const { money, n3, fmt: f3, esc, entryTime, kindLabel } = fmt;
-    const r = D.stats(state);
+    // past-day browse: a picked date shows THAT day; empty = today
+    const date = (C.reportDate || '').trim();
+    const r = date ? D.dayReportFor(state, date) : D.stats(state);
+    if (!r) { // picked a date that has no day (junk input) — fall back to today
+      C.reportDate = '';
+      const $p = $('dayPicker'); if ($p) $p.value = '';
+      return DEK.pages.render(C);
+    }
+    if (C._lastReportDate !== date) {
+      const $p = $('dayPicker');
+      if ($p) $p.value = date || '';
+      C._lastReportDate = date;
+    }
 
     // the till: one big number, read from across the shop
     $('tillCard').innerHTML =
-      '<div class="tilth">' + T.t('report.chip.now') + '</div>'
+      '<div class="tilth">' + (date ? T.t('report.chip.closed') : T.t('report.chip.now')) + '</div>'
       + '<div class="tillnum">' + money(r.cash) + '</div>'
       + '<div class="tillsub">' + T.t('report.chip.start') + ' <b>' + money(r.startCash) + '</b>'
       + '  ·  ' + T.t('report.chip.profit')
@@ -358,9 +370,9 @@
       byC.classList.toggle('hidden', !rows.length);
     }
 
-    // the fat-finger valve: only when the very last move of today is a sale
+    // the fat-finger valve: only on the LIVE day, and only when the very last move is a sale
     const undoBtn = $('btnUndoSale');
-    if (undoBtn) undoBtn.hidden = !D.canUndoSale(state);
+    if (undoBtn) undoBtn.hidden = !!date || !D.canUndoSale(state);
   }
 
   // reopen a stored sale as a facture. legacy sales (no bill, pre-facture days)

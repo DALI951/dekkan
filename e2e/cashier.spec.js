@@ -149,3 +149,42 @@ test('low stock: healthy shelves show no banner', async ({ page }) => {
   await gotoTab(page, '#/sell');
   await expect(page.locator('#lowBanner')).toBeHidden();
 });
+
+test('report: browse a closed past day, then jump back to today', async ({ page }) => {
+  await open(page, '#/stock');
+  await page.locator('#btnAddProduct').click();
+  await page.locator('#pName').fill('Soda');
+  await page.locator('#pBuy').fill('0.5');
+  await page.locator('#pSell').fill('1.5');
+  await page.locator('#pStock').fill('10');
+  await page.locator('#btnSaveProduct').click();
+  await expect(page.locator('#stockList')).toContainText('Soda');
+
+  // sell 2, close the day at noon
+  await gotoTab(page, '#/sell');
+  await sellOne(page, 3); // 1 soda @ 1.5, paid 3 -> till 1.5
+  await closeReceipt(page);
+  const dayBefore = await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('dekkan.v1'));
+    return s.day.date;
+  });
+  await gotoTab(page, '#/settings');
+  await page.locator('#btnCloseDay').click();
+  await page.evaluate(d => {
+    // simulate a future open day so "today" differs from the closed one
+    const s = JSON.parse(localStorage.getItem('dekkan.v1'));
+    s.day.date = d; // next calendar date
+    localStorage.setItem('dekkan.v1', JSON.stringify(s));
+  }, new Date(Date.now() + 86400000).toISOString().slice(0, 10).replace('T', ' ').slice(0, 10));
+
+  // open the report, browse the closed day
+  await gotoTab(page, '#/report');
+  await page.locator('#dayPicker').fill(dayBefore);
+  await expect(page.locator('#tillCard')).toContainText('1.500'); // that day's till
+  await expect(page.locator('#entriesList')).toContainText('1.5'); // its sale amount
+
+  // jump back to today: fresh open day, no moves, no undo
+  await page.locator('#btnDayToday').click();
+  await expect(page.locator('#entriesList .empty')).toBeVisible();
+  await expect(page.locator('#btnUndoSale')).toBeHidden();
+});

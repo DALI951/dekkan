@@ -35,6 +35,29 @@
     $('todayLine').textContent = T.t('today') + D.todayStr();
   }
 
+  // ---------- ONE quote for the whole till ----------
+  // What the screen shows and what the till charges used to be computed TWICE
+  // (here for the number, in js/actions.js for the sale). They drifted: type a
+  // discount over 100% and the screen said 0.000 while the core refused the sale
+  // with an english error. One function, one answer — the discount is capped
+  // here, exactly like it is displayed.
+  function quote(C) {
+    const { state, basket, freeItems, $, fmt, D } = C;
+    const n3 = fmt.n3;
+    const subtotal = basket.reduce(function (a, b) {
+      const p = D.getProduct(state, b.id);
+      return a + (p ? p.sell * b.qty : 0);
+    }, 0) + freeItems.reduce(function (a, f) { return a + f.price * f.qty; }, 0);
+    const rawPct = parseFloat($('discPct').value) || 0;
+    const amt = parseFloat($('discAmt').value) || 0;
+    const pct = Math.max(0, Math.min(100, rawPct));   // 150% off == the whole bill, not an error
+    const disc = n3(amt > 0 ? Math.min(amt, subtotal) : Math.min(subtotal * pct / 100, subtotal));
+    return {
+      subtotal: subtotal, pct: pct, rawPct: rawPct, amt: amt, disc: disc,
+      net: n3(Math.max(0, subtotal - disc))
+    };
+  }
+
   // ----- SELL -----
   function renderSell(C) {
     const { state, basket, freeItems, refundMode, refundProductId, $, T, D, fmt } = C;
@@ -98,16 +121,9 @@
     });
     $('basketList').innerHTML = bh || '<div class="empty">' + T.t('basket.empty') + '</div>';
 
-    const subtotal = basket.reduce(function (a, b) {
-      const p = D.getProduct(state, b.id);
-      return a + (p ? p.sell * b.qty : 0);
-    }, 0) + freeItems.reduce(function (a, f) { return a + f.price * f.qty; }, 0);
-
-    const pct = parseFloat($('discPct').value) || 0;
-    const amt = parseFloat($('discAmt').value) || 0;
-    const disc = amt > 0 ? Math.min(amt, subtotal) : Math.min(subtotal * pct / 100, subtotal);
+    const bill = quote(C);
+    const disc = bill.disc, net = bill.net;
     $('discountRow').classList.toggle('hidden', !state.settings.allowDiscount);
-    const net = n3(Math.max(0, subtotal - disc));
     $('basketTotal').textContent = money(net);
 
     // what the customer must hand over — right there, and it moves while you type
@@ -397,7 +413,13 @@
   function openMetric(C, m) {
     const { state, $, T, D, fmt } = C;
     const { money, esc, kindLabel } = fmt;
-    const r = D.stats(state);
+    // the day you are LOOKING at is the day the panel shows. It used to always
+    // read today's ledger, so browsing a closed day and tapping "sales" showed
+    // today's numbers under yesterday's report.
+    const date = (C.reportDate || '').trim();
+    const browsing = !!date && date !== D.todayStr();
+    const r = browsing ? (D.dayReportFor(state, date) || D.stats(state)) : D.stats(state);
+    let title = '';
     let rows = '';
     const line = function (a, b, cls) {
       return '<div class="entry"><span class="growx">' + a + '</span><b class="e-amt ' + (cls || 'in') + '">' + b + '</b></div>';
@@ -410,19 +432,19 @@
           + '<button class="btn ghost" data-action="restock-need" data-id="' + x.id + '" data-qty="' + x.need + '">'
           + '+ ' + x.need + '</button></div>';
       });
-      $('metricTitle').textContent = T.t('report.chip.low');
+      title = T.t('report.chip.low');
     } else if (m === 'inventory') {
       state.products.forEach(function (p) {
         rows += line(esc(p.name) + ' <span class="e-note">×' + p.stock + '</span>',
           money(p.stock * p.buy), p.stock <= p.lowAt ? 'bad' : 'in');
       });
-      $('metricTitle').textContent = T.t('report.chip.inventory');
+      title = T.t('report.chip.inventory');
     } else if (m === 'debts') {
       state.debts.forEach(function (d) {
         rows += line(esc(d.name) + (d.note ? ' <span class="e-note">' + esc(d.note) + '</span>' : ''),
           money(d.total - d.paid), 'bad');
       });
-      $('metricTitle').textContent = T.t('report.chip.debts');
+      title = T.t('report.chip.debts');
     } else {
       const kind = { sales: 'sale', refunds: 'refund', expenses: 'expense', buys: 'buy' }[m];
       r.entries.forEach(function (e) {
@@ -433,9 +455,10 @@
           + (e.note ? ' <span class="e-note">' + esc(e.note) + '</span>' : ''),
           money(Math.abs(e.amount)), e.amount > 0 ? 'in' : 'bad');
       });
-      $('metricTitle').textContent = T.t('report.chip.' + m);
+      title = T.t('report.chip.' + m);
     }
     $('metricBody').innerHTML = rows || '<div class="empty">' + T.t('report.noMoves') + '</div>';
+    $('metricTitle').textContent = browsing ? (r.date + ' — ' + title) : title;
     $('metricPanel').classList.remove('hidden');
     if (document.body) document.body.classList.add('no-scroll');
   }
@@ -499,12 +522,38 @@
         : T.t('settings.pinOff');
       pinStatus.classList.toggle('pin-status-ok', has);
     }
-    // account row
+    // account row — the ONE place the account lives. It opens the form; it never
+    // ambushes the till. It also tells the truth about the cloud: signed out,
+    // synced, still waiting, offline, or "your session expired".
     const acc = C.auth;
     const signed = !!(acc && acc.isLoggedIn());
     if ($('accountEmail')) $('accountEmail').textContent = signed && acc.getUser() ? acc.getUser().email : '—';
     if ($('accountMode')) $('accountMode').textContent = signed ? T.t('settings.accountSigned') : T.t('settings.accountLocal');
     if ($('btnSignOut')) $('btnSignOut').classList.toggle('hidden', !signed);
+    if ($('btnAccountOpen')) {
+      $('btnAccountOpen').textContent = signed ? T.t('auth.accountManage') : T.t('auth.accountOpen');
+      $('btnAccountOpen').classList.toggle('hidden', false);
+    }
+    if ($('accountSync')) {
+      let line;
+      if (C.sync === 'expired') line = T.t('auth.expired');        // the token DIED — say that, not "signed out"
+      else if (!signed) line = T.t('auth.syncNever');
+      else if (C.sync === 'error') line = T.t('auth.syncFailed');
+      else if (C.sync === 'local') line = T.t('auth.syncLocal');
+      else if (C.syncAt) line = T.t('auth.syncAt').replace('{t}', entryTimeOf(C.syncAt));
+      else line = T.t('auth.syncPending');
+      $('accountSync').textContent = line;
+      $('accountSync').className = 'b ' + (C.sync === 'ok' || C.sync === 'none' ? '' : 'bad');
+    }
+  }
+
+  // "14:32" out of a millisecond stamp (the settings sync line)
+  function entryTimeOf(ms) {
+    try {
+      const d = new Date(ms);
+      const p = n => (n < 10 ? '0' : '') + n;
+      return p(d.getHours()) + ':' + p(d.getMinutes());
+    } catch (e) { return ''; }
   }
 
   // ----- OWNER PIN: a keypad gate in front of the money actions -----
@@ -715,7 +764,7 @@
   }
 
   DEK.pages = {
-    render: render, renderHeader: renderHeader, renderSell: renderSell,
+    render: render, renderHeader: renderHeader, renderSell: renderSell, quote: quote,
     renderFreePrev: renderFreePrev, renderChange: renderChange, addToBasket: addToBasket,
     renderStock: renderStock, renderDebts: renderDebts, renderClients: renderClients, setNewDebt: setNewDebt,
     renderReport: renderReport, openTicket: openTicket, openMetric: openMetric,

@@ -191,3 +191,51 @@ test('the notebook feeds the registry, and sellAll can carry a phone', () => {
   assert.strictEqual(s.customers.length, 1, 'no duplicate customer');
   assert.strictEqual(s.customers[0].phone, '29000000', 'the phone was captured');
 });
+
+// ---------- REFUNDING A PART-PAID SALE (written 2026-09-26) ----------
+// A bill of 3.000 where the customer handed over 1.000 and owes 2.000 must, on
+// return, take 1.000 back out of the drawer and write the 2.000 off the
+// notebook — never push the whole 3.000 into the till and leave the debt open.
+test('a part-paid sale refunds in two halves: cash back out, credit written off', () => {
+  let s = shop();                                    // startCash 50
+  s = D.sellAll(s, { items: [{ id: s.products[0].id, qty: 2 }], paid: 1, creditTo: 'Samir' });
+  const pid = s.products[0].id;
+  const saleNo = D.clientNoOf(s, salesOf(s)[0].id);
+  assert.strictEqual(D.cash(s), 51, 'only the 1.000 handed over is in the drawer');
+  assert.strictEqual(s.debts[0].total, 2, '2.000 sits on the notebook');
+
+  s = D.refund(s, { items: [{ id: pid, qty: 2 }], reason: 'returned', saleNo: saleNo, creditTo: 'Samir', cash: 1 });
+
+  assert.strictEqual(D.cash(s), 50, 'exactly the 1.000 that came in went back out');
+  assert.strictEqual(s.debts[0].total, 0, 'the 2.000 on credit is written off');
+  assert.strictEqual(s.debts[0].settled, true);
+  const r = s.day.entries.filter(function (e) { return e.kind === 'refund'; })[0];
+  assert.strictEqual(r.amount, -1, 'the ledger records the cash half only');
+  assert.strictEqual(s.products[0].stock, 10, 'the goods are back on the shelf');
+});
+
+test('refunding more cash than the drawer holds is still refused', () => {
+  let s = D.createShop({ name: 'Empty', startCash: 0 });
+  s = D.addProduct(s, { name: 'Coca', buy: 0.8, sell: 1.5, stock: 10, lowAt: 3 });
+  s = D.sellAll(s, { items: [{ id: s.products[0].id, qty: 1 }], creditTo: 'Samir' });  // all on credit
+  const before = JSON.stringify(s);
+  // 1.500 back but the drawer holds 0.000 — the till must not go negative
+  assert.throws(function () {
+    D.refund(s, { items: [{ id: s.products[0].id, qty: 1 }], creditTo: 'Samir', cash: 1.5 });
+  }, /drawer|cash/i);
+  assert.strictEqual(JSON.stringify(s), before, 'a refused refund changes nothing');
+});
+
+test('stock can never be typed negative — the product book refuses it', () => {
+  let s = shop();
+  const id = s.products[0].id;
+  const before = JSON.stringify(s);
+  assert.throws(function () { D.setProduct(s, id, { stock: -5 }); }, /negative/i, 'setProduct');
+  assert.throws(function () { D.setProduct(s, id, { stock: -0.5 }); }, /negative/i, 'even -0.5');
+  assert.throws(function () {
+    D.addProduct(s, { name: 'Ghost', buy: 1, sell: 1, stock: -1, lowAt: 0 });
+  }, /negative/i, 'a new product too');
+  assert.strictEqual(JSON.stringify(s), before, 'nothing was written');
+  s = D.setProduct(s, id, { stock: 0 });           // zero is fine (sold out)
+  assert.strictEqual(s.products[0].stock, 0);
+});

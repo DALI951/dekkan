@@ -41,20 +41,41 @@
       if (!receiptEntryId) return toast(T.t('toast.refundPick'), true);
       const entry = (state.day.entries || []).find(function (e) { return e.id === receiptEntryId; });
       if (!entry || !entry.bill) return toast(T.t('toast.couldntSave'), true);
-      // if this was a full credit sale (nothing paid, a receivable still open),
-      // the refund undoes the DEBT — never touches physical cash.
-      const creditTo = entry.bill.paid === null && entry.bill.rest > 0 && entry.note ? String(entry.note) : null;
+      // A refund must undo EXACTLY what the sale did to the money:
+      //   - paid in full, walk-in  → the same amount back out of the drawer
+      //   - paid NOTHING + a name   → the debt goes down, the drawer never moves
+      //   - paid PART + a name      → what was handed over comes back out AND the
+      //     unpaid part is written off (the old code did only the second half of
+      //     this: the FULL bill left the till and the debt stayed open).
+      //   - a DISCOUNTED sale       → only what was really paid comes back. The
+      //     line total is not the money: refunding a 100%-off sale used to take
+      //     the full shelf price out of the drawer (found in the browser, 26-09).
+      const bill = entry.bill;
+      const onCredit = bill.rest > 0 && !!entry.note;
+      const creditTo = onCredit ? String(entry.note) : null;
+      // what physically entered the drawer for this sale
+      const cashIn = bill.paid === null
+        ? (entry.note ? 0 : n3(bill.net))        // a named sale that paid nothing: all credit
+        : n3(Math.min(bill.paid, bill.net));      // a part payment: only what was handed over
       const items = [], freeNames = [];
-      let freeQty = 0, freePrice = 0;
+      let freeQty = 0, freePrice = 0, itemsValue = 0;
       (entry.bill.lines || []).forEach(function (l) {
-        if (l.id != null) items.push({ id: l.id, qty: l.qty, price: l.price });
+        if (l.id != null) { items.push({ id: l.id, qty: l.qty, price: l.price }); itemsValue += l.total || 0; }
         else { freeNames.push(l.name); freeQty += l.qty || 1; freePrice += l.total || l.price || 0; }
       });
+      // a mixed bill (stock + free) is refunded in two calls, so the cash and the
+      // credit are SPLIT by value — otherwise each call would take the whole
+      // refund out of the drawer, twice.
+      const share = function (value) {
+        const whole = itemsValue + n3(freePrice);
+        return whole > 0 ? n3(cashIn * n3(value) / whole) : 0;
+      };
+      const hadDiscount = (bill.discount || 0) > 0;
       try {
         let s = state;
         const saleNo = D.clientNoOf(state, receiptEntryId); // the # of the sale being reversed
-        if (items.length) s = D.refund(s, { items: items, reason: 'refund', saleNo: saleNo, creditTo: creditTo });
-        if (freeNames.length) s = D.refundFree(s, { name: freeNames.join(' + '), qty: 1, price: n3(freePrice), saleNo: saleNo, creditTo: creditTo });
+        if (items.length) s = D.refund(s, { items: items, reason: 'refund', saleNo: saleNo, creditTo: creditTo, cash: share(itemsValue), discount: hadDiscount });
+        if (freeNames.length) s = D.refundFree(s, { name: freeNames.join(' + '), qty: 1, price: n3(freePrice), saleNo: saleNo, creditTo: creditTo, cash: share(freePrice), discount: hadDiscount });
         C.state = s;
         save();
         C.receiptEntryId = null;
@@ -80,8 +101,6 @@
     const { n3, money } = fmt;
     const showReceipt = DEK.pages.showReceipt;
     const customer = $('creditName').value.trim();
-    const discAmt = parseFloat($('discAmt').value) || 0;
-    const discPct = parseFloat($('discPct').value) || 0;
 
     const items = basket.map(function (b) { return { id: b.id, qty: b.qty }; });
     const free = freeItems.map(function (f) { return { name: f.name, price: f.price, qty: f.qty }; });
@@ -91,15 +110,10 @@
     const paid = paidRaw === '' ? null : parseFloat(paidRaw);
     if (paid !== null && (!Number.isFinite(paid) || paid < 0)) return toast(T.t('toast.paidBad'), true);
 
-    // the whole bill: stock + free, one discount, shown before they hand money over
-    const subtotal = basket.reduce(function (a, b) {
-      const p = D.getProduct(state, b.id);
-      return a + (p ? p.sell * b.qty : 0);
-    }, 0) + freeItems.reduce(function (a, f) { return a + f.price * f.qty; }, 0);
-    const disc = discAmt > 0
-      ? Math.min(discAmt, subtotal)
-      : Math.min(subtotal * discPct / 100, subtotal);
-    const net = n3(Math.max(0, subtotal - disc));
+    // the whole bill: stock + free, one discount — the SAME numbers the screen
+    // is showing right now (one function, one answer; the discount is capped here)
+    const q = DEK.pages.quote(C);
+    const disc = q.disc, net = q.net;
 
     // whoever leaves ANY rest unpaid must give a name — that includes paying
     // nothing at all (full credit with an empty money field)
@@ -125,7 +139,7 @@
       const opts = {
         customer: customer || undefined,
         discount: disc > 0
-          ? (discAmt > 0 ? { amount: discAmt } : { percent: discPct })
+          ? (q.amt > 0 ? { amount: disc } : { percent: q.pct })
           : null,
         paid: paid === null ? undefined : paid,
         who: $('cashierName').value.trim() || undefined
@@ -215,6 +229,9 @@
     try {
       if (!name) throw new Error(T.t('toast.prodName'));
       if (!(sell >= 0)) throw new Error(T.t('toast.prodPrice'));
+      // a shelf cannot hold minus colas: typed a minus by accident, say so here
+      if (stock < 0) throw new Error(T.t('toast.stockBad'));
+      if (lowAt < 0) throw new Error(T.t('toast.stockBad'));
       if (editProductId === 'new') {
         C.state = D.addProduct(state, { name: name, buy: buy, sell: sell, stock: stock, lowAt: lowAt });
       } else {
@@ -341,6 +358,11 @@
     const { $, T, D, run, toast } = C;
     const counted = parseFloat($('countedCash').value);
     if (!(counted >= 0)) return toast(T.t('toast.checkAmt'), true);
+    // A drawer count belongs to the day that is OPEN. Browsing a closed day and
+    // counting used to file the count on TODAY while the panel showed that old
+    // day's expected number — a silent lie in the one screen that guards the cash.
+    const browsed = (C.reportDate || '').trim();
+    if (browsed && browsed !== D.todayStr()) return toast(T.t('report.checkPastDay'), true);
     $('countedCash').value = '';
     run(function (s) { return D.checkCash(s, { counted: counted }); }, T.t('toast.checkOk'));
   }

@@ -18,6 +18,8 @@
 
   var token = null;
   var user = null; // { id, email, shopName }
+  var expired = false;  // the server told us this session is dead — the UI SAYS SO
+  var syncErr = null;   // why the last push/pull failed: 'offline' | 'server' | 'auth'
 
   function ls() {
     return (typeof localStorage !== 'undefined') ? localStorage : null;
@@ -36,6 +38,15 @@
   }
 
   function hasFetch() { return typeof fetch === 'function'; }
+  // Is the request the network's fault, or the server's? A dead request with no
+  // "I am online" to back it up is a network problem — blaming the server (or
+  // worse, the shopkeeper's password) is how a flaky 3G line loses his trust.
+  function offline() {
+    try {
+      if (typeof navigator === 'undefined' || !navigator) return true;
+      return navigator.onLine !== true; // 'server' only when the device SAYS it is online
+    } catch (e) { return true; }
+  }
 
   // ---------- session ----------
   function setCredentials(rawToken, rawUser) {
@@ -43,6 +54,7 @@
     user = rawUser || null;
     if (token) write(TOKEN_KEY, token); else erase(TOKEN_KEY);
     if (user) write(USER_KEY, JSON.stringify(user)); else erase(USER_KEY);
+    if (token) expired = false; // a fresh token is never an expired one
   }
   function clearCredentials() {
     token = null;
@@ -58,9 +70,12 @@
     } else {
       token = null; user = null;
     }
+    expired = false;
     return { loggedIn: !!token };
   }
   function isLoggedIn() { return !!token; }
+  function isExpired() { return expired; }
+  function syncError() { return syncErr; }
 
   // ---------- API calls ----------
   function post(endpoint, body) {
@@ -107,8 +122,13 @@
     return post(API + 'auth.php?action=' + encodeURIComponent(action), payload)
       .then(function (r) {
         if (r.res.ok && r.data && r.data.ok) return r.data;
-        var code = CODE_MAP[(r.data && r.data.error) || 'generic'] || 'auth.err.generic';
-        throw fail(code);
+        // An error the server NAMED is that error. Anything else — a 500, an HTML
+        // fatal, a body we could not even parse — is the SERVER's fault, and the
+        // shopkeeper must never be told his password is wrong for that.
+        var code = CODE_MAP[(r.data && r.data.error) || 'generic'];
+        throw fail(code || 'auth.err.server');
+      }, function () {
+        throw fail(offline() ? 'auth.err.offline' : 'auth.err.server');
       });
   }
 
@@ -154,28 +174,41 @@
     if (!token || !hasFetch()) return Promise.resolve(null);
     var opts = { headers: { Authorization: 'Bearer ' + token } };
     return fetch(API + 'state.php', opts).then(function (res) {
-      if (res.status === 404) return null;
-      if (res.status === 401) { clearCredentials(); return null; }
-      if (!res.ok) return null;
-      return res.json().then(function (data) { return data; }, function () { return null; });
-    }).catch(function () { return null; }); // offline — keep the local copy
+      if (res.status === 404) { syncErr = null; return null; }      // nothing saved up yet
+      if (res.status === 401) {
+        // dead session: drop the token (it is useless) but REMEMBER WHY, so the
+        // settings page can say "your session expired" instead of the login form
+        // popping up on every open like a ghost.
+        clearCredentials();
+        expired = true;
+        syncErr = 'auth';
+        return null;
+      }
+      if (!res.ok) { syncErr = 'server'; return null; }
+      syncErr = null;
+      return res.json().then(function (data) { return data; }, function () { syncErr = 'server'; return null; });
+    }).catch(function () { syncErr = offline() ? 'offline' : 'server'; return null; }); // keep the local copy
   }
 
   // PUT api/state.php — store the whole state blob verbatim
   function pushState(state) {
-    if (!token || !hasFetch()) return Promise.resolve(false);
+    if (!token || !hasFetch()) { syncErr = token ? 'offline' : null; return Promise.resolve(false); }
     return post(API + 'state.php', { raw: JSON.stringify(state) })
       .then(function (r) {
-        if (r.res.status === 401) { clearCredentials(); return false; }
-        return !!(r.res.ok && r.data && r.data.ok);
+        if (r.res.status === 401) { clearCredentials(); expired = true; syncErr = 'auth'; return false; }
+        if (!(r.res.ok && r.data && r.data.ok)) { syncErr = 'server'; return false; }
+        syncErr = null;
+        return true;
       })
-      .catch(function () { return false; });
+      .catch(function () { syncErr = offline() ? 'offline' : 'server'; return false; });
   }
 
   return {
     Auth: {
       init: init,
       isLoggedIn: isLoggedIn,
+      isExpired: isExpired,
+      syncError: syncError,
       setCredentials: setCredentials,
       clearCredentials: clearCredentials,
       getUser: function () { return user; },

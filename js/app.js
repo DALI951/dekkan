@@ -17,7 +17,7 @@
   const A = DEK.actions;
   const LS_KEY = 'dekkan.v1';
   const BK_KEY = 'dekkan.backup';
-  const A_VERSION = '0.18.0';
+  const A_VERSION = '0.19.0';
 
   // ---------- helpers ----------
   function $(id) { return document.getElementById(id); }
@@ -46,7 +46,9 @@
     editEmployeeId: null,       // 'new' or an employee id while the staff form is open
     month: D.todayStr().slice(0, 7), // the month shown in the monthly review
     receiptEntryId: null,   // entry id of the sale currently shown on the receipt (for refunds)
-    storageRead: false
+    storageRead: false,
+    sync: 'none',        // 'none' | 'ok' | 'local' | 'error' | 'expired' — what the cloud is doing
+    syncAt: 0            // when it last succeeded (ms)
   };
 
   // ---------- persistence ----------
@@ -67,9 +69,18 @@
     if (!A || !A.isLoggedIn() || typeof fetch !== 'function') return;
     clearTimeout(pushTimer);
     pushTimer = setTimeout(function () {
-      A.pushState(C.state).catch(function () { /* offline: next save retries */ });
+      A.pushState(C.state).then(function (ok) {
+        if (ok) { C.sync = 'ok'; C.syncAt = Date.now(); rememberSync(); }
+        else if (A.isExpired()) C.sync = 'expired';
+        else C.sync = 'error';
+      }).catch(function () { C.sync = 'error'; });
     }, 1200);
   }
+  // when the cloud last answered, so Settings can tell him the truth after a reload
+  function rememberSync() {
+    try { localStorage.setItem('dekkan.syncAt', String(C.syncAt || 0)); } catch (e) { /* ignore */ }
+  }
+  try { C.syncAt = parseInt(localStorage.getItem('dekkan.syncAt') || '0', 10) || 0; } catch (e) { C.syncAt = 0; }
   function load() {
     try {
       const a = localStorage.getItem(LS_KEY);
@@ -79,17 +90,39 @@
     } catch (e) { /* fresh start below */ }
     return D.createShop({ name: T.t('app.name') });
   }
-  // saved states made before the customer registry existed (v2 shops)
+  // An old, hand-edited or cloud-copied state must never be able to take a page
+  // down: `state.debts.filter` on a shop saved before the notebook existed threw
+  // a white screen on the Debts page. Fill the shape, keep the data.
   function migrate(s) {
-    if (!s || !Array.isArray(s.customers)) {
-      if (!s) s = {};
-      s.customers = [];
-    }
+    if (!s) s = {};
+    if (!Array.isArray(s.customers)) s.customers = [];
     if (!s.categories || !Array.isArray(s.categories.in) || !Array.isArray(s.categories.out)) {
       s.categories = { in: [], out: [] };
     }
     if (!Array.isArray(s.employees)) s.employees = [];
+    if (!Array.isArray(s.products)) s.products = [];
+    if (!Array.isArray(s.days)) s.days = [];
+    if (!Array.isArray(s.debts)) s.debts = [];
+    if (!s.settings || typeof s.settings !== 'object') s.settings = {};
+    if (typeof s.settings.allowDiscount !== 'boolean') s.settings.allowDiscount = true;
+    if (typeof s.settings.allowRefund !== 'boolean') s.settings.allowRefund = true;
+    if (!s.shop || typeof s.shop !== 'object') s.shop = { name: T.t('app.name'), startCash: 0 };
+    if (!s.day || typeof s.day !== 'object') s.day = newDay();
+    else {
+      if (!Array.isArray(s.day.entries)) s.day.entries = [];
+      if (!Array.isArray(s.day.checks)) s.day.checks = [];
+      if (!Array.isArray(s.day.cashbox)) s.day.cashbox = [];
+      if (!s.day.soldByProduct || typeof s.day.soldByProduct !== 'object') s.day.soldByProduct = {};
+      if (!s.day.soldFree || typeof s.day.soldFree !== 'object') s.day.soldFree = {};
+      if (!s.day.date) s.day.date = D.todayStr();
+      if (typeof s.day.startCash !== 'number' || !isFinite(s.day.startCash)) s.day.startCash = 0;
+      if (typeof s.day.soldCost !== 'number' || !isFinite(s.day.soldCost)) s.day.soldCost = 0;
+    }
     return s;
+  }
+  // a day that opens right now (used when a state arrives with no open day)
+  function newDay() {
+    return { date: D.todayStr(), openedAt: Date.now(), startCash: 0, soldCost: 0, entries: [], checks: [], soldByProduct: {}, soldFree: {} };
   }
   C.state = load();
   C.save = save;
@@ -123,12 +156,15 @@
   document.addEventListener('click', function (ev) { A.onClick(C, ev); });
 
   // ----- the report: pick a past day or jump back to today -----
+  // Both events: a phone date picker fires "input" while you are still choosing,
+  // a desktop select fires "change" when it closes.
   const dp = $('dayPicker'), bt = $('btnDayToday');
-  if (dp) dp.addEventListener('change', function () {
+  const onDayChange = function () {
     C.reportDate = dp.value || '';
     C._lastReportDate = null;
     P.render(C);
-  });
+  };
+  if (dp) { dp.addEventListener('change', onDayChange); dp.addEventListener('input', onDayChange); }
   if (bt) bt.addEventListener('click', function () {
     C.reportDate = '';
     C._lastReportDate = null;
@@ -275,10 +311,12 @@
   window.addEventListener('hashchange', navigate);
   navigate();
 
-  // ---------- the account: gate, cloud sync, sign-out ----------
-  // js/auth.js talks to the API; this block decides when the gate is up.
-  // The app keeps working below the gate — a buyer can skip an account and
-  // run 100% locally, exactly like before.
+  // ---------- the account: cloud backup (opt-in, from Settings) ----------
+  // js/auth.js talks to the API; this block decides when the form is up.
+  // THE RULE (2026-09-26): the shop NEVER ambushes you with a login form.
+  // It opens straight into the till, signed in or not. The account lives in one
+  // Settings card, and a cloud copy can never replace a till that has money in
+  // it without asking first.
   let gateMode = 'login'; // 'login' | 'register'
 
   function gateError(msg) {
@@ -287,62 +325,136 @@
     el.textContent = msg;
     el.classList.toggle('hidden', !msg);
   }
-  function showGate() {
+  function openAccount(mode) {
     if (!$('gate')) return;
+    if (mode) gateMode = mode;
     fillGate();
     $('gate').style.display = '';
     $('gate').classList.remove('hidden');
+    const first = $('gateEmail');
+    if (first && first.focus) setTimeout(function () { try { first.focus(); } catch (e) {} }, 30);
   }
   function hideGate() {
     if (!$('gate')) return;
     $('gate').style.display = 'none';
     $('gate').classList.add('hidden');
+    gateError('');
+  }
+  function showRow(id, on) {
+    const el = $(id);
+    if (el && el.classList) el.classList.toggle('hidden', !on);
   }
   function fillGate() {
     const reg = gateMode === 'register';
     $('gateTitle').textContent = T.t('auth.title');
     $('gateSub').textContent = T.t('auth.sub');
-    $('gateName').style.display = reg ? '' : 'none';
+    showRow('gateNameRow', reg);
+    if ($('gateName').style) $('gateName').style.display = reg ? '' : 'none';
+    showRow('gatePass2Row', reg);
     $('gateSubmit').textContent = T.t(reg ? 'auth.submitRegister' : 'auth.submitLogin');
     $('gateSwitch').textContent = T.t(reg ? 'auth.switchToLogin' : 'auth.switchToRegister');
-    $('gateSkip').textContent = T.t('auth.skip');
+    $('gateSkip').textContent = T.t('auth.close');
+    $('gatePass').setAttribute('autocomplete', reg ? 'new-password' : 'current-password');
   }
   function gateBusy(on) { $('gateSubmit').disabled = !!on; }
-  function mergeCloud(remote) {
-    // the cloud copy replaces the local one ONLY if it's a real dekkan state
-    if (!remote || !remote.days) return;
+
+  // how much this device actually has to lose: money already moved in it
+  function hasMoves(s) {
+    if (!s) return false;
+    if ((s.day && s.day.entries && s.day.entries.length) ||
+      (s.day && s.day.checks && s.day.checks.length)) return true;
+    for (let i = 0; i < ((s.days || []).length); i++) {
+      const d = s.days[i];
+      if ((d.entries && d.entries.length) || (d.checks && d.checks.length)) return true;
+    }
+    return false;
+  }
+  // take the cloud copy as the live shop — but NEVER without a backup of what it replaced
+  function adoptCloud(remote) {
+    try { localStorage.setItem('dekkan.premerge', JSON.stringify(C.state)); } catch (e) { /* full */ }
     C.state = migrate(remote);
+    C.basket = [];
+    C.freeItems = [];
+    C.refundMode = false;
+    C.refundProductId = null;
+    C.receiptEntryId = null;
+    C.reportDate = '';
+    C._lastReportDate = null;
+    C.newDebtFlag = false;
+    C.payDebtId = null;
+    C._lastPushAt = Date.now();
+    C.sync = 'ok';
     save();
     render();
-    toast(T.t('auth.synced'));
   }
+  // the honest cloud handshake. A copy that differs from a till WITH moves is a
+  // question, not a takeover: he is asked, and the local copy is stashed either way.
+  function mergeCloud(remote) {
+    if (!remote || !remote.days) return false;
+    if (JSON.stringify(remote) === JSON.stringify(C.state)) { C.sync = 'ok'; return true; }
+    if (!hasMoves(C.state)) { adoptCloud(remote); toast(T.t('auth.synced')); return true; }
+    if (confirm(T.t('auth.mergeAsk'))) {
+      adoptCloud(remote);
+      toast(T.t('auth.synced'));
+    } else {
+      C.sync = 'local';
+      save();
+      toast(T.t('auth.mergeKept'), true);
+    }
+    return true;
+  }
+  // boot + after a sign-in: pull the cloud copy and deal with it honestly
+  function pullCloud() {
+    if (!AUTH.isLoggedIn()) return Promise.resolve(false);
+    return AUTH.fetchState().then(function (remote) {
+      if (AUTH.isExpired()) {           // the token died server-side — SAY SO, never vanish
+        C.sync = 'expired';
+        render();
+        return false;
+      }
+      if (remote && remote.days) {
+        mergeCloud(remote);
+        if (C.sync !== 'local') { C._lastPushAt = Date.now(); C.sync = 'ok'; }
+        render();
+        return true;
+      }
+      C.sync = AUTH.syncError() ? 'error' : 'none';
+      schedulePush();                     // first sign-in: get this shop up there
+      render();
+      return false;
+    }).catch(function () { C.sync = 'error'; render(); return false; });
+  }
+
   function gateSubmit() {
     const email = $('gateEmail').value.trim().toLowerCase();
     const pass = $('gatePass').value;
     const name = $('gateName').value.trim();
+    const pass2 = $('gatePass2') ? $('gatePass2').value : '';
     gateError('');
+    if (gateMode === 'register' && pass !== pass2) {   // typed it twice, wrong the second time
+      gateError(T.t('auth.err.passMismatch'));
+      return;
+    }
     gateBusy(true);
     const p = gateMode === 'register' ? AUTH.register(email, pass, name) : AUTH.login(email, pass);
     p.then(function (user) {
       gateBusy(false);
-      if (!user) { gateError(T.t('auth.err.generic')); return; }
+      if (!user) { gateError(T.t('auth.err.server')); return; }
       hideGate();
       toast(T.t('auth.welcome'));
       render();
-      return AUTH.fetchState().then(mergeCloud).catch(function () {});
+      return pullCloud();
     }).catch(function (e) {
       gateBusy(false);
-      gateError(T.t((e && e.code) || 'auth.err.generic'));
+      gateError(T.t((e && e.code) || 'auth.err.server'));
     });
   }
 
-  // boot: a saved session skips the gate + pulls the cloud copy; otherwise gate up
-  if (AUTH.isLoggedIn()) {
-    hideGate();
-    AUTH.fetchState().then(mergeCloud).catch(function () {}); // offline: keep local
-  } else {
-    showGate();
-  }
+  // boot: no gate, ever. A saved session just quietly pulls its cloud copy.
+  hideGate();
+  if (AUTH.isLoggedIn()) pullCloud();
+  else { C.sync = 'none'; C.syncAt = 0; }
+
   const gateForm = $('gateForm');
   if (gateForm) gateForm.addEventListener('submit', function (ev) { ev.preventDefault(); gateSubmit(); });
   const gateSwitch = $('gateSwitch');
@@ -353,12 +465,25 @@
   });
   const gateSkip = $('gateSkip');
   if (gateSkip) gateSkip.addEventListener('click', hideGate);
+  const btnAccountOpen = $('btnAccountOpen');
+  if (btnAccountOpen) btnAccountOpen.addEventListener('click', function () { openAccount(); });
+  // show / hide the password — you cannot check 6 characters you cannot see
+  const btnEye = $('btnGateEye');
+  if (btnEye) btnEye.addEventListener('click', function () {
+    const f = $('gatePass');
+    const on = f.type === 'password';
+    f.type = on ? 'text' : 'password';
+    btnEye.textContent = on ? '\u{1F648}' : '\u{1F441}';
+    btnEye.setAttribute('aria-label', on ? 'hide password' : 'show password');
+    f.focus();
+  });
   const btnSignOut = $('btnSignOut');
   if (btnSignOut) btnSignOut.addEventListener('click', function () {
     AUTH.logout().then(function () {
+      C.sync = 'none';
       toast(T.t('toast.signedOut'));
       render();
-      showGate();
     });
   });
+  C.openAccount = openAccount;
 })();

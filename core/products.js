@@ -15,6 +15,8 @@ function addProduct(state, p) {
   state = rollover(clone(state));
   if (!p || typeof p.name !== 'string' || !p.name.trim()) throw new Error('product needs a name');
   if (typeof p.sell !== 'number' || p.sell < 0) throw new Error('product needs a valid sell price');
+  if (p.stock != null && (!Number.isFinite(p.stock) || p.stock < 0)) throw new Error('stock cannot be negative');
+  if (p.lowAt != null && (!Number.isFinite(p.lowAt) || p.lowAt < 0)) throw new Error('lowAt cannot be negative');
   state.products.push({
     id: uid(),
     name: p.name.trim(),
@@ -41,7 +43,9 @@ function setProduct(state, id, patch) {
   if ('sell' in patch && (typeof patch.sell !== 'number' || patch.sell < 0)) throw new Error('sell price invalid');
   if ('buy' in patch && (typeof patch.buy !== 'number' || patch.buy < 0)) throw new Error('buy price invalid');
   if ('stock' in patch && !Number.isFinite(patch.stock)) throw new Error('stock invalid');
+  if ('stock' in patch && patch.stock < 0) throw new Error('stock cannot be negative');
   if ('lowAt' in patch && !Number.isFinite(patch.lowAt)) throw new Error('lowAt invalid');
+  if ('lowAt' in patch && patch.lowAt < 0) throw new Error('lowAt cannot be negative');
   if ('stock' in patch) patch.stock = Math.floor(patch.stock);
   if ('lowAt' in patch) patch.lowAt = Math.floor(patch.lowAt);
   for (const k in patch) p[k] = patch[k];

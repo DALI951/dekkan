@@ -70,3 +70,35 @@ test('incomes do not need a cash floor (money can always come in)', () => {
   s = D.income(s, { amount: 100 });
   assert.strictEqual(D.cash(s), 100);
 });
+// ---------- a DISCOUNTED sale: the gap is the discount, not a debt ----------
+test('a discounted walk-in sale refunds what was paid, not the shelf price', () => {
+  let s = shop();
+  s = D.addProduct(s, { name: 'Soda', buy: 0.5, sell: 1.5, stock: 10, lowAt: 2 });
+  const id = s.products[0].id;
+  s = D.sellAll(s, { items: [{ id, qty: 1 }], discount: { percent: 50 }, paid: 0.75 });
+  assert.strictEqual(D.cash(s), 100.75, 'he paid 0.750 of a 1.500 bottle');
+  s = D.refund(s, { items: [{ id, qty: 1, price: 1.5 }], cash: 0.75, discount: true });
+  assert.strictEqual(D.cash(s), 100, 'exactly what he took came back');
+  assert.strictEqual(s.products[0].stock, 10, 'and the bottle is back on the shelf');
+});
+
+test('a 100%-off (free) sale refunds nothing but still returns the goods', () => {
+  let s = shop();
+  s = D.addProduct(s, { name: 'Soda', buy: 0.5, sell: 1.5, stock: 10, lowAt: 2 });
+  const id = s.products[0].id;
+  s = D.sellAll(s, { items: [{ id, qty: 1 }], discount: { percent: 100 }, paid: 0 });
+  assert.strictEqual(D.cash(s), 100, 'a free sale leaves the till alone');
+  s = D.refund(s, { items: [{ id, qty: 1, price: 1.5 }], cash: 0, discount: true });
+  assert.strictEqual(D.cash(s), 100, 'refunding it takes nothing either');
+  assert.strictEqual(s.products[0].stock, 10, 'the bottle came back');
+});
+
+test('without the discount flag a gap is still refused (nothing goes missing silently)', () => {
+  let s = shop();
+  s = D.addProduct(s, { name: 'Soda', buy: 0.5, sell: 1.5, stock: 10, lowAt: 2 });
+  const id = s.products[0].id;
+  s = D.sellAll(s, { items: [{ id, qty: 1 }] });
+  s = D.sellAll(s, { items: [{ id, qty: 1 }] });
+  assert.throws(() => D.refund(s, { items: [{ id, qty: 1, price: 1.5 }], cash: 0.5 }),
+    /on credit/, 'taking 0.500 of a 1.500 return with no customer is refused');
+});

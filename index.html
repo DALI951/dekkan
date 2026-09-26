@@ -407,9 +407,11 @@
         <div class="dlist">
           <div><span class="n" data-i18n="settings.accountEmail">البريد</span><b class="b" id="accountEmail">—</b></div>
           <div><span class="n" data-i18n="settings.accountMode">وضع الحساب</span><b class="b" id="accountMode"></b></div>
+          <div><span class="n" data-i18n="settings.accountSync">السحابة</span><b class="b" id="accountSync"></b></div>
         </div>
         <div class="row end">
           <button class="btn ghost" id="btnSignOut" data-i18n="settings.signOut">تسجيل الخروج</button>
+          <button class="btn primary" id="btnAccountOpen"></button>
         </div>
       </div>
 
@@ -492,15 +494,23 @@
   </div>
 </div>
 
-<!-- ================= login gate (has its own skin via themes) ================= -->
-<div id="gate" class="gate" style="display:none">
+<!-- ================= the account (cloud backup) — a modal, opened from Settings ================= -->
+<div id="gate" class="gate" style="display:none" role="dialog" aria-modal="true">
   <form id="gateForm" class="gate-box" autocomplete="on">
     <div class="gate-logo">د</div>
     <h2 id="gateTitle"></h2>
     <p class="muted" id="gateSub"></p>
-    <input type="text" id="gateName" data-i18n-ph="auth.namePh" autocomplete="off">
+    <div id="gateNameRow" class="hidden">
+      <input type="text" id="gateName" data-i18n-ph="auth.namePh" autocomplete="off">
+    </div>
     <input type="email" id="gateEmail" data-i18n-ph="auth.email" autocomplete="email">
-    <input type="password" id="gatePass" data-i18n-ph="auth.password" autocomplete="current-password">
+    <div class="pass-wrap">
+      <input type="password" id="gatePass" data-i18n-ph="auth.password" autocomplete="current-password">
+      <button type="button" class="eye" id="btnGateEye" aria-label="show password">&#128065;</button>
+    </div>
+    <div class="hidden" id="gatePass2Row">
+      <input type="password" id="gatePass2" data-i18n-ph="auth.pass2" autocomplete="new-password">
+    </div>
     <div class="pin-error hidden" id="gateError"></div>
     <button type="submit" class="btn primary big" id="gateSubmit"></button>
     <button type="button" class="btn ghost" id="gateSwitch"></button>

@@ -29,8 +29,9 @@ function el(id) {
 
 // boot a fresh page with one product (Coca, sells at 1.500) already in the book
 // optional seed(s): mutate the state (with real core calls) BEFORE the page boots;
-// a second callback can pre-fill localStorage (e.g. a persisted language) before the scripts load
-function boot(seed, pre) {
+// a second callback can pre-fill localStorage (e.g. a persisted language) before the scripts load;
+// a third `env` can replace fetch/confirm (the cloud: 404 "no state" by default; confirm: yes by default)
+function boot(seed, pre, env) {
   const els = {};
   const doc = {
     documentElement: { style: {}, lang: '', dir: '' },
@@ -51,7 +52,9 @@ function boot(seed, pre) {
     },
     location: { hash: '' },
     // no server in the harness: every cloud call answers 404 "no state"
-    fetch: () => Promise.resolve({ ok: false, status: 404, json: () => Promise.resolve({ error: 'no_state' }) }),
+    fetch: (env && env.fetch) || (() => Promise.resolve({ ok: false, status: 404, json: () => Promise.resolve({ error: 'no_state' }) })),
+    confirm: (env && env.confirm) || (() => true),
+    alert: () => {},
     localStorage: {
       getItem: k => (k in store ? store[k] : null),
       setItem: (k, v) => { store[k] = String(v); },
@@ -73,9 +76,11 @@ function boot(seed, pre) {
   const core = require(path.join(ROOT, 'core', 'dekkan-core.js'));
   let s = core.createShop({ name: 'Test', startCash: 50 });
   s = core.addProduct(s, { name: 'Coca', buy: 0.8, sell: 1.5, stock: 10, lowAt: 3 });
-  if (pre) pre(store);
   if (seed) s = seed(core, s);
   store['dekkan.v1'] = JSON.stringify(s);
+  // `pre` runs LAST: filling localStorage is the whole point (an old state on the
+  // device, a saved session) and it must win over the freshly built shop
+  if (pre) pre(store);
 
   ['core/dekkan-core.js', 'core/core.js', 'core/products.js', 'core/debts.js',
     'core/sales.js', 'core/refunds.js', 'core/employees.js', 'core/cashbox.js', 'core/report.js', 'core/shop.js', 'core/pin.js',
@@ -107,7 +112,7 @@ function boot(seed, pre) {
     saved().day.entries.forEach(e => { t += e.amount; });
     return Math.round(t * 1000) / 1000;
   };
-  return { $, click, goto, saved, cashNow, pid: s.products[0].id, T: sandbox.T, doc };
+  return { $, click, goto, saved, cashNow, pid: s.products[0].id, T: sandbox.T, doc, store, sandbox };
 }
 
 test('the amount due is on screen, follows the basket, and moves while typing', () => {
@@ -579,30 +584,242 @@ test('the clients page shows saved client data, purchases, refunds and debt hist
 assert.ok(html.indexOf('1.000') !== -1, 'open owed total is shown');
 });
 
-// ---------- ACCOUNT (login gate + cloud session) ----------
+// ---------- ACCOUNT (cloud backup — no gate, no ambush, no silent overwrite) ----------
 
-test('no saved session: the login gate is up on boot', () => {
+test('no saved session: the shop opens straight into the till — nothing pops up', () => {
   const ui = boot();
-  assert.strictEqual(ui.$('gate').style.display, '', 'gate visible without a token');
-  assert.ok(ui.T.t('auth.title').length > 0, 'gate title is translated');
+  assert.strictEqual(ui.$('gate').style.display, 'none', 'no gate on boot, ever');
+  assert.ok(ui.T.t('auth.title').length > 0, 'account strings are translated');
   assert.ok(ui.T.t('auth.err.badCredentials').length > 0, 'error strings are translated');
 });
 
-test('a saved session skips the gate and the settings page shows the signed-in email', () => {
+test('a saved session still opens the till — the account lives in settings', () => {
   const ui = boot(null, store => {
     store['dekkan.token'] = 'a'.repeat(64);
     store['dekkan.user'] = JSON.stringify({ id: 7, email: 'boss@shop.tn', shopName: 'Test Shop' });
   });
-  assert.strictEqual(ui.$('gate').style.display, 'none', 'gate hidden for a signed-in session');
+  assert.strictEqual(ui.$('gate').style.display, 'none', 'no gate on boot, signed in or not');
   ui.goto('#/settings');
   assert.strictEqual(ui.$('accountEmail').textContent, 'boss@shop.tn', 'signed-in email is shown');
   assert.strictEqual(ui.$('accountMode').textContent, ui.T.t('settings.accountSigned'), 'mode says signed in');
-  assert.ok(ui.$('btnSignOut').classList.contains('hidden') === false, 'sign-out button is visible');
 });
 
-test('no session: settings shows local mode and hides the sign-out button', () => {
+test('no session: settings shows local mode, a way IN, and hides sign-out', () => {
   const ui = boot();
   ui.goto('#/settings');
   assert.strictEqual(ui.$('accountEmail').textContent, '—', 'no email to show');
   assert.strictEqual(ui.$('accountMode').textContent, ui.T.t('settings.accountLocal'), 'mode says local');
+  assert.strictEqual(ui.$('accountSync').textContent, ui.T.t('auth.syncNever'), 'and the cloud is honestly "not on"');
+  assert.ok(ui.$('btnAccountOpen'), 'there is a button to sign up/in later (that used to be missing forever)');
+});
+
+test('a cloud copy that differs from a till WITH moves never overwrites it silently', async () => {
+  let asked = 0;
+  const cloud = { shop: { name: 'Other Shop', currency: 'TND' }, days: [], products: [{ id: 'p9', name: 'Ghost', buy: 1, sell: 2, stock: 3, lowAt: 0 }], debts: [], customers: [], day: { date: '2000-01-01', startCash: 999, soldCost: 0, entries: [], checks: [] } };
+  const ui = boot(
+    (core, s) => core.sellAll(s, { items: [{ id: s.products[0].id, qty: 1 }] }),   // 1 local sale
+    store => {
+      store['dekkan.token'] = 'a'.repeat(64);
+      store['dekkan.user'] = JSON.stringify({ id: 7, email: 'boss@shop.tn', shopName: 'Test Shop' });
+    },
+    {
+      confirm: () => { asked++; return false; },                                     // he says NO
+      fetch: (url) => Promise.resolve(String(url).indexOf('state.php') !== -1
+        ? { ok: true, status: 200, json: () => Promise.resolve(cloud) }
+        : { ok: false, status: 404, json: () => Promise.resolve({ error: 'no_state' }) })
+    });
+  await new Promise(r => setTimeout(r, 10));
+
+  assert.strictEqual(asked, 1, 'he was asked before anything was replaced');
+  const s = ui.saved();
+  assert.strictEqual(s.shop.name, 'Test', 'his own shop survived');
+  assert.strictEqual(s.day.entries.filter(e => e.kind === 'sale').length, 1, 'his sale survived');
+  assert.ok(s.products.every(p => p.name !== 'Ghost'), 'the cloud products did NOT land');
+});
+
+test('taking the cloud copy backs up the till it replaces', async () => {
+  const cloud = { shop: { name: 'Other Shop', currency: 'TND' }, days: [], products: [], debts: [], customers: [], day: { date: '2000-01-01', startCash: 999, soldCost: 0, entries: [], checks: [] } };
+  const ui = boot(
+    (core, s) => core.sellAll(s, { items: [{ id: s.products[0].id, qty: 1 }] }),
+    store => {
+      store['dekkan.token'] = 'a'.repeat(64);
+      store['dekkan.user'] = JSON.stringify({ id: 7, email: 'boss@shop.tn', shopName: 'Test Shop' });
+    },
+    {
+      confirm: () => true,
+      fetch: (url) => Promise.resolve(String(url).indexOf('state.php') !== -1
+        ? { ok: true, status: 200, json: () => Promise.resolve(cloud) }
+        : { ok: false, status: 404, json: () => Promise.resolve({ error: 'no_state' }) })
+    });
+  await new Promise(r => setTimeout(r, 10));
+
+  assert.strictEqual(ui.saved().shop.name, 'Other Shop', 'the cloud copy is live');
+  const backup = JSON.parse(ui.store['dekkan.premerge']);
+  assert.strictEqual(backup.shop.name, 'Test', 'the copy it replaced is kept, not dropped');
+  assert.strictEqual(backup.day.entries.filter(e => e.kind === 'sale').length, 1, 'with his sale in it');
+});
+
+test('an empty till takes a cloud copy quietly — nothing to lose, nothing to ask', async () => {
+  let asked = 0;
+  const cloud = { shop: { name: 'Other Shop', currency: 'TND' }, days: [], products: [], debts: [], customers: [], day: { date: '2000-01-01', startCash: 999, soldCost: 0, entries: [], checks: [] } };
+  const ui = boot(null,
+    store => {
+      store['dekkan.token'] = 'a'.repeat(64);
+      store['dekkan.user'] = JSON.stringify({ id: 7, email: 'boss@shop.tn', shopName: 'Test Shop' });
+    },
+    {
+      confirm: () => { asked++; return true; },
+      fetch: (url) => Promise.resolve(String(url).indexOf('state.php') !== -1
+        ? { ok: true, status: 200, json: () => Promise.resolve(cloud) }
+        : { ok: false, status: 404, json: () => Promise.resolve({ error: 'no_state' }) })
+    });
+  await new Promise(r => setTimeout(r, 10));
+  assert.strictEqual(asked, 0, 'no pointless question');
+  assert.strictEqual(ui.saved().shop.name, 'Other Shop', 'his shop came down from the cloud');
+});
+
+test('settings says the session expired instead of the gate reappearing', async () => {
+  const ui = boot(null,
+    store => {
+      store['dekkan.token'] = 'a'.repeat(64);
+      store['dekkan.user'] = JSON.stringify({ id: 7, email: 'boss@shop.tn', shopName: 'Test Shop' });
+    },
+    { fetch: () => Promise.resolve({ ok: false, status: 401, json: () => Promise.resolve({ error: 'invalid_token' }) }) });
+  await new Promise(r => setTimeout(r, 10));
+  ui.goto('#/settings');
+  assert.strictEqual(ui.$('gate').style.display, 'none', 'still no gate');
+  assert.strictEqual(ui.$('accountSync').textContent, ui.T.t('auth.expired'), 'he is told why the cloud is off');
+});
+
+// ---------- LOGIC: the bill on screen must be the bill that runs ----------
+
+test('a discount above 100% sells at the capped total — no english error, no mismatch', () => {
+  const ui = boot();
+  ui.click('sell-add', ui.pid);                       // 1.500
+  ui.$('discPct').value = '150';
+  ui.$('discPct').fire('input');
+  assert.strictEqual(ui.$('basketTotal').textContent, '0.000 د.ت', 'the screen says 0.000');
+  ui.$('btnSell').fire('click');
+  const sale = ui.saved().day.entries.filter(e => e.kind === 'sale')[0];
+  assert.ok(sale, 'the sale went through — what he saw is what ran');
+  assert.strictEqual(sale.bill.net, 0, 'net 0 like the screen said');
+  assert.strictEqual(sale.bill.discount, 1.5, 'the whole bill came off');
+  assert.strictEqual(ui.cashNow(), 50, 'and the till is untouched');
+});
+
+// ---------- LOGIC: browsing a past day must behave like a past day ----------
+
+// a real PAST day: closing the day and selling again leaves the shop on the SAME
+// date, so a closed day is moved back a week — otherwise "yesterday" is today and
+// the test proves nothing.
+function lastWeek() {
+  const d = new Date();
+  d.setDate(d.getDate() - 7);
+  return d.toISOString().slice(0, 10);
+}
+
+test('counting the drawer while browsing a past day is refused — a count belongs to today', () => {
+  const ui = boot((core, s) => {
+    s = core.sellAll(s, { items: [{ id: s.products[0].id, qty: 1 }] });
+    const closed = core.closeDay(s);
+    closed.days[0].date = lastWeek();
+    return core.sellAll(closed, { items: [{ id: closed.products[0].id, qty: 1 }] });
+  });
+  const y = ui.saved().days[0].date;
+  ui.goto('#/report');
+  ui.$('dayPicker').value = y;
+  ui.$('dayPicker').fire('input');
+  ui.$('countedCash').value = '10';
+  ui.$('btnCheckCash').fire('click');
+  assert.strictEqual((ui.saved().day.checks || []).length, 0, 'today took no count');
+  assert.ok(ui.$('toast').textContent.indexOf(ui.T.t('report.checkPastDay')) !== -1, 'he is told why');
+});
+
+test('the metric boxes follow the day you are browsing', () => {
+  const ui = boot((core, s) => {
+    s = core.sellAll(s, { items: [{ id: s.products[0].id, qty: 2 }] });   // past day: 3.000
+    const closed = core.closeDay(s);
+    closed.days[0].date = lastWeek();
+    return core.sellAll(closed, { items: [{ id: closed.products[0].id, qty: 1 }] });  // today: 1.500
+  });
+  const y = ui.saved().days[0].date;
+  ui.goto('#/report');
+  ui.click('metric-open', 'sales');
+  assert.ok(ui.$('metricBody').innerHTML.indexOf('1.500') !== -1, 'today first: his 1.500 sale');
+
+  ui.$('dayPicker').value = y;
+  ui.$('dayPicker').fire('input');
+  ui.click('metric-open', 'sales');
+  const body = ui.$('metricBody').innerHTML;
+  assert.ok(body.indexOf('3.000') !== -1, 'the past day shows ITS 3.000 sale');
+  assert.ok(body.indexOf('1.500') === -1, "and NOT today's 1.500 — the old bug showed today's numbers");
+  assert.ok(ui.$('metricTitle').textContent.indexOf(y) !== -1, 'the panel names the day it is showing');
+});
+
+test('a part-paid sale refunded takes the cash back and writes the credit off', () => {
+  const ui = boot();
+  ui.click('sell-add', ui.pid);                       // 1.500
+  ui.$('paidCash').value = '1';
+  ui.$('creditName').value = 'Samir';
+  ui.$('paidCash').fire('input');
+  ui.$('btnSell').fire('click');
+  assert.strictEqual(ui.cashNow(), 51, '1.000 in the drawer, 0.500 on Samir');
+
+  ui.$('btnReceiptRefund').fire('click');
+  const s = ui.saved();
+  assert.strictEqual(ui.cashNow(), 50, 'only the 1.000 that came in went back out');
+  assert.strictEqual(s.debts[0].total, 0, 'the 0.500 credit was written off');
+  assert.strictEqual(s.products[0].stock, 10, 'the cola is back on the shelf');
+});
+
+test('a fully discounted sale refunded takes NOTHING out of the drawer', () => {
+  const ui = boot();
+  ui.click('sell-add', ui.pid);                       // 1.500
+  ui.$('discPct').value = '100';                      // the whole bill off
+  ui.$('discPct').fire('input');
+  ui.$('btnSell').fire('click');
+  assert.strictEqual(ui.cashNow(), 50, 'the till never moved');
+
+  ui.$('btnReceiptRefund').fire('click');
+  const s = ui.saved();
+  assert.strictEqual(ui.cashNow(), 50, 'and the refund takes nothing either — the shelf price is not money he took');
+  assert.strictEqual(s.products[0].stock, 10, 'but the cola is still back on the shelf');
+});
+
+test('a half-discounted sale refunded gives back exactly what was paid', () => {
+  const ui = boot();
+  ui.click('sell-add', ui.pid);                       // 1.500
+  ui.$('discPct').value = '50';                       // 0.750 to pay
+  ui.$('discPct').fire('input');
+  ui.$('paidCash').value = '0.75';
+  ui.$('paidCash').fire('input');
+  ui.$('btnSell').fire('click');
+  assert.strictEqual(ui.cashNow(), 50.75, '0.750 in the drawer');
+
+  ui.$('btnReceiptRefund').fire('click');
+  assert.strictEqual(ui.cashNow(), 50, 'exactly 0.750 came back out — not the 1.500 shelf price');
+});
+
+// ---------- an OLD shop (saved before the notebook existed) must still open ----------
+test('a shop saved by an older version still opens, sells and reports — no white screen', () => {
+  const ui = boot(null, store => {
+    store['dekkan.v1'] = JSON.stringify({
+      shop: { name: 'Old Shop', startCash: 50 },
+      products: [{ id: 'p1', name: 'Coca', buy: 0.8, sell: 1.5, stock: 10, lowAt: 3 }],
+      day: { date: new Date().toISOString().slice(0, 10), startCash: 50, entries: [] },
+      // no settings, no debts, no categories, no customers, no employees, no days
+    });
+  });
+  for (const page of ['#/sell', '#/report', '#/debts', '#/stock', '#/cashbox', '#/settings']) {
+    assert.doesNotThrow(() => ui.goto(page), page + ' must render');
+  }
+  ui.goto('#/sell');
+  ui.click('sell-add', 'p1');
+  ui.$('paidCash').value = '1.5';      // paid in full, so no customer name is asked for
+  ui.$('paidCash').fire('input');
+  ui.$('btnSell').fire('click');
+  const sale = ui.saved().day.entries.filter(e => e.kind === 'sale')[0];
+  assert.ok(sale, 'and it can still sell');
+  assert.ok(Array.isArray(ui.saved().debts), 'the notebook array is there for later');
+  assert.ok(Array.isArray(ui.saved().day.checks), 'and the day can still be counted');
 });

@@ -52,11 +52,30 @@ new Set([...arKeys, ...enKeys]).forEach(function (k) {
 });
 
 // used keys must exist
-htmlKeys.forEach(function (k) { if (!(k in ar)) report("index.html uses '" + k + "' — not in the dicts"); });
-appKeys.forEach(function (k) { if (!(k in ar)) report("ui uses '" + k + "' — not in the dicts"); });
+htmlKeys.forEach(function (k) { if (!(k in ar)) report("index.html uses '" + k + "' - not in the dicts"); });
+appKeys.forEach(function (k) { if (!(k in ar)) report("ui uses '" + k + "' - not in the dicts"); });
+
+// Every id the UI reaches for must EXIST in the real markup. The UI test harness
+// invents any element it is asked for, so a typo'd id passes 43 green tests and
+// then throws a TypeError in the browser (that is how the account form's
+// #gateNameRow shipped broken once). This is the check that catches it.
+const htmlIds = new Set();
+for (const m of html.matchAll(/\sid="([^"]+)"/g)) htmlIds.add(m[1]);
+const wantedIds = new Set();
+for (const f of uiFiles) {
+  const src = fs.readFileSync(path.join(ROOT, f), 'utf8');
+  for (const m of src.matchAll(/(?:\$|getElementById)\('([A-Za-z][\w-]*)'\)/g)) wantedIds.add(m[1]);
+}
+// ids the code builds or creates itself are not markup's job
+const notMarkup = new Set();
+wantedIds.forEach(function (id) {
+  if (notMarkup.has(id)) return;
+  if (!htmlIds.has(id)) report("the UI reaches for #" + id + " - index.html has no such element");
+});
 
 console.log('i18n keys: AR=' + arKeys.length + ' EN=' + enKeys.length +
-  ' | html uses ' + htmlKeys.size + ' | ui uses ' + appKeys.size);
+  ' | html uses ' + htmlKeys.size + ' | ui uses ' + appKeys.size +
+  ' | ids checked ' + wantedIds.size);
 
 if (bad > 0) { console.error('i18n check FAILED (' + bad + ')'); process.exit(1); }
 console.log('i18n check OK — every key exists in Arabic and English');

@@ -6,6 +6,11 @@
 'use strict';
 const { defineConfig, devices } = require('@playwright/test');
 
+// DEKKAN_BASE_URL=... npm run test:e2e  -> run the same battery against the
+// LIVE site instead of the local server. Same tests, production.
+const LOCAL = 'http://127.0.0.1:4173';
+const BASE = process.env.DEKKAN_BASE_URL || LOCAL;
+
 module.exports = defineConfig({
   testDir: './e2e',
   timeout: 45000,
@@ -15,7 +20,7 @@ module.exports = defineConfig({
   retries: 0,
   reporter: [['list']],
   use: {
-    baseURL: 'http://127.0.0.1:4173',
+    baseURL: BASE,
     headless: true,
     trace: 'retain-on-failure'
   },
@@ -23,10 +28,15 @@ module.exports = defineConfig({
     { name: 'PC', use: { viewport: { width: 1280, height: 800 } } },
     { name: 'Phone', use: { ...devices['Pixel 5'] } }
   ],
-  webServer: {
-    command: 'node scripts/serve.js 4173',
-    url: 'http://127.0.0.1:4173',
-    reuseExistingServer: true,
-    timeout: 30000
-  }
+  // only boot the local server when we are actually testing locally
+  ...(BASE === LOCAL
+    ? {
+        webServer: {
+          command: 'node scripts/serve.js 4173',
+          url: LOCAL,
+          reuseExistingServer: true,
+          timeout: 30000
+        }
+      }
+    : {})
 });

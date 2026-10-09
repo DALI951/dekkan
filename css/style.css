@@ -107,7 +107,7 @@ span>small{display:block;}
   .sidebar .sideCash span{font-size:10.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--dim);display:block;}
   .sidebar .sideCash strong{font-size:21px;font-weight:800;color:var(--acc2);font-variant-numeric:tabular-nums;}
   .topbar,.topnav{display:none;}
-  #view{margin-inline-start:244px;overflow-y:auto;padding:30px 36px 70px;}
+  #view{margin-inline-start:244px;overflow-y:auto;padding:30px 36px 100px;}
   #view .page{max-width:1080px;margin:0 auto;}
 }
 
@@ -449,7 +449,7 @@ select option{background:var(--inbg);color:var(--txt);}
 
 /* ============ responsive / print ============ */
 @media (max-width:899px){
-  #view{overflow-y:auto;padding-bottom:24px;}
+  #view{overflow-y:auto;padding-bottom:80px;}
   .topnav{display:flex;}
 }
 @media (prefers-reduced-motion:reduce){

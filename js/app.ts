@@ -1,4 +1,7 @@
-﻿/* DEKKAN — the shop webapp (v4: theme engine + till-style report).
+// @ts-nocheck
+// JS -> TS migration (first pass): this file is the dynamic DOM / service-worker /
+// vm-harness layer (loose globals + event targets). Types get tightened incrementally.
+/* DEKKAN — the shop webapp (v4: theme engine + till-style report).
  * UI SHELL ONLY: builds window.DEK.app (the ctx for js/fmt.js, js/pages.js,
  * js/actions.js), wires every button/input/keyboard/key, and persists state.
  * Every business rule lives in core/dekkan-core.js.
@@ -318,6 +321,13 @@
   // Settings card, and a cloud copy can never replace a till that has money in
   // it without asking first.
   let gateMode = 'login'; // 'login' | 'register'
+  // Local mode: the shopkeeper chose "no account, this device only". Remembered
+  // so the wall does not ambush him on every single open.
+  const MODE_KEY = 'dekkan.mode';
+  function getMode() { try { return localStorage.getItem(MODE_KEY) || ''; } catch (e) { return ''; } }
+  function setMode(m) {
+    try { if (m) localStorage.setItem(MODE_KEY, m); else localStorage.removeItem(MODE_KEY); } catch (e) {}
+  }
 
   function gateError(msg) {
     const el = $('gateError');
@@ -346,17 +356,37 @@
   }
   function fillGate() {
     const reg = gateMode === 'register';
-    $('gateTitle').textContent = T.t('auth.title');
-    $('gateSub').textContent = T.t('auth.sub');
+    $('gateTitle').textContent = T.t('auth.wallTitle');
+    $('gateSub').textContent = T.t('auth.wallSub');
+    if ($('btnGoogleLabel')) $('btnGoogleLabel').textContent = T.t('auth.google');
+    if ($('gateOr')) $('gateOr').textContent = T.t('auth.or');
     showRow('gateNameRow', reg);
     if ($('gateName').style) $('gateName').style.display = reg ? '' : 'none';
     showRow('gatePass2Row', reg);
     $('gateSubmit').textContent = T.t(reg ? 'auth.submitRegister' : 'auth.submitLogin');
     $('gateSwitch').textContent = T.t(reg ? 'auth.switchToLogin' : 'auth.switchToRegister');
-    $('gateSkip').textContent = T.t('auth.close');
+    $('gateSkip').textContent = T.t('auth.local');
     $('gatePass').setAttribute('autocomplete', reg ? 'new-password' : 'current-password');
   }
   function gateBusy(on) { $('gateSubmit').disabled = !!on; }
+
+  // ---------- Sign in with Google (Firebase Auth opens the Google popup) ----------
+  function googleSignIn() {
+    gateError('');
+    gateBusy(true);
+    AUTH.loginWithGoogle().then(function (u) {
+      gateBusy(false);
+      if (!u) { gateError(T.t('auth.err.google')); return; }
+      setMode('');
+      hideGate();
+      toast(T.t('auth.welcome'));
+      render();
+      return pullCloud();
+    }).catch(function (e) {
+      gateBusy(false);
+      gateError(T.t((e && e.code) || 'auth.err.google'));
+    });
+  }
 
   // how much this device actually has to lose: money already moved in it
   function hasMoves(s) {
@@ -440,6 +470,7 @@
     p.then(function (user) {
       gateBusy(false);
       if (!user) { gateError(T.t('auth.err.server')); return; }
+      setMode('');
       hideGate();
       toast(T.t('auth.welcome'));
       render();
@@ -450,10 +481,15 @@
     });
   }
 
-  // boot: no gate, ever. A saved session just quietly pulls its cloud copy.
-  hideGate();
-  if (AUTH.isLoggedIn()) pullCloud();
-  else { C.sync = 'none'; C.syncAt = 0; }
+  // boot: the WALL shows unless there is a live session or the shopkeeper chose
+  // local mode. Signing in (or going local) is remembered on this device.
+  // The auth SDK restores a saved session a few ms after load — boot waits for
+  // that first resolved state instead of flashing the wall over a live session.
+  AUTH.ready().then(function () {
+    if (AUTH.isLoggedIn()) { hideGate(); return pullCloud(); }
+    if (getMode() === 'local') { hideGate(); C.sync = 'local'; }
+    else { C.sync = 'none'; C.syncAt = 0; openAccount('login'); }
+  });
 
   const gateForm = $('gateForm');
   if (gateForm) gateForm.addEventListener('submit', function (ev) { ev.preventDefault(); gateSubmit(); });
@@ -464,7 +500,15 @@
     fillGate();
   });
   const gateSkip = $('gateSkip');
-  if (gateSkip) gateSkip.addEventListener('click', hideGate);
+  if (gateSkip) gateSkip.addEventListener('click', function () {
+    setMode('local');
+    hideGate();
+    C.sync = 'local';
+    toast(T.t('auth.localOn'));
+    render();
+  });
+  const btnGoogle = $('btnGoogle');
+  if (btnGoogle) btnGoogle.addEventListener('click', googleSignIn);
   const btnAccountOpen = $('btnAccountOpen');
   if (btnAccountOpen) btnAccountOpen.addEventListener('click', function () { openAccount(); });
   // show / hide the password — you cannot check 6 characters you cannot see
@@ -480,9 +524,11 @@
   const btnSignOut = $('btnSignOut');
   if (btnSignOut) btnSignOut.addEventListener('click', function () {
     AUTH.logout().then(function () {
+      setMode('');
       C.sync = 'none';
       toast(T.t('toast.signedOut'));
       render();
+      openAccount('login');
     });
   });
   C.openAccount = openAccount;

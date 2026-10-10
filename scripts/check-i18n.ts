@@ -1,3 +1,6 @@
+// @ts-nocheck
+// JS -> TS migration (first pass): this file is the dynamic DOM / service-worker /
+// vm-harness layer (loose globals + event targets). Types get tightened incrementally.
 // DEKKAN i18n check — every key used in the UI must exist in BOTH ar and en.
 // Verifies: index.html data-i18n/-ph/-title keys, the UI files' T.t('...') keys,
 // and that the two dicts in js/lang.js carry the exact same key set.

@@ -19,6 +19,10 @@ return [
     // used by setup.php only: create the tables with ?key=SETUP_KEY once,
     // then DELETE setup.php from the server.
     'setupKey' => 'CHANGE_ME_TO_A_LONG_RANDOM_STRING',
+    // Google OAuth client id for "Sign in with Google" (public, not a secret).
+    // Must equal the id in js/config.js. Empty = Google sign-in disabled
+    // (the API then answers google_not_configured).
+    'googleClientId' => '',
     // hard cap so one huge paste cannot fill the disk
     'stateMaxBytes' => 16777216, // 16 MB (MEDIUMTEXT)
 ];

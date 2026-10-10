@@ -1,9 +1,12 @@
-﻿/* DEKKAN service worker — app shell precache, network-first (online = always
+// @ts-nocheck
+// JS -> TS migration (first pass): this file is the dynamic DOM / service-worker /
+// vm-harness layer (loose globals + event targets). Types get tightened incrementally.
+/* DEKKAN service worker — app shell precache, network-first (online = always
  * newest code, offline = last cached shell), offline-capable.
  * Bump SW_VERSION to force a refresh of the shell after a deploy. */
 'use strict';
 
-const SW_VERSION = 'v39';
+const SW_VERSION = 'v41';
 const SHELL = [
   './',
   './index.html',
@@ -13,6 +16,7 @@ const SHELL = [
   './js/fmt.js',
   './js/pages.js',
   './js/actions.js',
+  './js/config.js',
   './js/auth.js',
   './js/app.js',
   './js/lang.js',
@@ -63,7 +67,15 @@ self.addEventListener('fetch', function (e) {
       return res;
     }).catch(function () {
       return caches.match(e.request).then(function (hit) {
-        return hit || caches.match('./');
+        if (hit) return hit;
+        // Never hand our HTML shell to a CROSS-ORIGIN request: the Firebase SDK
+        // loads an auth iframe from *.firebaseapp.com, and returning index.html
+        // there makes the browser parse HTML as JS ("Unexpected token '<'").
+        // A network error is the honest answer. Same-origin navigations still
+        // fall back to the cached shell so the app opens offline.
+        var sameOrigin = e.request.url.indexOf(self.location.origin) === 0;
+        if (sameOrigin && e.request.mode === 'navigate') return caches.match('./');
+        return Response.error();
       });
     })
   );

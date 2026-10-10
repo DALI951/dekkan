@@ -244,7 +244,7 @@ function blankClient(name, phone) {
 function clientsReport(state) {
   const profiles = {};
   const order = [];
-  const ensure = function (name, phone) {
+  const ensure = function (name, phone?) {
     const n = String(name || '').trim();
     if (!n) return null;
     const k = n.toLowerCase();

@@ -28,6 +28,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Dekkan is authored in TypeScript now: the browser still needs .js, so
+      # compile the .ts sources before staging. tsc emits the .js files next to
+      # the .ts sources (they are gitignored — the repo tracks only .ts).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: install + build TypeScript
+        run: |
+          npm ci
+          npm run build
+
       - uses: actions/configure-pages@v5
 
       - name: stage the static app

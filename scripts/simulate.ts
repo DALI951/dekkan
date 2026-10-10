@@ -1,4 +1,7 @@
-﻿// DEKKAN STORY SIMULATOR — one realistic shop day, MANY aspects tested at once.
+// @ts-nocheck
+// JS -> TS migration (first pass): this file is the dynamic DOM / service-worker /
+// vm-harness layer (loose globals + event targets). Types get tightened incrementally.
+// DEKKAN STORY SIMULATOR — one realistic shop day, MANY aspects tested at once.
 // This is the "run multiple tests on multiple aspects" battery: it plays a full
 // Tunisian café story (sales, stock, credit, refunds, discounts, expenses,
 // cash checks, day close) and asserts every rule holds along the way.

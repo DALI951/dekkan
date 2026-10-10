@@ -267,7 +267,7 @@ function cashierNames(state) {
 function applyPayment(state, net, opts, refText, bill) {
   const customer = String(opts.customer || opts.creditTo || '').trim();
   const hasPaid = opts.paid !== undefined && opts.paid !== null && opts.paid !== '';
-  const extra = { bill: bill || null };
+  const extra: any = { bill: bill || null };
   if (opts.who && String(opts.who).trim()) extra.who = String(opts.who).trim();
   if (extra.who) state = ensureCashier(state, extra.who);
   if (!hasPaid) {

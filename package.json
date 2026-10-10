@@ -4,14 +4,17 @@
   "description": "Dekkan — Arabic-first small-shop kit. Cash box, stock, debts, profit. (The algorithm, tested.)",
   "private": true,
   "scripts": {
-    "test": "node --test",
-    "test:sim": "node scripts/simulate.js",
-    "test:i18n": "node scripts/check-i18n.js",
+    "build": "tsc",
+    "test": "npm run build && node --test test/*.test.js",
+    "test:sim": "npm run build && node scripts/simulate.js",
+    "test:i18n": "npm run build && node scripts/check-i18n.js",
     "test:e2e": "playwright test",
-    "serve": "node scripts/serve.js 4173",
-    "check": "node --test && node scripts/simulate.js && node scripts/check-i18n.js"
+    "serve": "npm run build && node scripts/serve.js 4173",
+    "check": "npm run build && node --test test/*.test.js && node scripts/simulate.js && node scripts/check-i18n.js"
   },
   "devDependencies": {
-    "@playwright/test": "^1.63.0"
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^26.6.5",
+    "typescript": "^7.0.2"
   }
 }

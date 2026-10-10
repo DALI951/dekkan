@@ -138,3 +138,25 @@ paying customers) is still unbuilt. The workbook expects 24 months at 5–10 h/w
 at month 7 of it feature-wise, month 1 of it validation-wise.
 
 **Next action:** see `PLAN.md` §6 — Phase 0 is M00: interview 5 real shops before writing more code.
+
+---
+
+## K. Development & build (TypeScript)
+
+The app is written in TypeScript and **compiled in place**: `tsc` emits the runnable `.js`
+next to each `.ts`. The emitted `.js` (and `sw.js`) are git-ignored — the repo tracks `.ts`
+only. The browser `<script src="js/*.js">` tags and the test harness keep loading the
+compiled output, so **build before running**.
+
+- `npm run build` — type-check + emit every `.js` (`tsc`).
+- `npm test` — build, then `node --test` the unit suite.
+- `npm run test:sim` — build, then the full open-to-close day simulation.
+- `npm run test:i18n` — build, then check Arabic/English key parity.
+- `npm run test:e2e` — Playwright (PC + Phone projects).
+- `npm run check` — build + unit + sim + i18n (the CI gate).
+- `npm run serve` — build, then serve the app on `:4173`.
+
+Notes: `e2e/` and `playwright.config.ts` run as TypeScript directly (excluded from `tsc`).
+The dynamic DOM shell, the service worker and the vm-based test harness carry `// @ts-nocheck`
+for this first pass — the domain core (`core/`) and most tests are fully type-checked and
+get tightened incrementally.

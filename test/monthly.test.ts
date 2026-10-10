@@ -1,3 +1,6 @@
+// @ts-nocheck
+// JS -> TS migration (first pass): this file is the dynamic DOM / service-worker /
+// vm-harness layer (loose globals + event targets). Types get tightened incrementally.
 /* DEKKAN monthly tests — the month in review: total wins/losses/profit with
  * salaries cut out of the losses. report.dayReport() only knows today, so
  * this is a second lens on the SAME ledger (day.entries + closed days).

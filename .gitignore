@@ -1,3 +1,12 @@
 node_modules/
 test-results/
 playwright-report/
+
+# TypeScript build output — generated from the .ts sources, never committed.
+# The repo holds ONLY .ts sources; `npm run build` (tsc) emits these .js files.
+/*.js
+/core/*.js
+/js/*.js
+/scripts/*.js
+/test/*.js
+*.tsbuildinfo

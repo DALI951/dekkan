@@ -1,3 +1,6 @@
+// @ts-nocheck
+// JS -> TS migration (first pass): this file is the dynamic DOM / service-worker /
+// vm-harness layer (loose globals + event targets). Types get tightened incrementally.
 /* DEKKAN dev server — dead-simple static file server for E2E + manual testing.
  * Run: node scripts/serve.js [port]   (default 4173)
  * Serves the repo root with correct MIME types and no-cache headers so the

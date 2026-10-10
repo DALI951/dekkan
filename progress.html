@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dekkan — status</title>
+<style>
+  :root{
+    --bg:#fcfcfb;
+    --ink:#141413;
+    --muted:#8c8c86;
+    --line:#ecebe8;
+    --accent:#157347;          /* done */
+    --accent-soft:rgba(21,115,71,.30); /* partial */
+    --ghost:#e3e2de;           /* missing */
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font:14px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:680px;margin:0 auto;padding:56px 24px 96px}
+
+  /* header */
+  .head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:44px}
+  .brand{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted)}
+  .ver{font-size:12px;color:var(--muted)}
+
+  /* hero */
+  .hero{display:flex;align-items:center;gap:48px;margin-bottom:48px}
+  .big{font-size:76px;font-weight:200;line-height:.95;letter-spacing:-.03em;margin:0}
+  .big span{font-size:26px;color:var(--muted);font-weight:300;margin-left:2px}
+  .lead{color:var(--muted);margin:12px 0 0}
+  .counts{margin-top:22px;display:flex;gap:22px;font-size:13px}
+  .counts b{font-weight:600}
+  .counts .d b{color:var(--accent)}
+  .ring{flex:0 0 168px;width:168px;height:168px}
+  .ring svg{display:block;width:100%;height:100%}
+
+  /* sections */
+  section{margin-top:44px}
+  h2{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);
+    font-weight:600;margin:0 0 6px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+  .sub{color:var(--muted);font-size:12.5px;margin:10px 0 4px}
+
+  /* rows */
+  .row{display:flex;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid var(--line)}
+  .row:last-child{border-bottom:0}
+  .row .name{flex:1}
+  .row .meta{color:var(--muted);font-size:12px;white-space:nowrap}
+  .dot{flex:0 0 8px;width:8px;height:8px;border-radius:50%;background:var(--ghost)}
+  .dot.done{background:var(--accent)}
+  .dot.partial{background:var(--accent-soft)}
+  .row .name .tag{color:var(--muted);font-size:11.5px;margin-left:8px}
+
+  /* milestone strip */
+  .strip{display:grid;grid-template-columns:repeat(14,1fr);gap:5px;margin-top:14px}
+  .strip .m{display:flex;flex-direction:column;gap:6px;align-items:center}
+  .strip .blk{width:100%;height:34px;border-radius:5px;background:var(--ghost)}
+  .strip .blk.done{background:var(--accent)}
+  .strip .blk.partial{background:var(--accent-soft)}
+  .strip .code{font-size:9.5px;color:var(--muted);letter-spacing:.02em}
+  @media(max-width:560px){.strip{grid-template-columns:repeat(7,1fr);row-gap:14px}}
+
+  /* bars */
+  .bar{display:grid;grid-template-columns:150px 1fr 40px;gap:14px;align-items:center;
+    padding:9px 0;border-bottom:1px solid var(--line)}
+  .bar:last-child{border-bottom:0}
+  .bar .bl{font-size:13px}
+  .bar .track{height:2px;background:var(--ghost);border-radius:2px;position:relative}
+  .bar .track i{position:absolute;left:0;top:0;height:100%;background:var(--accent);border-radius:2px}
+  .bar .n{text-align:right;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+  @media(max-width:560px){.bar{grid-template-columns:1fr 40px;}.bar .bl{grid-column:1/3}}
+
+  /* toggle bar */
+  .toggles{display:flex;flex-wrap:wrap;gap:18px;margin-bottom:36px;font-size:12.5px}
+  .tog{color:var(--muted);cursor:pointer;border:0;background:none;padding:2px 0;
+    border-bottom:1px solid transparent;font:inherit;transition:120ms}
+  .tog:hover{color:var(--ink)}
+  .tog:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+  .tog.on{color:var(--ink);border-bottom-color:var(--ink)}
+  .hidden{display:none}
+  .swatch{display:inline-flex;align-items:center;gap:6px}
+  .swatch i{width:8px;height:8px;border-radius:50%;display:inline-block}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="head"><span class="brand">dekkan</span><span class="ver">v0.19 · build status</span></div>
+
+  <!-- HERO -->
+  <div class="hero" data-panel="hero">
+    <div>
+      <h1 class="big" id="bigPct">&mdash;<span>%</span></h1>
+      <p class="lead">of 145 workbook features complete</p>
+      <div class="counts">
+        <span class="d"><b id="cDone">&mdash;</b> done</span>
+        <span><b id="cPart">&mdash;</b> partial</span>
+        <span><b id="cMiss">&mdash;</b> missing</span>
+      </div>
+    </div>
+    <div class="ring" id="ring"></div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="toggles">
+    <button class="tog on" data-show="milestones">Milestones</button>
+    <button class="tog on" data-show="phases">Phases</button>
+    <button class="tog on" data-show="checklist">Checklist</button>
+    <button class="tog on" data-show="tracks">Tracks</button>
+    <span style="flex:1"></span>
+    <button class="tog on" data-status="done"><span class="swatch"><i class="dot done"></i>done</span></button>
+    <button class="tog on" data-status="partial"><span class="swatch"><i class="dot partial"></i>partial</span></button>
+    <button class="tog on" data-status="missing"><span class="swatch"><i class="dot"></i>missing</span></button>
+  </div>
+
+  <!-- MILESTONES -->
+  <section data-panel="milestones">
+    <h2>Milestones</h2>
+    <div class="strip" id="strip"></div>
+    <div class="sub">M00 validate &middot; M01 define MVP &middot; M02 foundation &middot; M03 catalogue &middot; M04 stock ledger &middot; M05 sales &middot; M06 payments &middot; M07 hardening &middot; M08 pilot &middot; M09 purchases &middot; M10 prod &middot; M11 launch &middot; M12 differ &middot; M13 scale</div>
+  </section>
+
+  <!-- PHASES -->
+  <section data-panel="phases">
+    <h2>Phases</h2>
+    <div id="phases"></div>
+  </section>
+
+  <!-- CHECKLIST -->
+  <section data-panel="checklist">
+    <h2>Checklist</h2>
+    <p class="sub">Every named item from the plan.</p>
+    <div id="checklist"></div>
+  </section>
+
+  <!-- TRACKS -->
+  <section data-panel="tracks">
+    <h2>Tracks</h2>
+    <p class="sub">Completion per area (partial counts half).</p>
+    <div id="tracks"></div>
+  </section>
+
+</div>
+
+<script>
+/* ---------- data ---------- */
+const D='done', P='partial', M='missing';
+
+const FEATURES={total:145,done:26,partial:39,missing:80};
+
+const MILESTONES=[
+  ['M00','Validate',M],['M01','Define MVP',M],['M02','Foundation',P],['M03','Catalogue',P],
+  ['M04','Stock ledger',P],['M05','Sales',D],['M06','Payments',D],['M07','Hardening',P],
+  ['M08','Pilot',M],['M09','Purchases',M],['M10','Prod readiness',M],['M11','Launch',M],
+  ['M12','Differentiate',M],['M13','Scale',M]
+];
+
+const PHASES=[
+  ['Phase 0','Validate (M00/M01)',M,'Interview 5 Ben Arous shops, one persona, close DEC-006/010.'],
+  ['Phase 1','P0 trust pack',M,'The 11 P0 gaps, test first.'],
+  ['Phase 2','Ship polish',P,'Share backup, Z-report print, best-sellers; PWA + APK.'],
+  ['Phase 3','Pilot (M08)',M,'One real shop, 30 days, real data.'],
+  ['Phase 4','Launch pack',M,'P1 subset the pilot used (import, barcode, counts, reports).'],
+  ['Phase 5','Paid launch (M11)',M,'Price test + support, 3 paying customers.'],
+];
+
+const TRACKS=[
+  ['Features',145,26,39,80],['Milestones',14,2,4,8],['Phases',6,0,1,5],['P0 gaps',11,0,5,6],
+  ['Screens',27,6,4,17],['Reports',22,2,3,17],['Acceptance tests',43,0,8,35],
+  ['Non-functional',32,6,5,21],['Business rules',66,7,25,34],['Decisions',10,3,0,7]
+];
+
+const P0=[
+  ['Stock ledger + stock card',M,'STK-001'],['Tax profiles',M,'TAX-001'],['Document numbering',P,'DOC-001'],
+  ['SKU + unique SKU',M,'PROD-001'],['Server validates state on push',M,'SAL-004'],['RBAC light',P,'SEC-001'],
+  ['Supplier record',M,'PUR-001'],['Draft sale survives refresh',M,'SALE-002'],['Refund discipline',P,'RET-001'],
+  ['Backup + restore drill',P,'DATA-001'],['Walk-in = client-# rule',P,'CUST-001']
+];
+
+const SHIPPED=['Product catalogue','Categories','Global product search','Checkout / sell + discounts',
+  'Partial payment','Credit sale + debts','Client profiles + name memory','Receipts / facture + print',
+  'Refunds','Cash box','Day report','Monthly review','Staff','Owner lock PIN','Seller accounts + cloud save',
+  'Arabic + English + RTL','Theme engine','Offline local-first','PWA + service worker','Backup export / import',
+  'Data migrations','Report metrics','Cash check','Walk-in numbering','Low-stock alerts','By-cashier view'];
+
+const CHECK=[
+  ['Shipped',SHIPPED.map(t=>[t,D])],
+  ['Foundation & settings',[
+    ['Setup wizard',M],['Tax profiles',M],['Business locations',M],['Settings change log',M],
+    ['Business profile (address/logo)',P],['Base currency configurable',P],['Locale config',P],
+    ['Document prefixes',P],['French',M]]],
+  ['Auth & users',[
+    ['Password reset',M],['Invite user',M],['Deactivate user',M],['Session revocation',M],
+    ['Login throttling',M],['Activity history',M],['Server-enforced roles',P]]],
+  ['Product catalogue',[
+    ['Unique SKU',M],['Barcode',M],['Units of measure',M],['Unit conversions',M],['Variants',M],
+    ['Bundles / kits',M],['Supplier SKU',M],['Batch / lot / expiry',M],['Serial tracking',M],
+    ['CSV import',M],['Bulk edit',M],['Product image',M],['Service item',P],['Product export',P],['Archive product',P]]],
+  ['Inventory & costing',[
+    ['Available quantity',M],['Adjustment reasons',M],['Stock card screen',M],['Stock count',M],
+    ['Cycle count',M],['Transfers',M],['In-transit stock',M],['Reservations',M],['Expiry alerts',M],
+    ['Opening stock',P],['Immutable ledger',P],['On-hand not editable',P],['Adjustment approval',P],
+    ['Inventory valuation',P],['Costing policy',P],['Reconciliation',P],['Backdated guard',P]]],
+  ['Sales & checkout',[
+    ['Price lists',M],['Quotes / proforma',M],['Sales orders',M],['Tender methods',M],['Split tender',M],
+    ['Exchange',M],['Park / resume cart',M],['Cash rounding',M],['Draft survives refresh',M],
+    ['Fast checkout',P],['Void with reason',P],['Customer return',P],['Customer notes',P]]],
+  ['Purchasing & suppliers',[
+    ['Supplier record',M],['Purchase order',M],['Purchase approval',M],['Goods receiving',M],
+    ['Partial receiving',M],['Supplier bill',M],['Supplier return',M],['Supplier payment',M],
+    ['Landed costs',M],['Supplier import',M],['Purchase price history',P]]],
+  ['Customers & balances',[
+    ['Customer import/export',M],['Customer merge',M],['Credit limit',M],
+    ['Customer record',P],['Purchase history',P],['Customer statement',P],['Deposits',P]]],
+  ['Payments & cash',[
+    ['Unallocated payment',M],['Payment allocation',P],['Reconciliation report',P]]],
+  ['Reports & analytics',[
+    ['Sales by product',M],['Sales by category',M],['Customer ageing',M],['Supplier balance',M],
+    ['Payment method',M],['Tax summary',M],['Audit report',M],['CSV/XLSX export',M],['Dead stock',M],
+    ['Gross margin',P],['Inventory on-hand',P],['Stock movement',P]]],
+  ['Import & search',[
+    ['Advanced filters',M],['Import preview',M],['Import error report',M],['Import idempotency',M],
+    ['Stable exports',M],['Large exports',M],['Global search',P]]],
+  ['Reliability & audit',[
+    ['Restore drills',M],['Error monitoring',M],['Health checks',M],['Audit trail',P],
+    ['No hard delete',P],['Transaction safety',P],['Idempotency',P],['Concurrent stock guard',P],
+    ['Backup schedule',P],['Data migrations',D]]],
+  ['Screens to build',[
+    ['Setup wizard',M],['Import wizard',M],['Supplier list/detail',M],['Purchase order',M],
+    ['Goods receipt',M],['Supplier bill/payment',M],['Stock adjustment',M],['Stock count',M],
+    ['Stock transfer',M],['Stock ledger',M],['Payments/allocations',M],['Reports center',M],
+    ['User/roles admin',M],['Doc sequence',M],['Audit log',M],['Backup/health',M],['Sales return wizard',M],
+    ['Product detail',P],['Customer detail',P],['Payment dialog',P],['Sales list',P]]],
+  ['Acceptance tests',[
+    ['SALE-002/003/004',M],['SALE-006/007/008',P],['STK-001/002/004',M],['STK-005/006',M],
+    ['PROD-001/002/003',M],['CUST-001',P],['CUST-002',M],['PUR-001/002/003',M],['PAY-001',P],
+    ['PAY-003',M],['CASH-001',P],['CASH-002',M],['RET-001/002/003',P],['RPT-001/002/003',M],
+    ['SEC-001..004',M],['IMP-001/002',M],['DOC-001/002',M],['DATA-001',M],['UX-001',M],
+    ['SALE-001/005',D],['STK-003',D],['Tickets/refunds',D]]],
+  ['Decisions (DEC)',[
+    ['DEC-001 customer',M],['DEC-002 deployment',M],['DEC-003 costing',M],['DEC-005 tax',M],
+    ['DEC-006 POS',M],['DEC-007 locations',M],['DEC-010 pricing',M],
+    ['DEC-004 negative stock',D],['DEC-008 offline',D],['DEC-009 OCR',D]]],
+];
+
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+const w=(d,p,t)=>t?((d+p*0.5)/t*100):0;
+
+function ring(done,partial,missing){
+  const t=done+partial+missing||1, C=100, R=15.915;
+  const dSeg=done/t*C, pSeg=partial/t*C, mSeg=missing/t*C;
+  const arc=(v,off,cls)=>v<=0?'':'<circle class="seg '+cls+'" cx="21" cy="21" r="'+R+'" fill="none" stroke-width="2.4" stroke-dasharray="'+v.toFixed(2)+' '+(C-v).toFixed(2)+'" stroke-dashoffset="'+((25-off).toFixed(2))+'"/>';
+  return '<svg viewBox="0 0 42 42">'
+    +'<circle cx="21" cy="21" r="'+R+'" fill="none" stroke="#ecebe8" stroke-width="2.4"/>'
+    +'<style>.seg.done{stroke:var(--accent)}.seg.partial{stroke:var(--accent-soft)}</style>'
+    +arc(dSeg,0,'done')+arc(pSeg,dSeg,'partial')
+    +'</svg>';
+}
+
+/* ---------- render ---------- */
+(function(){
+  const p=Math.round(w(FEATURES.done,FEATURES.partial,FEATURES.total));
+  $('#bigPct').innerHTML=p+'<span>%</span>';
+  $('#cDone').textContent=FEATURES.done;
+  $('#cPart').textContent=FEATURES.partial;
+  $('#cMiss').textContent=FEATURES.missing;
+  $('#ring').innerHTML=ring(FEATURES.done,FEATURES.partial,FEATURES.missing);
+})();
+
+$('#strip').innerHTML=MILESTONES.map(m=>
+  '<div class="m" title="'+m[1]+'"><div class="blk '+m[2]+'"></div><div class="code">'+m[0]+'</div></div>'
+).join('');
+
+$('#phases').innerHTML=PHASES.map(p=>{
+  const dots={done:'done',partial:'partial',missing:''}[p[2]];
+  return '<div class="row"><span class="dot '+dots+'"></span><span class="name">'+p[0]+' &middot; '+p[1]
+    +'<span class="tag">'+p[3]+'</span></span></div>';
+}).join('')+'<div class="row"><span class="dot"></span><span class="name" style="color:var(--muted)">P0 gaps: '
+  +P0.filter(x=>x[1]===M).length+' not started, '+P0.filter(x=>x[1]===P).length+' partial, 0 done</span></div>';
+
+$('#checklist').innerHTML=CHECK.map(g=>{
+  const rows=g[1].map(i=>{
+    const dots={done:'done',partial:'partial',missing:''}[i[1]];
+    return '<div class="row" data-status="'+i[1]+'"><span class="dot '+dots+'"></span><span class="name">'+i[0]+'</span></div>';
+  }).join('');
+  const n=g[1].length;
+  return '<div class="sub" style="margin-top:22px">'+g[0]+' &middot; '+n+' items</div>'+rows;
+}).join('');
+
+$('#tracks').innerHTML=TRACKS.slice().sort((a,b)=>w(b[2],b[3],b[1])-w(a[2],a[3],a[1]))
+  .map(t=>{
+    const p=Math.round(w(t[2],t[3],t[1]));
+    return '<div class="bar"><span class="bl">'+t[0]+'</span>'
+      +'<span class="track"><i style="width:'+p+'%"></i></span><span class="n">'+p+'%</span></div>';
+  }).join('');
+
+/* ---------- controls ---------- */
+const KEY='dekkan.status.v2';
+const shown=JSON.parse(localStorage.getItem(KEY)||'null')||{milestones:1,phases:1,checklist:1,tracks:1};
+document.querySelectorAll('[data-show]').forEach(b=>{
+  const id=b.dataset.show;
+  b.classList.toggle('on',!!shown[id]);
+  document.querySelector('[data-panel="'+id+'"]').classList.toggle('hidden',!shown[id]);
+  b.addEventListener('click',()=>{
+    shown[id]=shown[id]?0:1;
+    b.classList.toggle('on',!!shown[id]);
+    document.querySelector('[data-panel="'+id+'"]').classList.toggle('hidden',!shown[id]);
+    localStorage.setItem(KEY,JSON.stringify(shown));
+  });
+});
+
+const st={done:1,partial:1,missing:1};
+document.querySelectorAll('[data-status]').forEach(b=>b.addEventListener('click',()=>{
+  const s=b.dataset.status; st[s]=st[s]?0:1; b.classList.toggle('on',!!st[s]);
+  document.querySelectorAll('.row[data-status]').forEach(r=>{
+    r.style.opacity=st[r.dataset.status]?1:.22;
+  });
+}));
+</script>
+</body>
+</html>

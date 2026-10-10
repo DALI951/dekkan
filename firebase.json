@@ -1,0 +1,27 @@
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      ".firebaserc",
+      "**/.*",
+      "node_modules/**",
+      "test/**",
+      "e2e/**",
+      "test-results/**",
+      "playwright-report/**",
+      "docs/**",
+      "scripts/**",
+      "api/**",
+      "*.md",
+      "progress.html",
+      "playwright.config.js",
+      "package.json",
+      "package-lock.json",
+      ".github/**"
+    ]
+  }
+}

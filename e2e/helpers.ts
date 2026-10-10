@@ -5,9 +5,15 @@ const { expect } = require('@playwright/test');
 
 // Open the app like a real user: fresh context (clean browser, clean storage).
 // Captures uncaught page errors — an exception on the page is ALWAYS a bug.
-async function open(page, hash) {
+// The login wall shows on a brand-new browser, so — unless a spec explicitly
+// wants the wall (opts.wall) — we seed "local mode", exactly what a returning
+// on-this-device shopkeeper's browser holds, so the specs reach the till.
+async function open(page, hash, opts) {
   page.__errors = [];
   page.on('pageerror', e => page.__errors.push(String(e)));
+  if (!(opts && opts.wall)) {
+    await page.addInitScript(() => { try { localStorage.setItem('dekkan.mode', 'local'); } catch (e) {} });
+  }
   await page.goto('/' + (hash || ''));
   await page.waitForLoadState('domcontentloaded');
   return page;

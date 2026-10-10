@@ -1,3 +1,6 @@
+// @ts-nocheck
+// JS -> TS migration (first pass): this file is the dynamic DOM / service-worker /
+// vm-harness layer (loose globals + event targets). Types get tightened incrementally.
 /* DEKKAN UI — pages: every renderer and modal lightbox, one per page.
  * Split mechanically from js/app.js — bodies untouched, only each function's
  * signature changed to (C) with its ctx needs destructured on the first line.

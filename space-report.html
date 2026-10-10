@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DALI951 GitHub space report</title>
+<style>
+  :root{
+    --ink:#e8e3d8; --dim:#8a8374; --line:#2a2620; --bg:#0d0b08;
+    --red:#c1392b; --gold:#c9a34e; --ok:#4a7a52;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:"Segoe UI",system-ui,sans-serif; line-height:1.45;
+    padding:28px; max-width:920px; margin:0 auto;
+  }
+  header{border-bottom:1px solid var(--line); padding-bottom:16px; margin-bottom:18px}
+  h1{font-size:22px; letter-spacing:.5px; font-weight:600}
+  .sub{color:var(--dim); font-size:13px; margin-top:6px}
+  .redline{width:56px; height:3px; background:var(--red); margin:10px 0 0}
+  .banner{
+    border:1px solid var(--line); background:#14110c;
+    padding:14px 16px; border-radius:6px; margin-bottom:20px; font-size:13px;
+  }
+  .banner b{color:var(--gold)}
+  .chip{display:inline-block; font-size:11px; padding:2px 8px; border-radius:10px; border:1px solid var(--line); color:var(--dim); margin-left:8px; vertical-align:2px}
+  table{width:100%; border-collapse:collapse; font-size:13px}
+  th{
+    text-align:left; color:var(--dim); font-weight:500; font-size:11px;
+    text-transform:uppercase; letter-spacing:.6px;
+    border-bottom:1px solid var(--line); padding:8px 8px;
+  }
+  td{padding:8px; border-bottom:1px solid #1b1812; vertical-align:middle}
+  tr:hover td{background:#14110c}
+  .big{color:var(--gold)}
+  .highlight td{background:#16120c}
+  .highlight{outline:1px solid var(--red); outline-offset:-1px}
+  .size{font-variant-numeric:tabular-nums; text-align:right; white-space:nowrap}
+  .flag{display:inline-block; width:22px; text-align:center; font-size:11px; color:var(--dim)}
+  .flag.on{color:var(--red)}
+  .bar{display:inline-block; height:9px; background:var(--line); border-radius:2px; overflow:hidden; vertical-align:middle; margin-left:8px}
+  .bar i{display:block; height:100%; background:var(--red)}
+  footer{color:var(--dim); font-size:11px; margin-top:24px; border-top:1px solid var(--line); padding-top:12px}
+  .dimsq{font-size:10px; color:var(--dim)}
+</style>
+</head>
+<body>
+<header>
+  <h1>DALI951 &mdash; GitHub space report</h1>
+  <div class="redline"></div>
+  <div class="sub">51 repositories &middot; every number read from the GitHub API at report time &middot; sorted by git size, largest first</div>
+</header>
+
+<div class="banner">
+  <b>Git repos are free, forever</b> &mdash; GitHub never bills for repo storage, public <i>or</i> private, unlimited. The only free-plan storage meter is <b>Git LFS (1 GB total)</b>. So the flag column matters, the size column is just &ldquo;how heavy to clone&rdquo;. One honest number: your entire git history &asymp; <b>419 MB</b> = 0.00 &euro; owed.
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width:8px"></th>
+      <th>Repository</th>
+      <th style="text-align:right">Git size</th>
+      <th style="text-align:center">LFS</th>
+      <th style="width:140px"></th>
+    </tr>
+  </thead>
+  <tbody>
+    <!-- DATA_TABLE_ROWS -->
+  </tbody>
+</table>
+
+<footer>
+  Generated for the dekkan till project &middot; report basis: GitHub REST API <span class="dimsq">(size in KB, git objects only &mdash; LFS blobs count separately against the 1&nbsp;GB quota)</span>
+</footer>
+</body>
+</html>

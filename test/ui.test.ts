@@ -1,3 +1,6 @@
+// @ts-nocheck
+// JS -> TS migration (first pass): this file is the dynamic DOM / service-worker /
+// vm-harness layer (loose globals + event targets). Types get tightened incrementally.
 /* DEKKAN UI tests — drive the REAL js/app.js inside a stub DOM.
  * Why: the core can be perfect while the page shows nonsense (a formatted
  * money string fed back into maths, a doubled currency, a listener never
@@ -10,6 +13,7 @@ const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
+const { fakeFirebase } = require('./fake-firebase.js');
 
 const ROOT = path.join(__dirname, '..');
 
@@ -71,6 +75,9 @@ function boot(seed, pre, env) {
     (sandbox._h[t] = sandbox._h[t] || []).push(fn);
   };
   sandbox.window.dispatchEvent = function () {};
+  // env.fb = a fake Firebase (test/fake-firebase.js) standing in for the SDK:
+  //   { user: {uid,email,displayName}, docs: {'shops/u7': '<json string>'}, allowGoogle, failGet, ... }
+  if (env && env.fb) sandbox.DEKKAN_FIREBASE = fakeFirebase(env.fb);
   vm.createContext(sandbox);
 
   const core = require(path.join(ROOT, 'core', 'dekkan-core.js'));
@@ -84,7 +91,7 @@ function boot(seed, pre, env) {
 
   ['core/dekkan-core.js', 'core/core.js', 'core/products.js', 'core/debts.js',
     'core/sales.js', 'core/refunds.js', 'core/employees.js', 'core/cashbox.js', 'core/report.js', 'core/shop.js', 'core/pin.js',
-    'js/themes.js', 'js/lang.js', 'js/fmt.js', 'js/pages.js', 'js/actions.js', 'js/auth.js', 'js/app.js'].forEach(f => {
+    'js/themes.js', 'js/lang.js', 'js/fmt.js', 'js/pages.js', 'js/actions.js', 'js/config.js', 'js/auth.js', 'js/app.js'].forEach(f => {
     vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f });
   });
 
@@ -112,7 +119,7 @@ function boot(seed, pre, env) {
     saved().day.entries.forEach(e => { t += e.amount; });
     return Math.round(t * 1000) / 1000;
   };
-  return { $, click, goto, saved, cashNow, pid: s.products[0].id, T: sandbox.T, doc, store, sandbox };
+  return { $, click, goto, saved, cashNow, pid: s.products[0].id, T: sandbox.T, doc, store, sandbox, settle: () => new Promise(r => setTimeout(r, 15)) };
 }
 
 test('the amount due is on screen, follows the basket, and moves while typing', () => {
@@ -584,28 +591,60 @@ test('the clients page shows saved client data, purchases, refunds and debt hist
 assert.ok(html.indexOf('1.000') !== -1, 'open owed total is shown');
 });
 
-// ---------- ACCOUNT (cloud backup — no gate, no ambush, no silent overwrite) ----------
+// ---------- THE LOGIN WALL (it works always: no session + not local = wall up) ----------
 
-test('no saved session: the shop opens straight into the till — nothing pops up', () => {
+test('no saved session and not local: the login wall is up on boot', async () => {
   const ui = boot();
-  assert.strictEqual(ui.$('gate').style.display, 'none', 'no gate on boot, ever');
-  assert.ok(ui.T.t('auth.title').length > 0, 'account strings are translated');
-  assert.ok(ui.T.t('auth.err.badCredentials').length > 0, 'error strings are translated');
+  await ui.settle();
+  assert.strictEqual(ui.$('gate').style.display, '', 'the wall is visible, not hidden');
+  assert.ok(ui.T.t('auth.wallTitle').length > 0, 'the wall title is translated');
+  assert.ok(ui.T.t('auth.google').length > 0, 'the google option is translated');
+  assert.ok(ui.T.t('auth.local').length > 0, 'the local option is translated');
 });
 
-test('a saved session still opens the till — the account lives in settings', () => {
-  const ui = boot(null, store => {
-    store['dekkan.token'] = 'a'.repeat(64);
-    store['dekkan.user'] = JSON.stringify({ id: 7, email: 'boss@shop.tn', shopName: 'Test Shop' });
-  });
-  assert.strictEqual(ui.$('gate').style.display, 'none', 'no gate on boot, signed in or not');
+test('the wall offers BOTH ways in: Google and local', async () => {
+  const ui = boot();
+  await ui.settle();
+  assert.ok(ui.$('btnGoogle'), 'a Google sign-in button is on the wall');
+  assert.strictEqual(ui.$('btnGoogleLabel').textContent, ui.T.t('auth.google'));
+  assert.strictEqual(ui.$('gateSkip').textContent, ui.T.t('auth.local'));
+});
+
+test('choosing "local only" on the wall opens the till and remembers the choice', async () => {
+  const ui = boot();
+  await ui.settle();
+  ui.$('gateSkip').fire('click');
+  assert.strictEqual(ui.$('gate').style.display, 'none', 'the wall closed');
+  assert.strictEqual(ui.store['dekkan.mode'], 'local', 'the choice is remembered on this device');
+});
+
+test('a device already in local mode opens straight into the till (no wall)', async () => {
+  const ui = boot(null, store => { store['dekkan.mode'] = 'local'; });
+  await ui.settle();
+  assert.strictEqual(ui.$('gate').style.display, 'none', 'no wall for a local shop');
+});
+
+test('a restored session still opens the till — the account lives in Firebase', async () => {
+  const ui = boot(null, null, { fb: { user: { uid: 'u7', email: 'boss@shop.tn', displayName: 'Test Shop' } } });
+  await ui.settle();
+  assert.strictEqual(ui.$('gate').style.display, 'none', 'no wall when signed in');
   ui.goto('#/settings');
   assert.strictEqual(ui.$('accountEmail').textContent, 'boss@shop.tn', 'signed-in email is shown');
   assert.strictEqual(ui.$('accountMode').textContent, ui.T.t('settings.accountSigned'), 'mode says signed in');
 });
 
-test('no session: settings shows local mode, a way IN, and hides sign-out', () => {
-  const ui = boot();
+test('signing out brings the wall back', async () => {
+  const ui = boot(null, null, { fb: { user: { uid: 'u7', email: 'boss@shop.tn', displayName: 'Test Shop' } } });
+  await ui.settle();
+  ui.goto('#/settings');
+  ui.$('btnSignOut').fire('click');
+  await ui.settle();
+  assert.strictEqual(ui.$('gate').style.display, '', 'the wall is up after signing out');
+});
+
+test('no session: settings shows local mode, a way IN, and hides sign-out', async () => {
+  const ui = boot(null, store => { store['dekkan.mode'] = 'local'; });
+  await ui.settle();
   ui.goto('#/settings');
   assert.strictEqual(ui.$('accountEmail').textContent, '—', 'no email to show');
   assert.strictEqual(ui.$('accountMode').textContent, ui.T.t('settings.accountLocal'), 'mode says local');
@@ -618,17 +657,13 @@ test('a cloud copy that differs from a till WITH moves never overwrites it silen
   const cloud = { shop: { name: 'Other Shop', currency: 'TND' }, days: [], products: [{ id: 'p9', name: 'Ghost', buy: 1, sell: 2, stock: 3, lowAt: 0 }], debts: [], customers: [], day: { date: '2000-01-01', startCash: 999, soldCost: 0, entries: [], checks: [] } };
   const ui = boot(
     (core, s) => core.sellAll(s, { items: [{ id: s.products[0].id, qty: 1 }] }),   // 1 local sale
-    store => {
-      store['dekkan.token'] = 'a'.repeat(64);
-      store['dekkan.user'] = JSON.stringify({ id: 7, email: 'boss@shop.tn', shopName: 'Test Shop' });
-    },
+    null,
     {
       confirm: () => { asked++; return false; },                                     // he says NO
-      fetch: (url) => Promise.resolve(String(url).indexOf('state.php') !== -1
-        ? { ok: true, status: 200, json: () => Promise.resolve(cloud) }
-        : { ok: false, status: 404, json: () => Promise.resolve({ error: 'no_state' }) })
+      fb: { user: { uid: 'u7', email: 'boss@shop.tn', displayName: 'Test Shop' },
+        docs: { 'shops/u7': JSON.stringify(cloud) } }
     });
-  await new Promise(r => setTimeout(r, 10));
+  await new Promise(r => setTimeout(r, 25));
 
   assert.strictEqual(asked, 1, 'he was asked before anything was replaced');
   const s = ui.saved();
@@ -641,17 +676,13 @@ test('taking the cloud copy backs up the till it replaces', async () => {
   const cloud = { shop: { name: 'Other Shop', currency: 'TND' }, days: [], products: [], debts: [], customers: [], day: { date: '2000-01-01', startCash: 999, soldCost: 0, entries: [], checks: [] } };
   const ui = boot(
     (core, s) => core.sellAll(s, { items: [{ id: s.products[0].id, qty: 1 }] }),
-    store => {
-      store['dekkan.token'] = 'a'.repeat(64);
-      store['dekkan.user'] = JSON.stringify({ id: 7, email: 'boss@shop.tn', shopName: 'Test Shop' });
-    },
+    null,
     {
       confirm: () => true,
-      fetch: (url) => Promise.resolve(String(url).indexOf('state.php') !== -1
-        ? { ok: true, status: 200, json: () => Promise.resolve(cloud) }
-        : { ok: false, status: 404, json: () => Promise.resolve({ error: 'no_state' }) })
+      fb: { user: { uid: 'u7', email: 'boss@shop.tn', displayName: 'Test Shop' },
+        docs: { 'shops/u7': JSON.stringify(cloud) } }
     });
-  await new Promise(r => setTimeout(r, 10));
+  await new Promise(r => setTimeout(r, 25));
 
   assert.strictEqual(ui.saved().shop.name, 'Other Shop', 'the cloud copy is live');
   const backup = JSON.parse(ui.store['dekkan.premerge']);
@@ -663,32 +694,25 @@ test('an empty till takes a cloud copy quietly — nothing to lose, nothing to a
   let asked = 0;
   const cloud = { shop: { name: 'Other Shop', currency: 'TND' }, days: [], products: [], debts: [], customers: [], day: { date: '2000-01-01', startCash: 999, soldCost: 0, entries: [], checks: [] } };
   const ui = boot(null,
-    store => {
-      store['dekkan.token'] = 'a'.repeat(64);
-      store['dekkan.user'] = JSON.stringify({ id: 7, email: 'boss@shop.tn', shopName: 'Test Shop' });
-    },
+    null,
     {
       confirm: () => { asked++; return true; },
-      fetch: (url) => Promise.resolve(String(url).indexOf('state.php') !== -1
-        ? { ok: true, status: 200, json: () => Promise.resolve(cloud) }
-        : { ok: false, status: 404, json: () => Promise.resolve({ error: 'no_state' }) })
+      fb: { user: { uid: 'u7', email: 'boss@shop.tn', displayName: 'Test Shop' },
+        docs: { 'shops/u7': JSON.stringify(cloud) } }
     });
-  await new Promise(r => setTimeout(r, 10));
+  await new Promise(r => setTimeout(r, 25));
   assert.strictEqual(asked, 0, 'no pointless question');
   assert.strictEqual(ui.saved().shop.name, 'Other Shop', 'his shop came down from the cloud');
 });
 
-test('settings says the session expired instead of the gate reappearing', async () => {
+test('settings tells the truth when the cloud call fails (a dead sync is not a phantom logout)', async () => {
   const ui = boot(null,
-    store => {
-      store['dekkan.token'] = 'a'.repeat(64);
-      store['dekkan.user'] = JSON.stringify({ id: 7, email: 'boss@shop.tn', shopName: 'Test Shop' });
-    },
-    { fetch: () => Promise.resolve({ ok: false, status: 401, json: () => Promise.resolve({ error: 'invalid_token' }) }) });
-  await new Promise(r => setTimeout(r, 10));
+    null,
+    { fb: { user: { uid: 'u7', email: 'boss@shop.tn', displayName: 'Test Shop' }, failGet: true } });
+  await new Promise(r => setTimeout(r, 25));
   ui.goto('#/settings');
   assert.strictEqual(ui.$('gate').style.display, 'none', 'still no gate');
-  assert.strictEqual(ui.$('accountSync').textContent, ui.T.t('auth.expired'), 'he is told why the cloud is off');
+  assert.strictEqual(ui.$('accountSync').textContent, ui.T.t('auth.syncFailed'), 'he is told why the cloud is off');
 });
 
 // ---------- LOGIC: the bill on screen must be the bill that runs ----------

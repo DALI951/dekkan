@@ -165,7 +165,7 @@ test('sellAll validation is strict — a bad call changes NOTHING', () => {
   assert.throws(function () { D.sellAll(s, {}); }, /nothing to sell/);
   assert.throws(function () { D.sellAll(s, { items: [{ id: s.products[0].id, qty: 0 }] }); }, /qty/);
   assert.throws(function () { D.sellAll(s, { items: [{ id: s.products[0].id, qty: 1e15 }] }); }, /stock/);
-  assert.throws(function () { D.sellAll(s, { items: [{ id: 'nope', qty: 1 }] }); }, /product/);
+  assert.throws(function () { D.sellAll(s, { items: [{ id: 'nope', qty: 1 }] }); }, /prodNotFound/);
   assert.throws(function () { D.sellAll(s, { items: [{ id: s.products[0].id, qty: 1, price: -1 }] }); }, /price/);
   assert.throws(function () { D.sellAll(s, { free: [{ price: 2, qty: 1 }] }); }, /name/);
   assert.throws(function () { D.sellAll(s, { free: [{ name: 'C', price: -2, qty: 1 }] }); }, /price/);

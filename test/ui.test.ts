@@ -86,6 +86,12 @@ function boot(seed, pre, env) {
   s = core.addProduct(s, { name: 'Coca', buy: 0.8, sell: 1.5, stock: 10, lowAt: 3 });
   if (seed) s = seed(core, s);
   store['dekkan.v1'] = JSON.stringify(s);
+  // This suite drives the ARABIC UI it was written for — pin the language here
+  // so the assertions below stay about behaviour, not about which language a
+  // fresh browser happens to default to. (The fresh-browser default — English —
+  // is covered by test/ui-lang.test.ts and the e2e LANG specs.) A test that
+  // wants another language overrides it in `pre`.
+  if (!('dekkan.lang' in store)) store['dekkan.lang'] = 'ar';
   // `pre` runs LAST: filling localStorage is the whole point (an old state on the
   // device, a saved session) and it must win over the freshly built shop
   if (pre) pre(store);

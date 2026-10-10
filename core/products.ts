@@ -77,7 +77,7 @@ function getProduct(state, id) {
 function setProduct(state, id, patch) {
   state = rollover(clone(state));
   const p = getProduct(state, id);
-  if (!p) throw new Error('product not found');
+  if (!p) throw new Error('toast.prodNotFound');
   if ('name' in patch && (typeof patch.name !== 'string' || !patch.name.trim())) throw new Error('name invalid');
   if ('sell' in patch && (typeof patch.sell !== 'number' || patch.sell < 0)) throw new Error('sell price invalid');
   if ('buy' in patch && (typeof patch.buy !== 'number' || patch.buy < 0)) throw new Error('buy price invalid');
@@ -103,7 +103,7 @@ function setProduct(state, id, patch) {
 function removeProduct(state, id) {
   state = rollover(clone(state));
   const p = getProduct(state, id);
-  if (!p) throw new Error('product not found');
+  if (!p) throw new Error('toast.prodNotFound');
   if (p.stock > 0) throw new Error('product still has stock: ' + p.stock);
   state.products = state.products.filter(function (x) { return x.id !== p.id; });
   return state;
@@ -138,17 +138,17 @@ function discountOff(state, revenue, discountOrNull) {
 function buyStock(state, productId, qty, unitBuy, supplier) {
   state = rollover(clone(state));
   const p = getProduct(state, productId);
-  if (!p) throw new Error('product not found');
+  if (!p) throw new Error('toast.prodNotFound');
   if (!Number.isFinite(qty) || qty <= 0) throw new Error('qty must be positive');
   const u = money(unitBuy);
   if (u < 0) throw new Error('unit buy price cannot be negative');
   const total = money(qty * u);
   const floorQty = Math.floor(qty);
   p.stock += floorQty;
-  const extra: any = { qty: floorQty, unitBuy: u };
+  var extra; extra = { qty: floorQty, unitBuy: u };
   // PUR-001: the buy can name its supplier (string name or {name, contact});
   // recorded on the entry so history per supplier survives day rollover.
-  const sup = supplierOf(supplier);
+  var sup = supplierOf(supplier);
   if (sup) extra.supplier = sup;
   pushEntry(state, 'buy', -total, productId, p.name + ' x' + floorQty, extra);
   // the restock is a shelf movement, linked to the buy entry it belongs to

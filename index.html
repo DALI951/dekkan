@@ -1,28 +1,28 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0e0c0a">
 <meta name="color-scheme" content="dark">
-<title>دكّان — صندوق المحل</title>
+<title>Dekkan — your shop till</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="description" content="دكّان — دفتر الصندوق والمخزون والديون لمحلك الصغير">
+  <meta name="description" content="Dekkan — a till, a stock list and a debt notebook for your small shop">
 <link rel="stylesheet" href="css/style.css">
 <script src="ui/themes.js"></script>
 <script>if (window.DEK) window.DEK.Themes.restore();</script>
 <script>
-  /* Same no-flash pattern as themes: if English is what the shopkeeper saved,
-   * declare the LEFT direction BEFORE the first paint — otherwise a hard
-   * refresh draws the Arabic-side shell until lang.js boots and flips it. */
+  /* Same no-flash pattern as themes: English is the shipped default, and the
+   * inline default above is already en/ltr. Only a shopkeeper who explicitly
+   * saved Arabic gets the RIGHT direction declared BEFORE the first paint. */
   (function () {
     var l = null;
     try { l = localStorage.getItem('dekkan.lang'); } catch (e) {}
-    if (l === 'en') { document.documentElement.lang = 'en'; document.documentElement.dir = 'ltr'; }
+    if (l === 'ar') { document.documentElement.lang = 'ar'; document.documentElement.dir = 'rtl'; }
   })();
 </script>
 </head>
@@ -154,7 +154,7 @@
       <div class="subrow"><button class="btn" id="btnAddProduct" data-i18n="stock.new">منتج جديد</button></div>
     </div>
     <div id="stockList" class="stack"></div>
-    <div <div id="buyForm" class="card hidden">
+    <div id="buyForm" class="card hidden">
 <h3 data-i18n="buy.title"></h3>
 <div class="grid2">
 <label><span data-i18n="buy.qty"></span><input type="number" id="bQty" min="1" value="10"></label>
@@ -167,7 +167,7 @@
 <button class="btn primary" id="btnSaveBuy" data-i18n="buy.save"></button>
 </div>
 </div>
-id="productForm" class="card hidden">
+    <div id="productForm" class="card hidden">
       <h3 id="productFormTitle" data-i18n="stock.new">منتج جديد</h3>
       <div class="grid2">
         <label><span data-i18n="stock.name">الاسم</span><input type="text" id="pName"></label>

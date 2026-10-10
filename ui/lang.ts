@@ -203,6 +203,7 @@
     'toast.prodName': 'اكتب اسم المنتوج', 'toast.prodPrice': 'اكتب ثمن البيع',
     'toast.stockBad': 'الكمية لا تكون بالسالب',
     'toast.savedOk': 'تم الحفظ',
+    'toast.prodNotFound': 'Product not found',
     'toast.debtName': 'اكتب الاسم والمبلغ', 'toast.debtOk': 'سُجّل الدين',
     'toast.amount': 'اكتب المبلغ', 'toast.payOk': 'تم السداد',
     'toast.payOver': 'المبلغ أكبر من الباقي على الزبون: ',
@@ -439,6 +440,7 @@
     'toast.refundOk': 'Refund recorded',
     'toast.prodName': 'Type the product name', 'toast.prodPrice': 'Type the sell price', 'toast.stockBad': 'Quantity cannot be negative',
     'toast.savedOk': 'Saved',
+    'toast.prodNotFound': 'المنتج غير موجود',
     'toast.debtName': 'Enter the name and amount', 'toast.debtOk': 'Debt recorded',
     'toast.amount': 'Enter an amount', 'toast.payOk': 'Payment recorded',
     'toast.payOver': 'That is more than the remaining debt: ',
@@ -507,14 +509,16 @@
     }
   };
 
+  // English is the first-time default: a fresh visitor lands in EN, and only
+  // an explicit AR choice (persisted) brings the Arabic UI back.
   var saved = null;
   try { saved = localStorage.getItem(LS_LANG); } catch (e) {}
-  T.lang = saved === 'en' ? 'en' : 'ar';
+  T.lang = saved === 'ar' ? 'ar' : 'en';
 
-  // The shell ships RTL (index.html: <html lang="ar" dir="rtl">). A hard refresh
-  // with English persisted used to restore only the TEXT — the document kept the
-  // Arabic side until the user re-toggled. Declare the real direction here too,
-  // on every boot, so the layout and the words always agree.
+  // The shell ships LEFT (index.html: <html lang="en" dir="ltr">) — English is
+  // the default. A shopkeeper who saved Arabic gets RTL declared inline before
+  // the first paint; here we declare the real direction on every boot so the
+  // layout and the words always agree.
   document.documentElement.lang = T.lang;
   document.documentElement.dir = T.lang === 'ar' ? 'rtl' : 'ltr';
 

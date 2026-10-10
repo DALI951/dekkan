@@ -65,7 +65,7 @@ function refund(state, opts) {
   for (const it of items) {
     if (!Number.isFinite(it.qty) || it.qty <= 0) throw new Error('refund qty must be positive');
     const p = getProduct(state, it.id);
-    if (!p) throw new Error('product not found');
+    if (!p) throw new Error('toast.prodNotFound');
     const take = Math.floor(it.qty);
     // you can only give back what actually left the shelf today
     const broad = (state.day.soldByProduct = state.day.soldByProduct || {});

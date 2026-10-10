@@ -25,7 +25,7 @@ function sellAll(state, opts) {
     if (!Number.isFinite(it.qty) || it.qty <= 0) throw new Error('qty must be positive');
     if (it.price != null && (!Number.isFinite(it.price) || it.price < 0)) throw new Error('price must be zero or more');
     const p = getProduct(state, it.id);
-    if (!p) throw new Error('product not found');
+    if (!p) throw new Error('toast.prodNotFound');
     if (p.stock < Math.floor(it.qty)) {
       throw new Error('not enough stock for ' + p.name + ' (have ' + p.stock + ', need ' + it.qty + ')');
     }
@@ -103,7 +103,7 @@ function sell(state, opts) {
     if (!Number.isFinite(it.qty) || it.qty <= 0) throw new Error('qty must be positive');
     if (it.price != null && (!Number.isFinite(it.price) || it.price < 0)) throw new Error('price must be zero or more');
     const p = getProduct(state, it.id);
-    if (!p) throw new Error('product not found');
+    if (!p) throw new Error('toast.prodNotFound');
     if (p.stock < Math.floor(it.qty)) {
       throw new Error('not enough stock for ' + p.name + ' (have ' + p.stock + ', need ' + it.qty + ')');
     }

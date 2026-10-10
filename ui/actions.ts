@@ -239,7 +239,14 @@
       if (editProductId === 'new') {
         C.state = D.addProduct(state, { name: name, buy: buy, sell: sell, stock: stock, lowAt: lowAt, sku: sku });
       } else {
-        C.state = D.setProduct(state, editProductId, { name: name, buy: buy, sell: sell, stock: stock, lowAt: lowAt, sku: sku });
+        try {
+          C.state = D.setProduct(state, editProductId, { name: name, buy: buy, sell: sell, stock: stock, lowAt: lowAt, sku: sku });
+        } catch (e) {
+          // the product died under us (another tab / a fresh clone): don't fail the save
+          if (e.message === 'toast.prodNotFound') {
+            C.state = D.addProduct(state, { name: name, buy: buy, sell: sell, stock: stock, lowAt: lowAt, sku: sku });
+          } else throw e;
+        }
       }
       save(); C.editProductId = null;
       $('productForm').classList.add('hidden');

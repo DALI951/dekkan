@@ -213,7 +213,7 @@
     const revealProductForm = DEK.pages.revealProductForm;
     C.editProductId = 'new';
     $('productFormTitle').textContent = T.t('stock.new');
-    $('pName').value = ''; $('pBuy').value = ''; $('pSell').value = ''; $('pStock').value = '0'; $('pLow').value = '3';
+    $('pName').value = ''; $('pBuy').value = ''; $('pSell').value = ''; $('pStock').value = '0'; $('pLow').value = '3'; $('pSku').value = '';
     $('productForm').classList.remove('hidden');
     revealProductForm(C);
   }
@@ -229,6 +229,7 @@
     const sell = parseFloat($('pSell').value);
     const stock = parseInt($('pStock').value, 10) || 0;
     const lowAt = parseInt($('pLow').value, 10) || 0;
+    const sku = $('pSku').value;
     try {
       if (!name) throw new Error(T.t('toast.prodName'));
       if (!(sell >= 0)) throw new Error(T.t('toast.prodPrice'));
@@ -236,9 +237,9 @@
       if (stock < 0) throw new Error(T.t('toast.stockBad'));
       if (lowAt < 0) throw new Error(T.t('toast.stockBad'));
       if (editProductId === 'new') {
-        C.state = D.addProduct(state, { name: name, buy: buy, sell: sell, stock: stock, lowAt: lowAt });
+        C.state = D.addProduct(state, { name: name, buy: buy, sell: sell, stock: stock, lowAt: lowAt, sku: sku });
       } else {
-        C.state = D.setProduct(state, editProductId, { name: name, buy: buy, sell: sell, stock: stock, lowAt: lowAt });
+        C.state = D.setProduct(state, editProductId, { name: name, buy: buy, sell: sell, stock: stock, lowAt: lowAt, sku: sku });
       }
       save(); C.editProductId = null;
       $('productForm').classList.add('hidden');
@@ -536,8 +537,8 @@
       const p = D.getProduct(C.state, id);
       C.editProductId = id;
       $('productFormTitle').textContent = T.t('stock.edit') + ': ' + p.name;
-      $('pName').value = p.name; $('pBuy').value = p.buy; $('pSell').value = p.sell;
-      $('pStock').value = p.stock; $('pLow').value = p.lowAt;
+$('pName').value = p.name; $('pBuy').value = p.buy; $('pSell').value = p.sell;
+    $('pStock').value = p.stock; $('pLow').value = p.lowAt; $('pSku').value = p.sku || '';
       $('productForm').classList.remove('hidden');
       P.revealProductForm(C); // the label only exists NOW — make sure it is actually on screen
     }

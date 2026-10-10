@@ -534,7 +534,8 @@
     'stockCard.move.undo': 'تراجع'
   });
   Object.assign(AR, {
-    'receipt.doc': 'وثيقة رقم'
+    'receipt.doc': 'وثيقة رقم',
+    'stock.sku': 'رمز المنتج (SKU)'
   });
 
   Object.assign(EN, {
@@ -549,7 +550,8 @@
     'stockCard.move.refund': 'Refund',
     'stockCard.move.adjust': 'Adjustment',
     'stockCard.move.undo': 'Undo',
-    'receipt.doc': 'Doc #'
+    'receipt.doc': 'Doc #',
+    'stock.sku': 'SKU'
   });
 
   window.T = T;

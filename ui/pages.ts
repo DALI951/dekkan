@@ -69,12 +69,13 @@
     $('btnRefundMode').classList.toggle('on', refundMode);
     $('refundPanel').classList.toggle('hidden', !refundMode);
 
-    // the search box filters the tiles as the shopkeeper types
+    // the search box filters the tiles as the shopkeeper types (name OR SKU)
     const q = (($('sellSearch') || {}).value || '').trim().toLowerCase();
+    const listed = q ? (D.searchProducts ? D.searchProducts(state, q) : state.products) : state.products;
 
     let html = '';
-    state.products.forEach(function (p) {
-      if (q && p.name.toLowerCase().indexOf(q) < 0) return;
+    listed.forEach(function (p) {
+      if (q && p.name.toLowerCase().indexOf(q) < 0 && (p.sku || '').toLowerCase().indexOf(q) < 0) return;
       const low = p.lowAt > 0 && p.stock <= p.lowAt;
       const out = p.stock <= 0;
       html += '<button class="sell-tile' + (out ? ' out' : '') + '" data-id="' + p.id + '"' + (out ? ' disabled' : '') + ' data-action="sell-add">'

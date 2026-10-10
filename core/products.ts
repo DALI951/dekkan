@@ -9,6 +9,39 @@
   const { uid, money, cash, pushEntry, rollover, sell, clone, idTrusted, stockMove } = K;
 
 
+// ---------- SKU (CAT-001 / PROD-001) ----------
+// Normalize: trim, collapse inner whitespace, uppercase. Collision rule:
+// unique PER SHOP (two shops may share an SKU — the sell screen is one shop).
+function normalizeSku(raw) {
+  if (raw === undefined || raw === null) return '';
+  return String(raw).trim().replace(/\s+/g, ' ').toUpperCase();
+}
+
+
+// the error thrown on collision — distinctive so the UI can translate it
+function duplicateSkuError(incoming) {
+  return new Error('duplicate sku: ' + incoming);
+}
+
+
+function assertSkuFree(state, sku, exceptId) {
+  if (!sku) return;
+  const hit = state.products.find(function (p) { return p.sku === sku && p.id !== exceptId; });
+  if (hit) throw duplicateSkuError(sku);
+}
+
+
+// the catalog search: name OR normalized SKU, case-insensitive substring
+function searchProducts(state, q) {
+  const needle = String(q || '').trim().toLowerCase();
+  if (!needle) return state.products.slice();
+  return state.products.filter(function (p) {
+    return p.name.toLowerCase().indexOf(needle) !== -1 ||
+      (p.sku || '').toLowerCase().indexOf(needle) !== -1;
+  });
+}
+
+
 // ---------- products ----------
 
 function addProduct(state, p) {
@@ -17,13 +50,16 @@ function addProduct(state, p) {
   if (typeof p.sell !== 'number' || p.sell < 0) throw new Error('product needs a valid sell price');
   if (p.stock != null && (!Number.isFinite(p.stock) || p.stock < 0)) throw new Error('stock cannot be negative');
   if (p.lowAt != null && (!Number.isFinite(p.lowAt) || p.lowAt < 0)) throw new Error('lowAt cannot be negative');
+  const sku = normalizeSku(p.sku);
+  assertSkuFree(state, sku, null);
   const item = {
     id: uid(),
     name: p.name.trim(),
     buy: money(p.buy || 0),
     sell: money(p.sell),
     stock: Math.floor(p.stock || 0),
-    lowAt: Math.floor(p.lowAt || 0)
+    lowAt: Math.floor(p.lowAt || 0),
+    sku: sku
   };
   state.products.push(item);
   // the first shelf movement is the opening count (source-linked ledger)
@@ -51,6 +87,8 @@ function setProduct(state, id, patch) {
   if ('lowAt' in patch && patch.lowAt < 0) throw new Error('lowAt cannot be negative');
   if ('stock' in patch) patch.stock = Math.floor(patch.stock);
   if ('lowAt' in patch) patch.lowAt = Math.floor(patch.lowAt);
+  if ('sku' in patch) patch.sku = normalizeSku(patch.sku);
+  if ('sku' in patch) assertSkuFree(state, patch.sku, p.id);
   const oldStock = p.stock;
   for (const k in patch) p[k] = patch[k];
   // a direct stock edit is an ADJUSTMENT, never a silent overwrite (the workbook rule)
@@ -118,4 +156,6 @@ function buyStock(state, productId, qty, unitBuy) {
   K.removeProduct = removeProduct;
   K.discountOff = discountOff;
   K.buyStock = buyStock;
+K.normalizeSku = normalizeSku;
+K.searchProducts = searchProducts;
 });

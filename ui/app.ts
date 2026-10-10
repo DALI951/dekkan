@@ -104,6 +104,7 @@
     }
     if (!Array.isArray(s.employees)) s.employees = [];
     if (!Array.isArray(s.products)) s.products = [];
+    if (!Array.isArray(s.movements)) s.movements = [];
     if (!Array.isArray(s.days)) s.days = [];
     if (!Array.isArray(s.debts)) s.debts = [];
     if (!s.settings || typeof s.settings !== 'object') s.settings = {};
@@ -121,6 +122,7 @@
       if (typeof s.day.startCash !== 'number' || !isFinite(s.day.startCash)) s.day.startCash = 0;
       if (typeof s.day.soldCost !== 'number' || !isFinite(s.day.soldCost)) s.day.soldCost = 0;
     }
+    if (D.ensureMovements) D.ensureMovements(s);
     return s;
   }
   // a day that opens right now (used when a state arrives with no open day)

@@ -36,7 +36,7 @@ function createShop(opts) {
   const start = money(opts.startCash || 0);
   const now = new Date().toISOString();
   return {
-    version: 3,
+    version: 4,
     shop: { name: opts.name || 'My Shop', currency: opts.currency || 'TND' },
     // Options the shopkeeper can turn on/off. The UI shows/hides them.
     settings: {
@@ -51,6 +51,8 @@ function createShop(opts) {
     categories: { in: [], out: [] },
     products: [],
     debts: [],
+    // the STOCK LEDGER (see stockMove): every shelf change, append-only + source-linked
+    movements: [],
     employees: [],
     days: [],
     // the OPEN day: entries (money moves) + checks (drawer counts) + soldCost (for profit)
@@ -172,6 +174,7 @@ function restoreState(raw) {
     s.categories = { in: [], out: [] };
   }
   if (!Array.isArray(s.employees)) s.employees = [];
+  ensureMovements(s);
   return s;
 }
 
@@ -180,6 +183,81 @@ function restoreState(raw) {
 function idTrusted(state, id) {
   if (id && typeof id === 'object' && id.id) return id.id;
   return id;
+}
+
+
+// ---------- the STOCK LEDGER (append-only, source-linked) ----------
+// The workbook rule: on-hand comes from source-linked movements; users never
+// type over stock. Every change to a product's count is ONE immutable movement:
+//   kind: 'opening' | 'buy' | 'sale' | 'refund' | 'adjust' | 'undo'
+//   qty : signed whole units (+ into the shelf, - out of it)
+//   ref : the thing that caused it (a sale/refund/buy entry id), when there is one
+// product.stock stays the fast counter; the movements are the audit trail.
+// stockIntegrity() proves they agree; reconcileStock() rebuilds the counter.
+
+function stockMove(state, productId, qty, kind, ref, note) {
+  const q = Math.floor(qty);
+  if (!Number.isFinite(q) || q === 0) throw new Error('stock move must be a non-zero whole number');
+  state.movements = state.movements || [];
+  state.movements.push({
+    id: uid(), at: new Date().toISOString(), productId: productId,
+    qty: q, kind: kind || 'adjust', ref: ref != null ? ref : null, note: note != null ? note : null
+  });
+  return state;
+}
+
+
+function stockMovementsFor(state, productId) {
+  return (state.movements || []).filter(function (m) { return m.productId === productId; });
+}
+
+
+// on-hand recomputed purely from the movements (0 when none were recorded)
+function stockFromMovements(state, productId) {
+  let n = 0;
+  for (const m of (state.movements || [])) if (m.productId === productId) n += m.qty;
+  return n;
+}
+
+
+// the audit: every product whose counter disagrees with its ledger ([] = healthy)
+function stockIntegrity(state) {
+  const bad = [];
+  for (const p of (state.products || [])) {
+    const fromMoves = stockFromMovements(state, p.id);
+    if (fromMoves !== p.stock) bad.push({ id: p.id, name: p.name, stock: p.stock, fromMovements: fromMoves });
+  }
+  return bad;
+}
+
+
+// rebuild the counter from the ledger (products that have movements only)
+function reconcileStock(state) {
+  state = clone(state);
+  for (const p of state.products) {
+    const has = (state.movements || []).some(function (m) { return m.productId === p.id; });
+    if (has) p.stock = stockFromMovements(state, p.id);
+  }
+  return state;
+}
+
+
+// Give any product that has NO ledger a single 'opening' movement equal to its
+// saved count, so an old save (or a hand-imported backup) becomes a valid ledger.
+// Safe to call on every load: products that already have movements are untouched.
+function ensureMovements(state) {
+  if (!Array.isArray(state.movements)) state.movements = [];
+  for (const p of (state.products || [])) {
+    if (!p || p.id == null) continue;
+    const has = state.movements.some(function (m) { return m.productId === p.id; });
+    if (!has && Number.isFinite(p.stock) && Math.floor(p.stock) !== 0) {
+      state.movements.push({
+        id: uid(), at: new Date().toISOString(), productId: p.id,
+        qty: Math.floor(p.stock), kind: 'opening', ref: null, note: null
+      });
+    }
+  }
+  return state;
 }
 
   K.uid = uid;
@@ -197,4 +275,10 @@ function idTrusted(state, id) {
   K.clone = clone;
   K.restoreState = restoreState;
   K.idTrusted = idTrusted;
+  K.stockMove = stockMove;
+  K.stockMovementsFor = stockMovementsFor;
+  K.stockFromMovements = stockFromMovements;
+  K.stockIntegrity = stockIntegrity;
+  K.reconcileStock = reconcileStock;
+  K.ensureMovements = ensureMovements;
 });

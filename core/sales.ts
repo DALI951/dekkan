@@ -6,7 +6,7 @@
   if (typeof module === 'object' && module.exports) module.exports = factory;
   if (typeof window !== 'undefined' && root.DEK && root.DEK.core) factory(root.DEK.core);
 })(typeof self !== 'undefined' ? self : this, function (K) {
-  const { money, cash, pushEntry, ensureCustomer, rollover, getProduct, discountOff, addDebt, getDebtByName, clone } = K;
+  const { money, cash, pushEntry, ensureCustomer, rollover, getProduct, discountOff, addDebt, getDebtByName, clone, stockMove } = K;
 
 
 // FULL CHECKOUT — one customer, one bill, one numbered sale entry.
@@ -67,7 +67,22 @@ function sellAll(state, opts) {
   const bill = billOf(lines, disc, net, paidVal, cashIn);
 
   state = applyPayment(state, net, opts, refs.join(', '), bill);
+  recordSaleMoves(state, items);
   return clone(state);
+}
+
+
+// Every stocked line of a FINISHED sale becomes a source-linked -qty movement.
+// Called right after applyPayment, so the sale entry (and its id) already exist.
+function recordSaleMoves(state, items) {
+  const entries = state.day && state.day.entries;
+  const last = entries && entries[entries.length - 1];
+  if (!last || last.kind !== 'sale') return state;
+  for (const it of items) {
+    if (!it || it.id == null) continue;
+    stockMove(state, it.id, -Math.floor(it.qty), 'sale', last.id, last.note || null);
+  }
+  return state;
 }
 
 
@@ -113,6 +128,7 @@ function sell(state, opts) {
   const bill = billOf(lines, disc, net, paidVal, cashIn);
 
   state = applyPayment(state, net, opts, refs.join(', '), bill);
+  recordSaleMoves(state, items);
   return clone(state);
 }
 
@@ -166,6 +182,7 @@ function undoLastSale(state) {
       const p = getProduct(state, ln.id);
       if (p) {
         p.stock += Math.floor(ln.qty);
+        stockMove(state, ln.id, Math.floor(ln.qty), 'undo', sale.id, null);
         const sp = (state.day.soldByProduct = state.day.soldByProduct || {});
         if (sp[ln.id]) {
           sp[ln.id] = Math.max(0, Math.floor(sp[ln.id]) - Math.floor(ln.qty));

@@ -337,6 +337,29 @@ function clientProfile(state, name) {
   return hit || blankClient(String(name || '').trim(), null);
 }
 
+
+// ---------- the STOCK CARD (one product's whole shelf story) ----------
+// The workbook's RPT-006 / STK-007: opening count, then every movement in order
+// with a running balance. balance should always equal the product's on-hand.
+function stockCard(state, productId) {
+  const p = (state.products || []).find(function (x) { return x.id === productId; });
+  if (!p) return null;
+  let bal = 0;
+  const moves = (state.movements || [])
+    .filter(function (m) { return m.productId === productId; })
+    .map(function (m) {
+      bal += m.qty;
+      return { id: m.id, at: m.at, qty: m.qty, kind: m.kind, ref: m.ref, note: m.note, balance: bal };
+    });
+  return {
+    product: { id: p.id, name: p.name, sku: p.sku || null, unit: p.unit || null },
+    opening: moves.length ? moves[0].qty : 0,
+    balance: bal,
+    stock: p.stock,
+    moves: moves
+  };
+}
+
   K.dayReport = dayReport;
   K.stats = stats;
   K.restockNeed = restockNeed;
@@ -344,4 +367,5 @@ function clientProfile(state, name) {
   K.monthlyReport = monthlyReport;
   K.clientsReport = clientsReport;
   K.clientProfile = clientProfile;
+  K.stockCard = stockCard;
 });

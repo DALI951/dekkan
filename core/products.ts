@@ -6,7 +6,7 @@
   if (typeof module === 'object' && module.exports) module.exports = factory;
   if (typeof window !== 'undefined' && root.DEK && root.DEK.core) factory(root.DEK.core);
 })(typeof self !== 'undefined' ? self : this, function (K) {
-  const { uid, money, cash, pushEntry, rollover, sell, clone, idTrusted } = K;
+  const { uid, money, cash, pushEntry, rollover, sell, clone, idTrusted, stockMove } = K;
 
 
 // ---------- products ----------
@@ -17,14 +17,17 @@ function addProduct(state, p) {
   if (typeof p.sell !== 'number' || p.sell < 0) throw new Error('product needs a valid sell price');
   if (p.stock != null && (!Number.isFinite(p.stock) || p.stock < 0)) throw new Error('stock cannot be negative');
   if (p.lowAt != null && (!Number.isFinite(p.lowAt) || p.lowAt < 0)) throw new Error('lowAt cannot be negative');
-  state.products.push({
+  const item = {
     id: uid(),
     name: p.name.trim(),
     buy: money(p.buy || 0),
     sell: money(p.sell),
     stock: Math.floor(p.stock || 0),
     lowAt: Math.floor(p.lowAt || 0)
-  });
+  };
+  state.products.push(item);
+  // the first shelf movement is the opening count (source-linked ledger)
+  if (item.stock !== 0) stockMove(state, item.id, item.stock, 'opening', null, null);
   return state;
 }
 
@@ -48,7 +51,12 @@ function setProduct(state, id, patch) {
   if ('lowAt' in patch && patch.lowAt < 0) throw new Error('lowAt cannot be negative');
   if ('stock' in patch) patch.stock = Math.floor(patch.stock);
   if ('lowAt' in patch) patch.lowAt = Math.floor(patch.lowAt);
+  const oldStock = p.stock;
   for (const k in patch) p[k] = patch[k];
+  // a direct stock edit is an ADJUSTMENT, never a silent overwrite (the workbook rule)
+  if ('stock' in patch && p.stock !== oldStock) {
+    stockMove(state, p.id, p.stock - oldStock, 'adjust', null, patch.stockReason || null);
+  }
   return state;
 }
 
@@ -99,6 +107,8 @@ function buyStock(state, productId, qty, unitBuy) {
   const total = money(qty * u);
   p.stock += Math.floor(qty);
   pushEntry(state, 'buy', -total, productId, p.name + ' x' + Math.floor(qty));
+  // the restock is a shelf movement, linked to the buy entry it belongs to
+  stockMove(state, p.id, Math.floor(qty), 'buy', state.day.entries[state.day.entries.length - 1].id, p.name + ' x' + Math.floor(qty));
   return state;
 }
 

@@ -6,7 +6,7 @@
   if (typeof module === 'object' && module.exports) module.exports = factory;
   if (typeof window !== 'undefined' && root.DEK && root.DEK.core) factory(root.DEK.core);
 })(typeof self !== 'undefined' ? self : this, function (K) {
-  const { money, cash, pushEntry, rollover, getProduct, sell, getDebtByName, clone } = K;
+  const { money, cash, pushEntry, rollover, getProduct, sell, getDebtByName, clone, stockMove } = K;
 
 
 // REFUND — the customer brings it back.
@@ -61,7 +61,7 @@ function refund(state, opts) {
   const items = (opts && opts.items) || [];
   if (items.length === 0) throw new Error('nothing to refund');
 
-  let back = 0, costBack = 0, refs = [];
+  let back = 0, costBack = 0, refs = [], moves = [];
   for (const it of items) {
     if (!Number.isFinite(it.qty) || it.qty <= 0) throw new Error('refund qty must be positive');
     const p = getProduct(state, it.id);
@@ -76,16 +76,24 @@ function refund(state, opts) {
     back += unit * take;
     costBack += p.buy * take;
     p.stock += take; // goods go back on the shelf
+    moves.push({ id: p.id, qty: take });
     refs.push(p.name + 'x' + take);
   }
   // the cost of those goods is undone (can't go below 0 for today's report)
   state.day.soldCost = money(Math.max(0, state.day.soldCost - costBack));
 
+  let out;
   if (opts.creditTo) {
     // was a credit sale -> undo it on the (open) debt, no cash moves
-    return _settle(state, back, opts.cash, opts.creditTo, opts.reason, refs.join(', '), opts.saleNo, opts.discount === true);
+    out = _settle(state, back, opts.cash, opts.creditTo, opts.reason, refs.join(', '), opts.saleNo, opts.discount === true);
+  } else {
+    out = _settle(state, back, opts.cash, null, opts.reason, refs.join(', '), opts.saleNo, opts.discount === true);
   }
-  return _settle(state, back, opts.cash, null, opts.reason, refs.join(', '), opts.saleNo, opts.discount === true);
+  // goods coming back are source-linked shelf movements against the refund entry
+  const rentry = out.day.entries[out.day.entries.length - 1];
+  const rref = rentry && rentry.kind === 'refund' ? rentry.id : null;
+  for (const m of moves) stockMove(out, m.id, m.qty, 'refund', rref, null);
+  return out;
 }
 
 

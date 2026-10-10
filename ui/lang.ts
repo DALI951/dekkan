@@ -535,7 +535,12 @@
   });
   Object.assign(AR, {
     'receipt.doc': 'وثيقة رقم',
-    'stock.sku': 'رمز المنتج (SKU)'
+    'stock.sku': 'رمز المنتج (SKU)',
+    'buy.title': 'شراء',
+    'buy.qty': 'الكمية',
+    'buy.supplier': 'المورد',
+    'buy.contact': 'تواصل',
+    'buy.save': 'حفظ الشراء'
   });
 
   Object.assign(EN, {
@@ -551,7 +556,12 @@
     'stockCard.move.adjust': 'Adjustment',
     'stockCard.move.undo': 'Undo',
     'receipt.doc': 'Doc #',
-    'stock.sku': 'SKU'
+    'stock.sku': 'SKU',
+    'buy.title': 'Buy',
+    'buy.qty': 'Quantity',
+    'buy.supplier': 'Supplier',
+    'buy.contact': 'Contact',
+    'buy.save': 'Save buy'
   });
 
   window.T = T;

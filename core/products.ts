@@ -135,7 +135,7 @@ function discountOff(state, revenue, discountOrNull) {
 // ---------- money movements ----------
 
 // Buying stock: cash out (-qty*unitBuy), product stock up.
-function buyStock(state, productId, qty, unitBuy) {
+function buyStock(state, productId, qty, unitBuy, supplier) {
   state = rollover(clone(state));
   const p = getProduct(state, productId);
   if (!p) throw new Error('product not found');
@@ -143,11 +143,56 @@ function buyStock(state, productId, qty, unitBuy) {
   const u = money(unitBuy);
   if (u < 0) throw new Error('unit buy price cannot be negative');
   const total = money(qty * u);
-  p.stock += Math.floor(qty);
-  pushEntry(state, 'buy', -total, productId, p.name + ' x' + Math.floor(qty));
+  const floorQty = Math.floor(qty);
+  p.stock += floorQty;
+  const extra: any = { qty: floorQty, unitBuy: u };
+  // PUR-001: the buy can name its supplier (string name or {name, contact});
+  // recorded on the entry so history per supplier survives day rollover.
+  const sup = supplierOf(supplier);
+  if (sup) extra.supplier = sup;
+  pushEntry(state, 'buy', -total, productId, p.name + ' x' + floorQty, extra);
   // the restock is a shelf movement, linked to the buy entry it belongs to
-  stockMove(state, p.id, Math.floor(qty), 'buy', state.day.entries[state.day.entries.length - 1].id, p.name + ' x' + Math.floor(qty));
+  stockMove(state, p.id, floorQty, 'buy', state.day.entries[state.day.entries.length - 1].id, p.name + ' x' + floorQty);
   return state;
+}
+
+
+// normalizes the supplier argument: string | {name, contact} | undefined
+function supplierOf(supplier) {
+  if (!supplier) return null;
+  if (typeof supplier === 'string') {
+    const name = String(supplier).trim();
+    return name ? { name: name, contact: null } : null;
+  }
+  if (typeof supplier === 'object' && supplier.name) {
+    const name = String(supplier.name).trim();
+    return name ? { name: name, contact: supplier.contact != null ? String(supplier.contact) : null } : null;
+  }
+  return null;
+}
+
+
+// every buy from ONE supplier, oldest first, spanning the open day AND the
+// closed ones (a carton bought last week and one today — same history line)
+function buysBySupplier(state, name) {
+  const needle = String(name || '').trim().toLowerCase();
+  if (!needle) return [];
+  const out = [];
+  const scan = function (entries) {
+    for (const e of entries) {
+      if (e.kind !== 'buy' || !e.supplier) continue;
+      if (String(e.supplier.name).toLowerCase() !== needle) continue;
+      out.push({
+        id: e.id, at: e.at,
+        qty: e.qty, unitBuy: e.unitBuy, total: Math.abs(e.amount),
+        supplier: e.supplier.name, contact: e.supplier.contact || null,
+        productId: e.ref || null
+      });
+    }
+  };
+  if (state.day && Array.isArray(state.day.entries)) scan(state.day.entries);
+  for (const d of state.days || []) if (d && Array.isArray(d.entries)) scan(d.entries);
+  return out;
 }
 
   K.addProduct = addProduct;
@@ -158,4 +203,6 @@ function buyStock(state, productId, qty, unitBuy) {
   K.buyStock = buyStock;
 K.normalizeSku = normalizeSku;
 K.searchProducts = searchProducts;
+K.supplierOf = supplierOf;
+K.buysBySupplier = buysBySupplier;
 });

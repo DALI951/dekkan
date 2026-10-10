@@ -570,6 +570,36 @@ $('pName').value = p.name; $('pBuy').value = p.buy; $('pSell').value = p.sell;
         P.openMetric(C, 'low'); // refresh the list: it may already be empty
       }
     }
+    if (act === 'buy-open') {
+      const p = D.getProduct(C.state, id);
+      if (p) {
+        C.buyProductId = id;
+        $('bQty').value = '10';
+        $('bUnit').value = String(p.buy || 0);
+        $('bSupName').value = '';
+        $('bSupPhone').value = '';
+        $('buyForm').classList.remove('hidden');
+      }
+    }
+    if (act === 'btnCancelBuy') { C.buyProductId = null; $('buyForm').classList.add('hidden'); }
+    if (act === 'btnSaveBuy') {
+      try {
+        const pid = C.buyProductId;
+        const p = pid && D.getProduct(C.state, pid);
+        if (!pid || !p) return;
+        const qty = parseInt($('bQty').value, 10) || 0;
+        const unit = parseFloat($('bUnit').value) || 0;
+        const sname = $('bSupName').value.trim();
+        const sphone = $('bSupPhone').value.trim();
+        const sup = sname ? { name: sname, contact: sphone || null } : null;
+        if (!(qty >= 1)) throw new Error('qty must be >= 1');
+        if (!(unit >= 0)) throw new Error('unit must be >= 0');
+        run(function (s) { return D.buyStock(s, pid, qty, unit, sup); },
+          T.t('toast.restock') + ' ' + p.name + ' +' + qty);
+        C.buyProductId = null;
+        $('buyForm').classList.add('hidden');
+      } catch (err) { toast(err && err.message || 'bad'); }
+    }
     if (act === 'cat-del') {
       try { C.state = D.removeCategory(C.state, { side: i, id: id }); save(); } catch (err) { /* already gone */ }
       render();

@@ -235,7 +235,8 @@
         + '<span class="row gap"><span class="s-stock' + (low ? ' low' : '') + '">' + p.stock + '</span>'
         + '<button class="btn ghost" data-action="stock-card" data-id="' + p.id + '">' + T.t('stock.card') + '</button>'
         + '<button class="btn ghost" data-action="stock-edit" data-id="' + p.id + '">' + T.t('stock.edit') + '</button>'
-        + '<button class="btn ghost" data-action="stock-restock" data-id="' + p.id + '">+10</button></span></div>';
+        + '<button class="btn ghost" data-action="stock-restock" data-id="' + p.id + '">+10</button>'
+      + '<button class="btn ghost" data-action="buy-open" data-id="' + p.id + '">' + T.t('buy.title') + '</button></span></div>';
     });
     $('stockList').innerHTML = html || '<div class="empty">' + T.t('stock.empty') + '</div>';
   }

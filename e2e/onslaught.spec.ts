@@ -334,7 +334,7 @@ test.describe('onslaught: cashbox + settings guards', () => {
     const data = JSON.parse(fs.readFileSync(await download.path(), 'utf8'));
     expect(data.shop).toBeTruthy();
     expect(Array.isArray(data.products)).toBe(true);
-    expect(data.version).toBe(3);
+    expect(data.version).toBe(4);
   });
 
   test('import: a valid backup restores the shop; a garbage file changes nothing', async ({ page }) => {

@@ -558,6 +558,7 @@
       if (e) P.openTicket(C, e, parseInt(i, 10) || 1);
     }
     if (act === 'metric-open') P.openMetric(C, el.getAttribute('data-metric') || id);
+    if (act === 'stock-card') P.openStockCard(C, id);
     if (act === 'restock-need') {
       // fill the shelf back to double its alert line right from the list
       const qty = parseInt(el.getAttribute('data-qty'), 10) || 10;

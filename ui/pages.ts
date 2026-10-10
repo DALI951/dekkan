@@ -232,6 +232,7 @@
         + '<span class="s-name">' + esc(p.name) + '</span>'
         + '<span class="s-meta">' + T.t('stock.buy') + ' ' + money(p.buy) + '  •  ' + T.t('stock.sell') + ' ' + money(p.sell) + '</span></span>'
         + '<span class="row gap"><span class="s-stock' + (low ? ' low' : '') + '">' + p.stock + '</span>'
+        + '<button class="btn ghost" data-action="stock-card" data-id="' + p.id + '">' + T.t('stock.card') + '</button>'
         + '<button class="btn ghost" data-action="stock-edit" data-id="' + p.id + '">' + T.t('stock.edit') + '</button>'
         + '<button class="btn ghost" data-action="stock-restock" data-id="' + p.id + '">+10</button></span></div>';
     });
@@ -462,6 +463,34 @@
     }
     $('metricBody').innerHTML = rows || '<div class="empty">' + T.t('report.noMoves') + '</div>';
     $('metricTitle').textContent = browsing ? (r.date + ' — ' + title) : title;
+    $('metricPanel').classList.remove('hidden');
+    if (document.body) document.body.classList.add('no-scroll');
+  }
+
+  // ---------- the STOCK CARD: one product's whole shelf story, newest movement last ----------
+  // Reuses the metric panel (its close button / backdrop / Escape are already wired).
+  function openStockCard(C, productId) {
+    const { state, $, T, D, fmt } = C;
+    const { esc, entryTime } = fmt;
+    const card = D.stockCard(state, productId);
+    if (!card) return;
+    const moveKey = {
+      opening: 'stockCard.move.opening', sale: 'stockCard.move.sale', buy: 'stockCard.move.buy',
+      refund: 'stockCard.move.refund', adjust: 'stockCard.move.adjust', undo: 'stockCard.move.undo'
+    };
+    const label = function (k) { return T.t(moveKey[k] || 'stockCard.move.adjust'); };
+    let rows = '';
+    card.moves.forEach(function (m) {
+      const when = entryTime ? entryTime(m.at) : '';
+      rows += '<div class="entry"><span class="growx">' + esc(label(m.kind))
+        + ' <span class="e-note">' + esc(when) + (m.note ? ' · ' + esc(m.note) : '') + '</span></span>'
+        + '<b class="e-amt ' + (m.qty > 0 ? 'in' : 'bad') + '">' + (m.qty > 0 ? '+' : '') + m.qty
+        + ' <span class="e-note">= ' + m.balance + '</span></b></div>';
+    });
+    rows += '<div class="entry"><span class="growx"><b>' + esc(T.t('stockCard.onHand')) + '</b></span>'
+      + '<b class="e-amt in">' + card.balance + '</b></div>';
+    $('metricBody').innerHTML = card.moves.length ? rows : '<div class="empty">' + esc(T.t('stockCard.empty')) + '</div>';
+    $('metricTitle').textContent = card.product.name + ' — ' + T.t('stockCard.title');
     $('metricPanel').classList.remove('hidden');
     if (document.body) document.body.classList.add('no-scroll');
   }
@@ -770,7 +799,7 @@
     render: render, renderHeader: renderHeader, renderSell: renderSell, quote: quote,
     renderFreePrev: renderFreePrev, renderChange: renderChange, addToBasket: addToBasket,
     renderStock: renderStock, renderDebts: renderDebts, renderClients: renderClients, setNewDebt: setNewDebt,
-    renderReport: renderReport, openTicket: openTicket, openMetric: openMetric,
+    renderReport: renderReport, openTicket: openTicket, openMetric: openMetric, openStockCard: openStockCard,
     renderCashBox: renderCashBox, catOptions: catOptions, catChips: catChips,
     renderSettings: renderSettings, renderThemes: renderThemes, updateStorage: updateStorage,
     showReceipt: showReceipt, hideReceipt: hideReceipt, revealProductForm: revealProductForm,

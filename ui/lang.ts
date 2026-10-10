@@ -518,6 +518,35 @@
   document.documentElement.lang = T.lang;
   document.documentElement.dir = T.lang === 'ar' ? 'rtl' : 'ltr';
 
+  // The stock card (workbook STK-007 / RPT-006). Added here so the Arabic
+  // block above stays byte-for-byte untouched.
+  Object.assign(AR, {
+    'stock.card': 'البطاقة',
+    'stockCard.title': 'بطاقة المخزون',
+    'stockCard.empty': 'لا حركات بعد',
+    'stockCard.onHand': 'المخزون الآن',
+    'stockCard.opening': 'افتتاحي',
+    'stockCard.move.opening': 'افتتاحي',
+    'stockCard.move.sale': 'بيع',
+    'stockCard.move.buy': 'شراء',
+    'stockCard.move.refund': 'استرجاع',
+    'stockCard.move.adjust': 'تعديل',
+    'stockCard.move.undo': 'تراجع'
+  });
+  Object.assign(EN, {
+    'stock.card': 'Card',
+    'stockCard.title': 'Stock card',
+    'stockCard.empty': 'No movements yet',
+    'stockCard.onHand': 'On hand now',
+    'stockCard.opening': 'Opening',
+    'stockCard.move.opening': 'Opening',
+    'stockCard.move.sale': 'Sale',
+    'stockCard.move.buy': 'Buy',
+    'stockCard.move.refund': 'Refund',
+    'stockCard.move.adjust': 'Adjustment',
+    'stockCard.move.undo': 'Undo'
+  });
+
   window.T = T;
   // exposed for the i18n consistency check (node scripts/check-i18n.js)
   window.__DEKKAN_I18N__ = { AR: AR, EN: EN };

@@ -9,7 +9,7 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const D = require('../core/dekkan-core.ts');
 
-function pinState(seed) {
+function pinState() {
   let s = D.createShop({ name: 'T', startCash: 50 });
   s = D.addProduct(s, { name: 'Coca', buy: 0.8, sell: 1.5, stock: 10 });
   s = D.setPin(s, '1234');

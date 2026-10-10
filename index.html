@@ -5,19 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0e0c0a">
 <meta name="color-scheme" content="dark">
-<title>Ø¯ÙƒÙ‘Ø§Ù† â€” ØµÙ†Ø¯ÙˆÙ‚ Ø§Ù„Ù…Ø­Ù„</title>
+<title>دكّان — صندوق المحل</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="description" content="Ø¯ÙƒÙ‘Ø§Ù† â€” Ø¯ÙØªØ± Ø§Ù„ØµÙ†Ø¯ÙˆÙ‚ ÙˆØ§Ù„Ù…Ø®Ø²ÙˆÙ† ÙˆØ§Ù„Ø¯ÙŠÙˆÙ† Ù„Ù…Ø­Ù„Ùƒ Ø§Ù„ØµØºÙŠØ±">
+<meta name="description" content="دكّان — دفتر الصندوق والمخزون والديون لمحلك الصغير">
 <link rel="stylesheet" href="css/style.css">
 <script src="ui/themes.js"></script>
 <script>if (window.DEK) window.DEK.Themes.restore();</script>
 <script>
   /* Same no-flash pattern as themes: if English is what the shopkeeper saved,
-   * declare the LEFT direction BEFORE the first paint â€” otherwise a hard
+   * declare the LEFT direction BEFORE the first paint — otherwise a hard
    * refresh draws the Arabic-side shell until lang.js boots and flips it. */
   (function () {
     var l = null;
@@ -31,29 +31,29 @@
 <!-- ================= PC sidebar (bookmark rail) ================= -->
 <aside class="sidebar" id="sidebar">
   <div class="brand">
-    <span class="logo">Ø¯</span>
+    <span class="logo">د</span>
     <span>
-      <h1 data-i18n="app.name">Ø¯ÙƒØ§Ù†</h1>
-      <span data-i18n="app.tagline">ØµÙ†Ø¯ÙˆÙ‚ + Ù…Ø®Ø²ÙˆÙ† + Ø¯ÙŠÙˆÙ† Ù„Ù…Ø­Ù„Ùƒ</span>
+      <h1 data-i18n="app.name">دكان</h1>
+      <span data-i18n="app.tagline">صندوق + مخزون + ديون لمحلك</span>
     </span>
   </div>
 
   <nav>
-    <button class="navitem" data-hash="#/sell"><svg viewBox="0 0 24 24"><path d="M4 8h16l-1.5 11a2 2 0 0 1-2 1.8h-9a2 2 0 0 1-2-1.8L4 8zm4-4a4 4 0 0 1 8 0" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.sell">Ø§Ù„Ø¨ÙŠØ¹</span></button>
-    <button class="navitem" data-hash="#/stock"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 10h16M4 15h16M12 10v9" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.stock">Ø§Ù„Ù…Ø®Ø²ÙˆÙ†</span></button>
-    <button class="navitem" data-hash="#/debts"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 10h18M8 6v13" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.debts">Ø§Ù„Ø¯ÙŠÙˆÙ†</span></button>
-    <button class="navitem" data-hash="#/clients"><svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 20a5 5 0 0 1 10 0" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15 6h6M15 11h6M15 16h4" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.clients">Ø§Ù„Ø²Ø¨Ø§Ø¦Ù†</span></button>
-    <button class="navitem" data-hash="#/report"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-8M21 20H3" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.report">Ø§Ù„ØªÙ‚Ø±ÙŠØ±</span></button>
-    <button class="navitem" data-hash="#/employees"><svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.employees">Ø§Ù„Ù…ÙˆØ¸ÙÙˆÙ†</span></button>
-  <button class="navitem" data-hash="#/monthly"><svg viewBox="0 0 24 24"><path d="M3 4h18v16H3z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 8h18M3 12h18M8 4v6M16 4v6" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="16" r="1" fill="currentColor"/><circle cx="12" cy="16" r="1" fill="currentColor"/><circle cx="16" cy="16" r="1" fill="currentColor"/></svg><span data-i18n="tab.monthly">Ø§Ù„Ø´Ù‡Ø±ÙŠ</span></button>
-    <button class="navitem" data-hash="#/cashbox"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 7l2 5M18 7l-2 5" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.cashbox">Ø§Ù„Ø®Ø²ÙŠÙ†Ø©</span></button>
-    <button class="navitem" data-hash="#/settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3 1a7 7 0 0 0-2-1.2L14.3 3h-4l-.3 2.7a7 7 0 0 0-2 1.2l-2.3-1-2 3.4 2 1.5A7 7 0 0 0 5.6 12a7 7 0 0 0 .1 1.2l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 2 1.2l.3 2.7h4l.3-2.7a7 7 0 0 0 2-1.2l2.3 1 2-3.4-2-1.5A7 7 0 0 0 19 12z" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.settings">Ø§Ù„Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª</span></button>
+    <button class="navitem" data-hash="#/sell"><svg viewBox="0 0 24 24"><path d="M4 8h16l-1.5 11a2 2 0 0 1-2 1.8h-9a2 2 0 0 1-2-1.8L4 8zm4-4a4 4 0 0 1 8 0" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.sell">البيع</span></button>
+    <button class="navitem" data-hash="#/stock"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 10h16M4 15h16M12 10v9" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.stock">المخزون</span></button>
+    <button class="navitem" data-hash="#/debts"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 10h18M8 6v13" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.debts">الديون</span></button>
+    <button class="navitem" data-hash="#/clients"><svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 20a5 5 0 0 1 10 0" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15 6h6M15 11h6M15 16h4" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.clients">الزبائن</span></button>
+    <button class="navitem" data-hash="#/report"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-8M21 20H3" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.report">التقرير</span></button>
+    <button class="navitem" data-hash="#/employees"><svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.employees">الموظفون</span></button>
+  <button class="navitem" data-hash="#/monthly"><svg viewBox="0 0 24 24"><path d="M3 4h18v16H3z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 8h18M3 12h18M8 4v6M16 4v6" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="16" r="1" fill="currentColor"/><circle cx="12" cy="16" r="1" fill="currentColor"/><circle cx="16" cy="16" r="1" fill="currentColor"/></svg><span data-i18n="tab.monthly">الشهري</span></button>
+    <button class="navitem" data-hash="#/cashbox"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 7l2 5M18 7l-2 5" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.cashbox">الخزينة</span></button>
+    <button class="navitem" data-hash="#/settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3 1a7 7 0 0 0-2-1.2L14.3 3h-4l-.3 2.7a7 7 0 0 0-2 1.2l-2.3-1-2 3.4 2 1.5A7 7 0 0 0 5.6 12a7 7 0 0 0 .1 1.2l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 2 1.2l.3 2.7h4l.3-2.7a7 7 0 0 0 2-1.2l2.3 1 2-3.4-2-1.5A7 7 0 0 0 19 12z" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.settings">الإعدادات</span></button>
   </nav>
 
   <div class="sideFoot">
     <div class="sideCash">
-      <span data-i18n="cashbox.label">Ø±ØµÙŠØ¯ Ø§Ù„ØµÙ†Ø¯ÙˆÙ‚</span>
-      <strong id="cashNow">0.000 Ø¯.Øª</strong>
+      <span data-i18n="cashbox.label">رصيد الصندوق</span>
+      <strong id="cashNow">0.000 د.ت</strong>
     </div>
   </div>
 </aside>
@@ -61,47 +61,47 @@
 <!-- ================= mobile topbar ================= -->
 <header class="topbar">
   <div class="brand">
-    <span class="logo">Ø¯</span>
+    <span class="logo">د</span>
     <span>
-      <strong id="shopName">Ø¯ÙƒÙ‘Ø§Ù†</strong>
+      <strong id="shopName">دكّان</strong>
       <small id="todayLine"></small>
     </span>
   </div>
   <div class="cashbox">
-    <small data-i18n="cashbox.label">Ø±ØµÙŠØ¯ Ø§Ù„ØµÙ†Ø¯ÙˆÙ‚</small>
-    <strong id="cashNow2">0.000 Ø¯.Øª</strong>
+    <small data-i18n="cashbox.label">رصيد الصندوق</small>
+    <strong id="cashNow2">0.000 د.ت</strong>
   </div>
 </header>
 
 <!-- ================= mobile top nav (no bottom tabs) ================= -->
 <nav class="topnav">
-  <button class="tab" data-hash="#/sell"><svg viewBox="0 0 24 24"><path d="M4 8h16l-1.5 11a2 2 0 0 1-2 1.8h-9a2 2 0 0 1-2-1.8L4 8zm4-4a4 4 0 0 1 8 0" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.sell">Ø§Ù„Ø¨ÙŠØ¹</span></button>
-  <button class="tab" data-hash="#/stock"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 10h16M4 15h16M12 10v9" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.stock">Ø§Ù„Ù…Ø®Ø²ÙˆÙ†</span></button>
-  <button class="tab" data-hash="#/debts"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 10h18M8 6v13" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.debts">Ø§Ù„Ø¯ÙŠÙˆÙ†</span></button>
-  <button class="tab" data-hash="#/clients"><svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 20a5 5 0 0 1 10 0" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15 6h6M15 11h6M15 16h4" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.clients">Ø§Ù„Ø²Ø¨Ø§Ø¦Ù†</span></button>
-  <button class="tab" data-hash="#/report"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-8M21 20H3" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.report">Ø§Ù„ØªÙ‚Ø±ÙŠØ±</span></button>
-  <button class="tab" data-hash="#/employees"><svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.employees">Ø§Ù„Ù…ÙˆØ¸ÙÙˆÙ†</span></button>
-  <button class="tab" data-hash="#/monthly"><svg viewBox="0 0 24 24"><path d="M3 4h18v16H3z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 8h18M3 12h18M8 4v6M16 4v6" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="16" r="1" fill="currentColor"/><circle cx="12" cy="16" r="1" fill="currentColor"/><circle cx="16" cy="16" r="1" fill="currentColor"/></svg><span data-i18n="tab.monthly">Ø§Ù„Ø´Ù‡Ø±ÙŠ</span></button>
-  <button class="tab" data-hash="#/cashbox"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 7l2 5M18 7l-2 5" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.cashbox">Ø§Ù„Ø®Ø²ÙŠÙ†Ø©</span></button>
-  <button class="tab" data-hash="#/settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3 1a7 7 0 0 0-2-1.2L14.3 3h-4l-.3 2.7a7 7 0 0 0-2 1.2l-2.3-1-2 3.4 2 1.5A7 7 0 0 0 5.6 12a7 7 0 0 0 .1 1.2l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 2 1.2l.3 2.7h4l.3-2.7a7 7 0 0 0 2-1.2l2.3 1 2-3.4-2-1.5A7 7 0 0 0 19 12z" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.settings">Ø§Ù„Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª</span></button>
+  <button class="tab" data-hash="#/sell"><svg viewBox="0 0 24 24"><path d="M4 8h16l-1.5 11a2 2 0 0 1-2 1.8h-9a2 2 0 0 1-2-1.8L4 8zm4-4a4 4 0 0 1 8 0" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.sell">البيع</span></button>
+  <button class="tab" data-hash="#/stock"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 10h16M4 15h16M12 10v9" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.stock">المخزون</span></button>
+  <button class="tab" data-hash="#/debts"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 10h18M8 6v13" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.debts">الديون</span></button>
+  <button class="tab" data-hash="#/clients"><svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 20a5 5 0 0 1 10 0" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15 6h6M15 11h6M15 16h4" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.clients">الزبائن</span></button>
+  <button class="tab" data-hash="#/report"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-8M21 20H3" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.report">التقرير</span></button>
+  <button class="tab" data-hash="#/employees"><svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.employees">الموظفون</span></button>
+  <button class="tab" data-hash="#/monthly"><svg viewBox="0 0 24 24"><path d="M3 4h18v16H3z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 8h18M3 12h18M8 4v6M16 4v6" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="16" r="1" fill="currentColor"/><circle cx="12" cy="16" r="1" fill="currentColor"/><circle cx="16" cy="16" r="1" fill="currentColor"/></svg><span data-i18n="tab.monthly">الشهري</span></button>
+  <button class="tab" data-hash="#/cashbox"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 7l2 5M18 7l-2 5" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.cashbox">الخزينة</span></button>
+  <button class="tab" data-hash="#/settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3 1a7 7 0 0 0-2-1.2L14.3 3h-4l-.3 2.7a7 7 0 0 0-2 1.2l-2.3-1-2 3.4 2 1.5A7 7 0 0 0 5.6 12a7 7 0 0 0 .1 1.2l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 2 1.2l.3 2.7h4l.3-2.7a7 7 0 0 0 2-1.2l2.3 1 2-3.4-2-1.5A7 7 0 0 0 19 12z" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.settings">الإعدادات</span></button>
 </nav>
 
 <main id="view">
   <!-- SELL -->
   <section id="page-sell" class="page">
     <div class="pageHead">
-      <h2 data-i18n="sell.title">Ø§Ù„Ø¨ÙŠØ¹</h2>
-      <p data-i18n="sell.sub">Ø¨ÙŠØ¹ Ù†Ù‚Ø¯ÙŠ Ø£Ùˆ Ø¨Ø§Ù„Ø¯ÙŠÙ† â€” ÙƒÙ„ Ø´ÙŠØ¡ ÙŠÙØ­Ø³Ø¨ ÙˆØ­Ø¯Ùˆ</p>
-      <div class="subrow"><button class="btn ghost" id="btnRefundMode" data-i18n="sell.refund">Ø§Ø³ØªØ±Ø¬Ø§Ø¹</button></div>
+      <h2 data-i18n="sell.title">البيع</h2>
+      <p data-i18n="sell.sub">بيع نقدي أو بالدين — كل شيء يُحسب وحدو</p>
+      <div class="subrow"><button class="btn ghost" id="btnRefundMode" data-i18n="sell.refund">استرجاع</button></div>
     </div>
 
     <div id="refundPanel" class="card hidden">
-      <h3 data-i18n="refund.title">Ø§Ø³ØªØ±Ø¬Ø§Ø¹ Ù…Ù†ØªÙˆØ¬</h3>
+      <h3 data-i18n="refund.title">استرجاع منتوج</h3>
       <div class="grid products" id="refundGrid"></div>
       <div class="stack">
-        <label><span data-i18n="refund.qty">Ø§Ù„ÙƒÙ…ÙŠØ©</span><input type="number" id="refundQty" value="1" min="1"></label>
-        <label><span data-i18n="refund.reason">Ø§Ù„Ø³Ø¨Ø¨</span><input type="text" id="refundReason" data-i18n-ph="refund.reasonPh"></label>
-        <button class="btn danger" id="btnDoRefund" data-i18n="refund.go">ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø§Ø³ØªØ±Ø¬Ø§Ø¹</button>
+        <label><span data-i18n="refund.qty">الكمية</span><input type="number" id="refundQty" value="1" min="1"></label>
+        <label><span data-i18n="refund.reason">السبب</span><input type="text" id="refundReason" data-i18n-ph="refund.reasonPh"></label>
+        <button class="btn danger" id="btnDoRefund" data-i18n="refund.go">تسجيل الاسترجاع</button>
       </div>
     </div>
 
@@ -110,38 +110,38 @@
     <div class="grid products" id="sellGrid"></div>
 
     <div class="card stack">
-      <h3 data-i18n="free.title">Ø³Ù„Ø¹Ø© / Ø®Ø¯Ù…Ø© Ø¨Ø¯ÙˆÙ† Ù…Ø®Ø²ÙˆÙ†</h3>
+      <h3 data-i18n="free.title">سلعة / خدمة بدون مخزون</h3>
       <div class="row gap">
         <input type="text" id="freeName" data-i18n-ph="free.namePh">
         <input type="number" id="freePrice" data-i18n-ph="free.pricePh" class="qty">
         <input type="number" id="freeQty" value="1" min="1" class="qty">
-        <button class="btn" id="btnAddFree" data-i18n="free.add">Ø¥Ø¶Ø§ÙØ©</button>
+        <button class="btn" id="btnAddFree" data-i18n="free.add">إضافة</button>
       </div>
       <div class="line-prev hidden" id="freePrev"></div>
     </div>
 
     <div class="card stack basket">
-      <div class="row gr"><h3 data-i18n="basket.title">Ø§Ù„Ø³Ù„Ø©</h3><span id="basketCount" class="pill acc">0</span></div>
+      <div class="row gr"><h3 data-i18n="basket.title">السلة</h3><span id="basketCount" class="pill acc">0</span></div>
       <div id="basketList"></div>
       <div class="row gap" id="discountRow">
-        <label><span data-i18n="disc.pct">Ø®ØµÙ… %</span><input type="number" id="discPct" min="0" max="100" placeholder="0"></label>
-        <label><span data-i18n="disc.flat">Ø®ØµÙ… Ø«Ø§Ø¨Øª</span><input type="number" id="discAmt" min="0" placeholder="0.000"></label>
+        <label><span data-i18n="disc.pct">خصم %</span><input type="number" id="discPct" min="0" max="100" placeholder="0"></label>
+        <label><span data-i18n="disc.flat">خصم ثابت</span><input type="number" id="discAmt" min="0" placeholder="0.000"></label>
       </div>
-      <label><span data-i18n="credit.label">Ø§Ø³Ù… Ø§Ù„Ø²Ø¨ÙˆÙ†</span><input type="text" id="creditName" list="customerList" data-i18n-ph="credit.ph"><datalist id="customerList"></datalist></label>
-      <label><span data-i18n="cashier.label">Ø§Ù„Ø¨Ø§Ø¦Ø¹</span><input type="text" id="cashierName" list="cashierList" data-i18n-ph="cashier.ph"><datalist id="cashierList"></datalist></label>
+      <label><span data-i18n="credit.label">اسم الزبون</span><input type="text" id="creditName" list="customerList" data-i18n-ph="credit.ph"><datalist id="customerList"></datalist></label>
+      <label><span data-i18n="cashier.label">البائع</span><input type="text" id="cashierName" list="cashierList" data-i18n-ph="cashier.ph"><datalist id="cashierList"></datalist></label>
       <div class="due" id="dueBox">
         <div class="due-l">
-          <span data-i18n="sell.due">Ø§Ù„Ù…Ø·Ù„ÙˆØ¨ Ø¯ÙØ¹Ù‡</span>
+          <span data-i18n="sell.due">المطلوب دفعه</span>
           <small id="dueHint"></small>
         </div>
-        <strong class="due-n" id="basketTotal">0.000 Ø¯.Øª</strong>
+        <strong class="due-n" id="basketTotal">0.000 د.ت</strong>
         <span class="queue" id="queueLine"></span>
       </div>
-      <label><span data-i18n="sell.paid">Ø§Ù„Ù…Ø¨Ù„Øº Ø§Ù„Ù…Ø¯ÙÙˆØ¹</span><input type="number" id="paidCash" min="0" step="0.001" data-i18n-ph="sell.paidPh"></label>
+      <label><span data-i18n="sell.paid">المبلغ المدفوع</span><input type="number" id="paidCash" min="0" step="0.001" data-i18n-ph="sell.paidPh"></label>
       <div id="changeLine" class="chg hidden"></div>
       <div class="row gap">
-        <button class="btn ghost big" id="btnCancelSell" data-i18n="common.cancel">Ø¥Ù„ØºØ§Ø¡</button>
-        <button class="btn primary big" id="btnSell" data-i18n="sell.go">ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¨ÙŠØ¹</button>
+        <button class="btn ghost big" id="btnCancelSell" data-i18n="common.cancel">إلغاء</button>
+        <button class="btn primary big" id="btnSell" data-i18n="sell.go">تسجيل البيع</button>
       </div>
     </div>
   </section>
@@ -149,23 +149,23 @@
   <!-- STOCK -->
   <section id="page-stock" class="page">
     <div class="pageHead">
-      <h2 data-i18n="stock.title">Ø§Ù„Ù…Ø®Ø²ÙˆÙ†</h2>
-      <p data-i18n="stock.sub">ÙƒÙ„ Ù…Ù†ØªÙˆØ¬ Ø¨Ø«Ù…Ù†ÙŠÙ‡: Ø´Ø±Ø§Ø¡ ÙˆØ¨ÙŠØ¹</p>
-      <div class="subrow"><button class="btn" id="btnAddProduct" data-i18n="stock.new">Ù…Ù†ØªØ¬ Ø¬Ø¯ÙŠØ¯</button></div>
+      <h2 data-i18n="stock.title">المخزون</h2>
+      <p data-i18n="stock.sub">كل منتوج بثمنيه: شراء وبيع</p>
+      <div class="subrow"><button class="btn" id="btnAddProduct" data-i18n="stock.new">منتج جديد</button></div>
     </div>
     <div id="stockList" class="stack"></div>
     <div id="productForm" class="card hidden">
-      <h3 id="productFormTitle" data-i18n="stock.new">Ù…Ù†ØªØ¬ Ø¬Ø¯ÙŠØ¯</h3>
+      <h3 id="productFormTitle" data-i18n="stock.new">منتج جديد</h3>
       <div class="grid2">
-        <label><span data-i18n="stock.name">Ø§Ù„Ø§Ø³Ù…</span><input type="text" id="pName"></label>
-        <label><span data-i18n="stock.buy">Ø«Ù…Ù† Ø§Ù„Ø´Ø±Ø§Ø¡</span><input type="number" id="pBuy" min="0"></label>
-        <label><span data-i18n="stock.sell">Ø«Ù…Ù† Ø§Ù„Ø¨ÙŠØ¹</span><input type="number" id="pSell" min="0"></label>
-        <label><span data-i18n="stock.qty">Ø§Ù„ÙƒÙ…ÙŠØ©</span><input type="number" id="pStock" min="0"></label>
-        <label><span data-i18n="stock.lowAt">ØªÙ†Ø¨ÙŠÙ‡ Ø¹Ù†Ø¯ (ÙƒÙ…ÙŠØ© Ù‚Ù„ÙŠÙ„Ø©)</span><input type="number" id="pLow" min="0" value="3"></label>
+        <label><span data-i18n="stock.name">الاسم</span><input type="text" id="pName"></label>
+        <label><span data-i18n="stock.buy">ثمن الشراء</span><input type="number" id="pBuy" min="0"></label>
+        <label><span data-i18n="stock.sell">ثمن البيع</span><input type="number" id="pSell" min="0"></label>
+        <label><span data-i18n="stock.qty">الكمية</span><input type="number" id="pStock" min="0"></label>
+        <label><span data-i18n="stock.lowAt">تنبيه عند (كمية قليلة)</span><input type="number" id="pLow" min="0" value="3"></label>
       </div>
       <div class="row end">
-        <button class="btn ghost" id="btnCancelProduct" data-i18n="common.cancel">Ø¥Ù„ØºØ§Ø¡</button>
-        <button class="btn primary" id="btnSaveProduct" data-i18n="common.save">Ø­ÙØ¸</button>
+        <button class="btn ghost" id="btnCancelProduct" data-i18n="common.cancel">إلغاء</button>
+        <button class="btn primary" id="btnSaveProduct" data-i18n="common.save">حفظ</button>
       </div>
     </div>
   </section>
@@ -173,30 +173,30 @@
   <!-- DEBTS -->
   <section id="page-debts" class="page">
     <div class="pageHead">
-      <h2 data-i18n="debts.title">Ø§Ù„Ø¯ÙŠÙˆÙ†</h2>
-      <p data-i18n="debts.sub">Ø§Ù„Ø¯ÙØªØ± Ø§Ù„Ø±Ù‚Ù…ÙŠ â€” Ù…Ù† Ø¹Ù„ÙŠÙ‡ ÙˆÙƒÙ…</p>
-      <div class="subrow"><button class="btn" id="btnAddDebt" data-i18n="debts.new">Ø¯ÙŠÙ† Ø¬Ø¯ÙŠØ¯</button></div>
+      <h2 data-i18n="debts.title">الديون</h2>
+      <p data-i18n="debts.sub">الدفتر الرقمي — من عليه وكم</p>
+      <div class="subrow"><button class="btn" id="btnAddDebt" data-i18n="debts.new">دين جديد</button></div>
     </div>
     <div id="debtList" class="stack"></div>
     <div id="debtForm" class="card hidden">
-      <h3 data-i18n="debts.new">Ø¯ÙŠÙ† Ø¬Ø¯ÙŠØ¯</h3>
+      <h3 data-i18n="debts.new">دين جديد</h3>
       <div class="grid2">
-        <label><span data-i18n="debts.name">Ø§Ø³Ù… Ø§Ù„Ø²Ø¨ÙˆÙ†</span><input type="text" id="dName"></label>
-        <label><span data-i18n="debts.amount">Ø§Ù„Ù…Ø¨Ù„Øº</span><input type="number" id="dAmount" min="0"></label>
-        <label><span data-i18n="debts.phone">Ø§Ù„Ù‡Ø§ØªÙ (Ø§Ø®ØªÙŠØ§Ø±ÙŠ)</span><input type="tel" id="dPhone"></label>
-        <label><span data-i18n="debts.note">Ù…Ù„Ø§Ø­Ø¸Ø©</span><input type="text" id="dNote"></label>
+        <label><span data-i18n="debts.name">اسم الزبون</span><input type="text" id="dName"></label>
+        <label><span data-i18n="debts.amount">المبلغ</span><input type="number" id="dAmount" min="0"></label>
+        <label><span data-i18n="debts.phone">الهاتف (اختياري)</span><input type="tel" id="dPhone"></label>
+        <label><span data-i18n="debts.note">ملاحظة</span><input type="text" id="dNote"></label>
       </div>
       <div class="row end">
-        <button class="btn ghost" id="btnCancelDebt" data-i18n="common.cancel">Ø¥Ù„ØºØ§Ø¡</button>
-        <button class="btn primary" id="btnSaveDebt" data-i18n="common.save">Ø­ÙØ¸</button>
+        <button class="btn ghost" id="btnCancelDebt" data-i18n="common.cancel">إلغاء</button>
+        <button class="btn primary" id="btnSaveDebt" data-i18n="common.save">حفظ</button>
       </div>
     </div>
     <div id="payForm" class="card hidden">
-      <h3 id="payTitle" data-i18n="debts.pay">Ø³Ø¯Ø§Ø¯</h3>
-      <label><span data-i18n="debts.amount">Ø§Ù„Ù…Ø¨Ù„Øº</span><input type="number" id="payAmount" min="0.001"></label>
+      <h3 id="payTitle" data-i18n="debts.pay">سداد</h3>
+      <label><span data-i18n="debts.amount">المبلغ</span><input type="number" id="payAmount" min="0.001"></label>
       <div class="row end">
-        <button class="btn ghost" id="btnCancelPay" data-i18n="common.cancel">Ø¥Ù„ØºØ§Ø¡</button>
-        <button class="btn primary" id="btnDoPay" data-i18n="debts.pay">Ø³Ø¯Ø§Ø¯</button>
+        <button class="btn ghost" id="btnCancelPay" data-i18n="common.cancel">إلغاء</button>
+        <button class="btn primary" id="btnDoPay" data-i18n="debts.pay">سداد</button>
       </div>
     </div>
   </section>
@@ -204,27 +204,27 @@
   <!-- REPORT -->
   <section id="page-report" class="page">
     <div class="pageHead">
-      <h2 data-i18n="report.title">ØªÙ‚Ø±ÙŠØ± Ø§Ù„ÙŠÙˆÙ…</h2>
-      <p data-i18n="report.sub">Ø§Ù„Ù‚ØµØ© Ø§Ù„ÙƒØ§Ù…Ù„Ø© Ù„Ù„ÙÙ„ÙˆØ³</p>
+      <h2 data-i18n="report.title">تقرير اليوم</h2>
+      <p data-i18n="report.sub">القصة الكاملة للفلوس</p>
       <div class="subrow">
         <input type="date" id="dayPicker" value="">
-        <button class="btn ghost" id="btnDayToday" data-i18n="report.today">Ø§Ù„ÙŠÙˆÙ…</button>
+        <button class="btn ghost" id="btnDayToday" data-i18n="report.today">اليوم</button>
       </div>
     </div>
     <div class="card till" id="tillCard"></div>
     <div class="card" id="cashCheckPanel">
-      <h3 data-i18n="report.check">Ø¹Ø¯Ù‘ Ø§Ù„ØµÙ†Ø¯ÙˆÙ‚</h3>
+      <h3 data-i18n="report.check">عدّ الصندوق</h3>
       <p class="muted" id="cashCheckExpected"></p>
       <div class="row gap">
         <input type="number" id="countedCash" data-i18n-ph="report.checkPh">
-        <button class="btn primary" id="btnCheckCash" data-i18n="report.checkGo">ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¹Ø¯Ù‘</button>
+        <button class="btn primary" id="btnCheckCash" data-i18n="report.checkGo">تسجيل العدّ</button>
       </div>
       <div id="checkHistory" class="rows"></div>
     </div>
     <div class="card">
       <div class="row between" style="margin-block-end:6px;">
-        <h3 data-i18n="report.movements">Ø­Ø±ÙƒØ© Ø§Ù„ÙŠÙˆÙ…</h3>
-        <button class="btn ghost" id="btnUndoSale" data-i18n="report.undo" hidden>ØªØ±Ø§Ø¬Ø¹ Ø¹Ù† Ø¢Ø®Ø± Ø¨ÙŠØ¹</button>
+        <h3 data-i18n="report.movements">حركة اليوم</h3>
+        <button class="btn ghost" id="btnUndoSale" data-i18n="report.undo" hidden>تراجع عن آخر بيع</button>
       </div>
       <div id="byCashier" class="rows"></div>
       <div id="entriesList"></div>
@@ -235,8 +235,8 @@
   <!-- CLIENTS -->
   <section id="page-clients" class="page">
     <div class="pageHead">
-      <h2 data-i18n="clients.head">Ø§Ù„Ø²Ø¨Ø§Ø¦Ù†</h2>
-      <p data-i18n="clients.sub">ÙƒÙ„ Ø²Ø¨ÙˆÙ† Ù…Ø­ÙÙˆØ¸: Ø¨ÙŠØ§Ù†Ø§ØªÙ‡ØŒ Ù…Ø´ØªØ±ÙŠØ§ØªÙ‡ØŒ Ø§Ù„Ø§Ø³ØªØ±Ø¬Ø§Ø¹Ø§ØªØŒ ÙˆØ§Ù„Ø¯ÙŠÙˆÙ†</p>
+      <h2 data-i18n="clients.head">الزبائن</h2>
+      <p data-i18n="clients.sub">كل زبون محفوظ: بياناته، مشترياته، الاسترجاعات، والديون</p>
     </div>
     <div id="clientsList" class="stack"></div>
   </section>
@@ -244,28 +244,28 @@
   <!-- STAFF -->
   <section id="page-employees" class="page">
     <div class="pageHead">
-      <h2 data-i18n="staff.head">Ø§Ù„Ù…ÙˆØ¸ÙÙˆÙ†</h2>
-      <p data-i18n="staff.sub">ÙØ±ÙŠÙ‚Ùƒ ÙˆØ±ÙˆØ§ØªØ¨Ù‡Ù… â€” Ø£Ø¶ÙØŒ Ø¹Ø¯Ù‘Ù„ØŒ Ø£Ù†Ù‡Ù Ø§Ù„Ø¹Ù‚Ø¯</p>
-      <div class="subrow"><button class="btn" id="btnAddEmployee" data-i18n="staff.add">Ø£Ø¶Ù Ù…ÙˆØ¸ÙØ§Ù‹</button></div>
+      <h2 data-i18n="staff.head">الموظفون</h2>
+      <p data-i18n="staff.sub">فريقك ورواتبهم — أضف، عدّل، أنهِ العقد</p>
+      <div class="subrow"><button class="btn" id="btnAddEmployee" data-i18n="staff.add">أضف موظفاً</button></div>
     </div>
 
     <div class="card hidden" id="staffForm">
-      <h3 id="staffFormTitle" data-i18n="staff.new">Ù…ÙˆØ¸Ù Ø¬Ø¯ÙŠØ¯</h3>
+      <h3 id="staffFormTitle" data-i18n="staff.new">موظف جديد</h3>
       <div class="grid2">
-        <label><span data-i18n="staff.name">Ø§Ù„Ø§Ø³Ù…</span><input type="text" id="empName"></label>
-        <label><span data-i18n="staff.type">Ø§Ù„ØµÙ†Ù / Ø§Ù„Ù…Ù†ØµØ¨</span><input type="text" id="empType"></label>
-        <label><span data-i18n="staff.salary">Ø§Ù„Ø±Ø§ØªØ¨ Ø§Ù„Ø´Ù‡Ø±ÙŠ</span><input type="number" id="empSalary" min="0" inputmode="decimal"></label>
-        <label><span data-i18n="staff.phone">Ø§Ù„Ù‡Ø§ØªÙ (Ø§Ø®ØªÙŠØ§Ø±ÙŠ)</span><input type="tel" id="empPhone"></label>
-        <label><span data-i18n="staff.note">Ù…Ù„Ø§Ø­Ø¸Ø©</span><input type="text" id="empNote"></label>
+        <label><span data-i18n="staff.name">الاسم</span><input type="text" id="empName"></label>
+        <label><span data-i18n="staff.type">الصنف / المنصب</span><input type="text" id="empType"></label>
+        <label><span data-i18n="staff.salary">الراتب الشهري</span><input type="number" id="empSalary" min="0" inputmode="decimal"></label>
+        <label><span data-i18n="staff.phone">الهاتف (اختياري)</span><input type="tel" id="empPhone"></label>
+        <label><span data-i18n="staff.note">ملاحظة</span><input type="text" id="empNote"></label>
       </div>
       <div class="row end">
-        <button class="btn ghost" id="btnCancelEmployee" data-i18n="common.cancel">Ø¥Ù„ØºØ§Ø¡</button>
-        <button class="btn primary" id="btnSaveEmployee" data-i18n="common.save">Ø­ÙØ¸</button>
+        <button class="btn ghost" id="btnCancelEmployee" data-i18n="common.cancel">إلغاء</button>
+        <button class="btn primary" id="btnSaveEmployee" data-i18n="common.save">حفظ</button>
       </div>
     </div>
 
     <div class="card">
-      <h3 data-i18n="staff.team">Ø§Ù„ÙØ±ÙŠÙ‚</h3>
+      <h3 data-i18n="staff.team">الفريق</h3>
       <div id="staffList" class="stack"></div>
     </div>
   </section>
@@ -273,16 +273,16 @@
   <!-- MONTHLY REVIEW -->
   <section id="page-monthly" class="page">
     <div class="pageHead">
-      <h2 data-i18n="monthly.head">Ø§Ù„Ù…Ø±Ø§Ø¬Ø¹Ø© Ø§Ù„Ø´Ù‡Ø±ÙŠØ©</h2>
-      <p data-i18n="monthly.sub">Ø§Ù„Ø¯Ø®Ù„ ÙˆØ§Ù„Ø®Ø³Ø§Ø¦Ø± ÙˆØ§Ù„Ø±Ø¨Ø­ â€” ÙˆØ§Ù„Ø±ÙˆØ§ØªØ¨ Ø¯Ø§Ø®Ù„Ù‡Ø§</p>
+      <h2 data-i18n="monthly.head">المراجعة الشهرية</h2>
+      <p data-i18n="monthly.sub">الدخل والخسائر والربح — والرواتب داخلها</p>
     </div>
 
     <div class="card" id="monthCard">
       <h3><input type="month" id="monthPicker" class="monthInput" aria-label="month"></h3>
       <div class="grid3">
-        <div class="metric"><span class="lab" data-i18n="staff.wins">Ø§Ù„Ø¯Ø®Ù„ (Ø¯Ø§Ø®Ù„)</span><b class="val ok" id="monthWins">0.000</b></div>
-        <div class="metric"><span class="lab" data-i18n="staff.losses">Ø§Ù„Ø®Ø³Ø§Ø¦Ø± (Ø®Ø§Ø±Ø¬)</span><b class="val bad" id="monthLosses">0.000</b></div>
-        <div class="metric"><span class="lab" data-i18n="staff.profit">Ø§Ù„Ø±Ø¨Ø­</span><b class="val" id="monthProfit">0.000</b></div>
+        <div class="metric"><span class="lab" data-i18n="staff.wins">الدخل (داخل)</span><b class="val ok" id="monthWins">0.000</b></div>
+        <div class="metric"><span class="lab" data-i18n="staff.losses">الخسائر (خارج)</span><b class="val bad" id="monthLosses">0.000</b></div>
+        <div class="metric"><span class="lab" data-i18n="staff.profit">الربح</span><b class="val" id="monthProfit">0.000</b></div>
       </div>
       <div id="monthBreakdown" class="rows"></div>
       <div id="monthDays" class="rows"></div>
@@ -292,44 +292,44 @@
   <!-- CASH BOX -->
   <section id="page-cashbox" class="page">
     <div class="pageHead">
-      <h2 data-i18n="cashbox.title">Ø§Ù„Ø®Ø²ÙŠÙ†Ø©</h2>
-      <p data-i18n="cashbox.sub">ÙÙ„ÙˆØ³ ØªØ¯Ø®Ù„ Ø§Ù„ØµÙ†Ø¯ÙˆÙ‚ ÙˆÙÙ„ÙˆØ³ ØªØ®Ø±Ø¬</p>
+      <h2 data-i18n="cashbox.title">الخزينة</h2>
+      <p data-i18n="cashbox.sub">فلوس تدخل الصندوق وفلوس تخرج</p>
     </div>
     <div class="card till" id="cbTill"></div>
     <div class="card">
-      <h3 data-i18n="cashbox.inTitle">Ø¥ÙŠØ¯Ø§Ø¹ ÙÙ„ÙˆØ³</h3>
+      <h3 data-i18n="cashbox.inTitle">إيداع فلوس</h3>
       <div class="row gap wrap">
         <input type="number" id="cbInAmt" inputmode="decimal" data-i18n-ph="cashbox.amount">
         <input type="text" id="cbInSrc" data-i18n-ph="cashbox.inSrc">
         <select id="cbInCat"></select>
-        <button class="btn primary" id="btnCashIn" data-i18n="cashbox.inGo">Ø¥ÙŠØ¯Ø§Ø¹</button>
+        <button class="btn primary" id="btnCashIn" data-i18n="cashbox.inGo">إيداع</button>
       </div>
     </div>
     <div class="card">
-      <h3 data-i18n="cashbox.outTitle">Ø³Ø­Ø¨ ÙÙ„ÙˆØ³</h3>
+      <h3 data-i18n="cashbox.outTitle">سحب فلوس</h3>
       <div class="row gap wrap">
         <input type="number" id="cbOutAmt" inputmode="decimal" data-i18n-ph="cashbox.amount">
         <input type="text" id="cbOutPurpose" data-i18n-ph="cashbox.outPurpose">
         <select id="cbOutCat"></select>
-        <button class="btn primary" id="btnCashOut" data-i18n="cashbox.outGo">Ø³Ø­Ø¨</button>
+        <button class="btn primary" id="btnCashOut" data-i18n="cashbox.outGo">سحب</button>
       </div>
     </div>
     <div class="card">
-      <h3 data-i18n="cashbox.cats">Ø§Ù„ÙØ¦Ø§Øª</h3>
+      <h3 data-i18n="cashbox.cats">الفئات</h3>
       <div class="catgrid">
         <div>
-          <h4 data-i18n="cashbox.catsIn">ÙØ¦Ø§Øª Ø§Ù„Ù…ØµØ¯Ø±</h4>
+          <h4 data-i18n="cashbox.catsIn">فئات المصدر</h4>
           <div class="row gap">
             <input type="text" id="catInName" data-i18n-ph="cashbox.catPh">
-            <button class="btn" id="btnCatInAdd" data-i18n="cashbox.catAdd">Ø¥Ø¶Ø§ÙØ©</button>
+            <button class="btn" id="btnCatInAdd" data-i18n="cashbox.catAdd">إضافة</button>
           </div>
           <div class="chips" id="catInList"></div>
         </div>
         <div>
-          <h4 data-i18n="cashbox.catsOut">ÙØ¦Ø§Øª Ø§Ù„ØºØ±Ø¶</h4>
+          <h4 data-i18n="cashbox.catsOut">فئات الغرض</h4>
           <div class="row gap">
             <input type="text" id="catOutName" data-i18n-ph="cashbox.catPh">
-            <button class="btn" id="btnCatOutAdd" data-i18n="cashbox.catAdd">Ø¥Ø¶Ø§ÙØ©</button>
+            <button class="btn" id="btnCatOutAdd" data-i18n="cashbox.catAdd">إضافة</button>
           </div>
           <div class="chips" id="catOutList"></div>
         </div>
@@ -340,93 +340,93 @@
   <!-- SETTINGS -->
   <section id="page-settings" class="page">
     <div class="pageHead">
-      <h2 data-i18n="settings.title">Ø§Ù„Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª</h2>
-      <p data-i18n="settings.sub">Ø§Ù„Ù…Ø­Ù„ØŒ Ø§Ù„Ù…Ø¸Ù‡Ø±ØŒ Ø§Ù„Ù„ØºØ©ØŒ Ø®ÙŠØ§Ø±Ø§Øª Ø§Ù„ÙŠÙˆÙ…</p>
+      <h2 data-i18n="settings.title">الإعدادات</h2>
+      <p data-i18n="settings.sub">المحل، المظهر، اللغة، خيارات اليوم</p>
     </div>
     <div class="stack">
-      <p class="sect" data-i18n="settings.sect.shop">Ø§Ù„Ù…Ø­Ù„</p>
+      <p class="sect" data-i18n="settings.sect.shop">المحل</p>
       <div class="card">
-        <label><span data-i18n="settings.shopName">Ø§Ø³Ù… Ø§Ù„Ù…Ø­Ù„</span><input type="text" id="cfgShopName"></label>
-        <label><span data-i18n="settings.startCash">ÙÙ„ÙˆØ³ Ø¨Ø¯Ø§ÙŠØ© Ø§Ù„ÙŠÙˆÙ…</span><input type="number" id="cfgStartCash" min="0"></label>
-        <div class="row end"><button class="btn primary" id="btnSaveCfg" data-i18n="common.save">Ø­ÙØ¸</button></div>
-        <p class="muted small" data-i18n="settings.startCashHint">Ø¨Ø¯Ø§ÙŠØ© Ø§Ù„ÙŠÙˆÙ… ØªÙØºÙŠÙ‘Ø± Ø¹Ù†Ø¯ ÙØªØ­ ØµÙ†Ø¯ÙˆÙ‚ Ø¬Ø¯ÙŠØ¯ (Ø¥ØºÙ„Ø§Ù‚ Ø§Ù„ÙŠÙˆÙ…).</p>
+        <label><span data-i18n="settings.shopName">اسم المحل</span><input type="text" id="cfgShopName"></label>
+        <label><span data-i18n="settings.startCash">فلوس بداية اليوم</span><input type="number" id="cfgStartCash" min="0"></label>
+        <div class="row end"><button class="btn primary" id="btnSaveCfg" data-i18n="common.save">حفظ</button></div>
+        <p class="muted small" data-i18n="settings.startCashHint">بداية اليوم تُغيّر عند فتح صندوق جديد (إغلاق اليوم).</p>
       </div>
 
-      <p class="sect" data-i18n="settings.sect.look">Ø§Ù„Ù…Ø¸Ù‡Ø±</p>
+      <p class="sect" data-i18n="settings.sect.look">المظهر</p>
       <div class="card">
-        <h3 data-i18n="settings.theme">Ø´ÙƒÙ„ Ø§Ù„Ø¯ÙƒØ§Ù†</h3>
+        <h3 data-i18n="settings.theme">شكل الدكان</h3>
         <div class="themes" id="themeGrid"></div>
       </div>
 
-      <p class="sect" data-i18n="settings.sect.lang">Ø§Ù„Ù„ØºØ©</p>
+      <p class="sect" data-i18n="settings.sect.lang">اللغة</p>
       <div class="card">
         <div class="seg">
-          <button class="segbtn" id="langAr">Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©</button>
+          <button class="segbtn" id="langAr">العربية</button>
           <button class="segbtn" id="langEn">English</button>
         </div>
       </div>
 
-      <p class="sect" data-i18n="settings.sect.behave">Ø§Ù„Ø³Ù„ÙˆÙƒ</p>
+      <p class="sect" data-i18n="settings.sect.behave">السلوك</p>
       <div class="card row between">
-        <span><b data-i18n="settings.discount">Ø§Ù„Ø®ØµÙ… Ù…Ø³Ù…ÙˆØ­</b><small class="muted" data-i18n="settings.discountHint">ØªØ¸Ù‡Ø± Ø­Ù‚ÙˆÙ„ Ø§Ù„Ø®ØµÙ… ÙÙŠ Ø§Ù„Ø¨ÙŠØ¹</small></span>
+        <span><b data-i18n="settings.discount">الخصم مسموح</b><small class="muted" data-i18n="settings.discountHint">تظهر حقول الخصم في البيع</small></span>
         <label class="switch"><input type="checkbox" id="cfgDiscount"><span></span></label>
       </div>
       <div class="card row between">
-        <span><b data-i18n="settings.refund">Ø§Ù„Ø§Ø³ØªØ±Ø¬Ø§Ø¹ Ù…Ø³Ù…ÙˆØ­</b><small class="muted" data-i18n="settings.refundHint">ØªØ¸Ù‡Ø± Ø®Ø§ØµÙŠØ© Ø§Ù„Ø§Ø³ØªØ±Ø¬Ø§Ø¹</small></span>
+        <span><b data-i18n="settings.refund">الاسترجاع مسموح</b><small class="muted" data-i18n="settings.refundHint">تظهر خاصية الاسترجاع</small></span>
         <label class="switch"><input type="checkbox" id="cfgRefund"><span></span></label>
       </div>
 
-      <p class="sect" data-i18n="settings.sect.pin">Ø§Ù„Ø­Ù…Ø§ÙŠØ©</p>
+      <p class="sect" data-i18n="settings.sect.pin">الحماية</p>
       <div class="card">
         <div class="row between">
-          <span><b data-i18n="settings.pinTitle">Ù‚ÙÙ„ Ø§Ù„Ù…Ø§Ù„Ùƒ (Ø£Ø±Ù‚Ø§Ù…)</b>
-            <small class="muted" data-i18n="settings.pinHint">ÙŠÙØ·Ù„Ø¨ Ù‚Ø¨Ù„ Ø§Ù„Ø§Ø³ØªØ±Ø¬Ø§Ø¹ ÙˆØ§Ù„ØªØ±Ø§Ø¬Ø¹ ÙˆØ¥ØºÙ„Ø§Ù‚ Ø§Ù„ÙŠÙˆÙ… ÙˆØ§Ù„Ø§Ø³ØªÙŠØ±Ø§Ø¯ ÙˆØ§Ù„Ø­Ø°Ù</small></span>
+          <span><b data-i18n="settings.pinTitle">قفل المالك (أرقام)</b>
+            <small class="muted" data-i18n="settings.pinHint">يُطلب قبل الاسترجاع والتراجع وإغلاق اليوم والاستيراد والحذف</small></span>
         </div>
         <div class="row between">
-          <input type="password" id="pinInput" inputmode="numeric" maxlength="6" placeholder="â€¢â€¢â€¢â€¢" autocomplete="new-password">
+          <input type="password" id="pinInput" inputmode="numeric" maxlength="6" placeholder="••••" autocomplete="new-password">
           <div class="row gr">
-            <button class="btn" id="btnPinSet" data-i18n="settings.pinSet">ØªØ¹ÙŠÙŠÙ† / ØªØºÙŠÙŠØ±</button>
-            <button class="btn ghost hidden" id="btnPinClear" data-i18n="settings.pinClear">Ø¥Ø²Ø§Ù„Ø© Ø§Ù„Ù‚ÙÙ„</button>
+            <button class="btn" id="btnPinSet" data-i18n="settings.pinSet">تعيين / تغيير</button>
+            <button class="btn ghost hidden" id="btnPinClear" data-i18n="settings.pinClear">إزالة القفل</button>
           </div>
         </div>
         <p class="muted small" id="pinStatus"></p>
       </div>
 
-      <p class="sect" data-i18n="settings.sect.day">Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„ÙŠÙˆÙ…</p>
+      <p class="sect" data-i18n="settings.sect.day">إدارة اليوم</p>
       <div class="card row between">
-        <button class="btn" id="btnCloseDay" data-i18n="settings.closeDay">Ø¥ØºÙ„Ø§Ù‚ ÙŠÙˆÙ… Ø§Ù„ÙŠÙˆÙ…</button>
+        <button class="btn" id="btnCloseDay" data-i18n="settings.closeDay">إغلاق يوم اليوم</button>
         <div class="row gr">
-          <button class="btn ghost" id="btnImport" data-i18n="settings.import">Ø§Ø³ØªØ±Ø¬Ø§Ø¹ Ù†Ø³Ø®Ø© (JSON)</button>
-          <button class="btn ghost" id="btnExport" data-i18n="settings.export">Ø­ÙØ¸ Ù†Ø³Ø®Ø© (JSON)</button>
+          <button class="btn ghost" id="btnImport" data-i18n="settings.import">استرجاع نسخة (JSON)</button>
+          <button class="btn ghost" id="btnExport" data-i18n="settings.export">حفظ نسخة (JSON)</button>
           <input type="file" id="importFile" accept=".json,application/json" hidden>
         </div>
       </div>
 
-      <p class="sect" data-i18n="settings.sect.account">Ø§Ù„Ø­Ø³Ø§Ø¨</p>
+      <p class="sect" data-i18n="settings.sect.account">الحساب</p>
       <div class="card">
         <div class="dlist">
-          <div><span class="n" data-i18n="settings.accountEmail">Ø§Ù„Ø¨Ø±ÙŠØ¯</span><b class="b" id="accountEmail">â€”</b></div>
-          <div><span class="n" data-i18n="settings.accountMode">ÙˆØ¶Ø¹ Ø§Ù„Ø­Ø³Ø§Ø¨</span><b class="b" id="accountMode"></b></div>
-          <div><span class="n" data-i18n="settings.accountSync">Ø§Ù„Ø³Ø­Ø§Ø¨Ø©</span><b class="b" id="accountSync"></b></div>
+          <div><span class="n" data-i18n="settings.accountEmail">البريد</span><b class="b" id="accountEmail">—</b></div>
+          <div><span class="n" data-i18n="settings.accountMode">وضع الحساب</span><b class="b" id="accountMode"></b></div>
+          <div><span class="n" data-i18n="settings.accountSync">السحابة</span><b class="b" id="accountSync"></b></div>
         </div>
         <div class="row end">
-          <button class="btn ghost" id="btnSignOut" data-i18n="settings.signOut">ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø®Ø±ÙˆØ¬</button>
+          <button class="btn ghost" id="btnSignOut" data-i18n="settings.signOut">تسجيل الخروج</button>
           <button class="btn primary" id="btnAccountOpen"></button>
         </div>
       </div>
 
-      <p class="sect" data-i18n="settings.sect.about">Ø¹Ù† Ø§Ù„ØªØ·Ø¨ÙŠÙ‚</p>
+      <p class="sect" data-i18n="settings.sect.about">عن التطبيق</p>
       <div class="card">
         <div class="dlist">
-          <div><span class="n" data-i18n="settings.version">Ø§Ù„Ù†Ø³Ø®Ø©</span><b class="b" id="appVersion">0.4.0</b></div>
-          <div><span class="n" data-i18n="settings.storage">Ø§Ù„Ù…Ø³Ø§Ø­Ø© Ø§Ù„Ù…Ø³ØªØ¹Ù…Ù„Ø©</span><b class="b" id="storageUsed">â€”</b></div>
+          <div><span class="n" data-i18n="settings.version">النسخة</span><b class="b" id="appVersion">0.4.0</b></div>
+          <div><span class="n" data-i18n="settings.storage">المساحة المستعملة</span><b class="b" id="storageUsed">—</b></div>
         </div>
-        <p class="muted small" data-i18n="settings.autosave">Ø§Ù„Ø­ÙØ¸ ØªÙ„Ù‚Ø§Ø¦ÙŠ Ø¹Ù„Ù‰ ÙƒÙ„ Ø¹Ù…Ù„ÙŠØ©. Ø§Ù„Ù†Ø³Ø®Ø© Ø§Ù„Ø§Ø­ØªÙŠØ§Ø·ÙŠØ© Ù…Ø²Ø¯ÙˆØ¬Ø© Ø¯Ø§Ø®Ù„ Ø§Ù„Ù…ØªØµÙØ­.</p>
+        <p class="muted small" data-i18n="settings.autosave">الحفظ تلقائي على كل عملية. النسخة الاحتياطية مزدوجة داخل المتصفح.</p>
       </div>
       <div class="card row">
-        <button class="btn danger" id="btnReset" data-i18n="settings.reset">Ù…Ø³Ø­ ÙƒÙ„ Ø´ÙŠØ¡ ÙˆØ¥Ø¹Ø§Ø¯Ø© Ø§Ù„Ø¨Ø¯Ø¡</button>
+        <button class="btn danger" id="btnReset" data-i18n="settings.reset">مسح كل شيء وإعادة البدء</button>
       </div>
-      <p class="muted small" data-i18n="settings.autosave">Ø§Ù„Ø­ÙØ¸ ØªÙ„Ù‚Ø§Ø¦ÙŠ Ø¹Ù„Ù‰ ÙƒÙ„ Ø¹Ù…Ù„ÙŠØ©. Ø§Ù„Ù†Ø³Ø®Ø© Ø§Ù„Ø§Ø­ØªÙŠØ§Ø·ÙŠØ© Ù…Ø²Ø¯ÙˆØ¬Ø© Ø¯Ø§Ø®Ù„ Ø§Ù„Ù…ØªØµÙØ­.</p>
+      <p class="muted small" data-i18n="settings.autosave">الحفظ تلقائي على كل عملية. النسخة الاحتياطية مزدوجة داخل المتصفح.</p>
     </div>
   </section>
 </main>
@@ -436,19 +436,19 @@
   <div class="receipt-card">
     <div class="r-head">
       <div class="r-brand">
-        <span class="r-logo">Ø¯</span>
+        <span class="r-logo">د</span>
         <div><b id="rShop"></b><small id="rWhen"></small></div>
       </div>
-      <button class="btn ghost" id="btnReceiptRefund" data-i18n="sell.refund">Ø§Ø³ØªØ±Ø¬Ø§Ø¹</button>
-      <button class="btn ghost" id="btnReceiptPrint" data-i18n="receipt.print">Ø·Ø¨Ø§Ø¹Ø©</button>
-      <button class="btn ghost" id="btnReceiptClose" data-i18n="receipt.close">ØªÙ…Ø§Ù…</button>
+      <button class="btn ghost" id="btnReceiptRefund" data-i18n="sell.refund">استرجاع</button>
+      <button class="btn ghost" id="btnReceiptPrint" data-i18n="receipt.print">طباعة</button>
+      <button class="btn ghost" id="btnReceiptClose" data-i18n="receipt.close">تمام</button>
     </div>
-    <div class="r-client"><span data-i18n="receipt.client">Ø§Ù„Ø²Ø¨ÙˆÙ†</span><b id="rClient"></b></div>
+    <div class="r-client"><span data-i18n="receipt.client">الزبون</span><b id="rClient"></b></div>
     <div class="r-client"><span data-i18n="receipt.doc"></span><b id="rDoc" class="hidden"></b></div>
-<div class="r-lines" id="rLines"></div>
+    <div class="r-lines" id="rLines"></div>
     <div class="r-totals" id="rTotals"></div>
-    <p class="r-thanks" data-i18n="receipt.thanks">Ø´ÙƒØ±Ø§Ù‹ Ù„Ø²ÙŠØ§Ø±ØªÙƒÙ…</p>
-    <button class="btn primary full" id="btnReceiptClose2" data-i18n="receipt.close">ØªÙ…Ø§Ù…</button>
+    <p class="r-thanks" data-i18n="receipt.thanks">شكراً لزيارتكم</p>
+    <button class="btn primary full" id="btnReceiptClose2" data-i18n="receipt.close">تمام</button>
   </div>
 </div>
 
@@ -457,10 +457,10 @@
   <div class="receipt-card">
     <div class="r-head">
       <div class="r-brand">
-        <span class="r-logo">Ø¯</span>
+        <span class="r-logo">د</span>
         <div><b id="metricTitle"></b></div>
       </div>
-      <button class="btn ghost" id="btnMetricClose" data-i18n="receipt.close">ØªÙ…Ø§Ù…</button>
+      <button class="btn ghost" id="btnMetricClose" data-i18n="receipt.close">تمام</button>
     </div>
     <div class="r-lines" id="metricBody"></div>
   </div>
@@ -471,10 +471,10 @@
   <div class="receipt-card pin-card">
     <div class="r-head">
       <div class="r-brand">
-        <span class="r-logo">Ù‚</span>
-        <div><b id="pinTitle" data-i18n="pin.title">ÙƒÙ„Ù…Ø© Ù…Ø±ÙˆØ± Ø§Ù„Ù…Ø§Ù„Ùƒ</b></div>
+        <span class="r-logo">ق</span>
+        <div><b id="pinTitle" data-i18n="pin.title">كلمة مرور المالك</b></div>
       </div>
-      <button class="btn ghost" id="btnPinCancel" data-i18n="receipt.close">ØªÙ…Ø§Ù…</button>
+      <button class="btn ghost" id="btnPinCancel" data-i18n="receipt.close">تمام</button>
     </div>
     <div class="pin-dots" id="pinDots"></div>
     <div class="pin-error hidden" id="pinError"></div>
@@ -488,9 +488,9 @@
       <button class="key" data-pin="7">7</button>
       <button class="key" data-pin="8">8</button>
       <button class="key" data-pin="9">9</button>
-      <button class="key" data-pin="clear" data-i18n="pin.clear">Ù…Ø³Ø­</button>
+      <button class="key" data-pin="clear" data-i18n="pin.clear">مسح</button>
       <button class="key" data-pin="0">0</button>
-      <button class="key key-ok" id="keyOk" data-pin="ok" data-i18n="pin.ok">Ù…ÙˆØ§ÙÙ‚</button>
+      <button class="key key-ok" id="keyOk" data-pin="ok" data-i18n="pin.ok">موافق</button>
     </div>
   </div>
 </div>
@@ -498,7 +498,7 @@
 <!-- ================= the login wall (shown on boot unless signed in / local mode) ================= -->
 <div id="gate" class="gate hidden" role="dialog" aria-modal="true">
   <div class="gate-box wall">
-    <div class="gate-logo">Ø¯</div>
+    <div class="gate-logo">د</div>
     <h2 id="gateTitle"></h2>
     <p class="muted" id="gateSub"></p>
 

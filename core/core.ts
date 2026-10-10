@@ -276,6 +276,71 @@ function ensureDocState(state) {
 }
 
 
+// ---------- STATE INTEGRITY (SAL-004, TEN-002, NFR-002) ----------
+// The minimum-viable server-side trust boundary: a pushed blob is validated
+// BEFORE it is stored (stock counters ⇔ movements, bills ⇔ entries, debts
+// well-formed, pin shape intact, version current). Used by the client as the
+// last gate before upload AND by the own-server API (api/state.php) which
+// rejects a dirty blob with 409 — nothing is ever written verbatim anymore.
+function stateProblems(state) {
+  if (!state || typeof state !== 'object') return ['state is not an object'];
+  const out = [];
+  if (state.version !== 4) out.push('state.version must be 4 (found ' + String(state.version) + ')');
+  if (!state.shop || typeof state.shop !== 'object' || typeof state.shop.name !== 'string') out.push('shop.name missing');
+  if (!state.settings || typeof state.settings !== 'object') out.push('settings missing');
+  if (!Array.isArray(state.products)) out.push('products must be an array');
+  if (!Array.isArray(state.movements)) out.push('movements must be an array');
+  if (!Array.isArray(state.employees)) out.push('employees must be an array');
+  if (!Array.isArray(state.debts)) out.push('debts must be an array');
+  if (!state.day || typeof state.day !== 'object' || !Array.isArray(state.day.entries)) out.push('day.entries missing');
+
+  const pinHash = state.settings && state.settings.pinHash;
+  if (pinHash != null && typeof pinHash !== 'string') out.push('pinHash must be a string, not ' + typeof pinHash);
+
+  // entries: known kinds, finite amounts, unique ids, bills reconcile
+  const KINDS = { sale: 1, refund: 1, expense: 1, income: 1, check: 1, buy: 1, 'debt-pay': 1 };
+  const seen = {};
+  const entries = (state.day && Array.isArray(state.day.entries)) ? state.day.entries : [];
+  for (const e of entries) {
+    if (!e || typeof e !== 'object') { out.push('day has a non-object entry'); continue; }
+    if (seen[e.id]) out.push('duplicate entry id: ' + e.id); else seen[e.id] = 1;
+    if (!KINDS[e.kind]) out.push('unknown entry kind: ' + String(e.kind));
+    if (typeof e.amount !== 'number' || !Number.isFinite(e.amount)) out.push('entry amount not finite: ' + String(e.id));
+    if (e.bill && typeof e.bill === 'object') {
+      if (typeof e.bill.net !== 'number' || !Number.isFinite(e.bill.net) || e.bill.net < 0) out.push('bill.net invalid: ' + String(e.id));
+      if (e.kind === 'sale' && Math.abs(e.bill.net - Math.abs(e.amount)) > 0.001) out.push('sale amount != bill.net: ' + String(e.id));
+      if (Array.isArray(e.bill.lines)) {
+        for (const ln of e.bill.lines) if (!Number.isFinite(ln.total)) out.push('bill line total not finite: ' + String(e.id));
+      }
+    }
+  }
+
+  // debts: a debt can only grow by sales and shrink by payments
+  for (const d of state.debts) {
+    if (!d || typeof d !== 'object') { out.push('debts holds a non-object'); continue; }
+    if (typeof d.total !== 'number' || !Number.isFinite(d.total) || d.total < 0) out.push('debt total invalid: ' + String(d && d.name));
+    if (typeof d.paid !== 'number' || !Number.isFinite(d.paid) || d.paid < 0) out.push('debt paid invalid: ' + String(d && d.name));
+    if (d.paid > d.total + 0.001) out.push('debt paid exceeds total: ' + String(d && d.name));
+  }
+
+  // products: stock counters must reconcile with the movement ledger
+  const byId = {};
+  for (const m of state.movements) {
+    if (!m || typeof m.productId !== 'string' || typeof m.qty !== 'number' || !Number.isFinite(m.qty)) {
+      out.push('malformed movement');
+      continue;
+    }
+    byId[m.productId] = (byId[m.productId] || 0) + m.qty;
+  }
+  for (const p of state.products) {
+    if (typeof p.stock !== 'number' || !Number.isFinite(p.stock)) { out.push('product stock invalid: ' + String(p && p.name)); continue; }
+    if (p.stock < 0) out.push('negative stock: ' + String(p.name));
+    if (p.stock !== (byId[p.id] || 0)) out.push('stock counter != movement ledger: ' + String(p.name) + ' (' + p.stock + ' vs ' + (byId[p.id] || 0) + ')');
+  }
+  return out;
+}
+
+
 // accept either the id string itself or { id } — small convenience
 function idTrusted(state, id) {
   if (id && typeof id === 'object' && id.id) return id.id;
@@ -384,4 +449,5 @@ function ensureMovements(state) {
   K.ensureTaxState = ensureTaxState;
   K.fmtDoc = fmtDoc;
   K.ensureDocState = ensureDocState;
+  K.stateProblems = stateProblems;
 });

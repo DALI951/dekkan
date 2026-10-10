@@ -2,8 +2,21 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // one doc per owner: shops/{uid} holds { data: <whole state as JSON string>, updatedAt }
+    // P0-5 (SAL-004/TEN-002/NFR-002): Firestore rules cannot run the full
+    // integrity check, but they can stop garbage/vendor-lock-in writes:
+    // - a shop blob is a JSON string of a bounded size
+    // - it must look like a dekkan state (version + products present)
+    // - nothing beyond { data, updatedAt } may be written
+    // (The own-server API api/state.php runs the FULL validator, 409 on fail.)
     match /shops/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.data is string
+        && request.resource.data.data.size() >= 20
+        && request.resource.data.data.size() < 2000000
+        && request.resource.data.data.matches('"version"')
+        && request.resource.data.data.matches('"products"')
+        && request.resource.data.keys().hasOnly(['data', 'updatedAt']);
     }
   }
 }

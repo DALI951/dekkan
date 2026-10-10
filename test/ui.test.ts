@@ -860,3 +860,67 @@ test('a shop saved by an older version still opens, sells and reports — no whi
   assert.ok(Array.isArray(ui.saved().debts), 'the notebook array is there for later');
   assert.ok(Array.isArray(ui.saved().day.checks), 'and the day can still be counted');
 });
+
+// ---------- P0-8: the half-built order survives a refresh (draft persistence) ----------
+
+test('a half-built order survives a refresh, and the draft never enters the state', () => {
+  const ui = boot();
+  ui.click('sell-add', ui.pid);              // Coca x1
+  ui.click('sell-add', ui.pid);              // Coca x2 -> 3.000
+  ui.$('freeName').value = 'Cafe';
+  ui.$('freePrice').value = '2';
+  ui.$('btnAddFree').fire('click');          // + free Cafe 2.000 -> 5.000
+  assert.strictEqual(ui.$('basketTotal').textContent, '5.000 د.ت', 'the running total');
+
+  // SALE-002: the draft is kept in its OWN key — the shop state has no basket
+  const drafted = ui.store['dekkan.draft'];
+  assert.ok(drafted, 'a draft was written');
+  const d = JSON.parse(drafted);
+  assert.strictEqual(d.basket[0].qty, 2, 'the two Cokes are in the draft');
+  assert.strictEqual(d.freeItems[0].name, 'Cafe', 'and the free line');
+  assert.ok(!('basket' in ui.saved()) && !('draft' in ui.saved()),
+    'the state blob itself carries no draft — stock/cash/report are untouched');
+
+  // "refresh": a new page boots over the SAME persisted shop (ids are random per
+  // boot, so a real refresh must carry dekkan.v1 forward) plus the draft key
+  const ui2 = boot(undefined, s => { s['dekkan.v1'] = JSON.stringify(ui.saved()); s['dekkan.draft'] = drafted; });
+  assert.strictEqual(ui2.$('basketTotal').textContent, '5.000 د.ت', 'the order is still there after reload');
+});
+
+test('recording the sale clears the draft (no ghost order next time)', () => {
+  const ui = boot();
+  ui.click('sell-add', ui.pid);
+  assert.ok(ui.store['dekkan.draft'], 'a draft exists while building');
+  ui.$('paidCash').value = '1.5';
+  ui.$('paidCash').fire('input');
+  ui.$('btnSell').fire('click');
+  assert.strictEqual(ui.store['dekkan.draft'], undefined, 'the draft is gone after the sale');
+  assert.strictEqual(ui.$('basketTotal').textContent, '0.000 د.ت');
+});
+
+test('cancelling the order clears the draft too', () => {
+  const ui = boot();
+  ui.click('sell-add', ui.pid);
+  assert.ok(ui.store['dekkan.draft'], 'building a draft');
+  ui.$('btnCancelSell').fire('click');
+  assert.strictEqual(ui.store['dekkan.draft'], undefined, 'cancel threw the draft away');
+});
+
+test('a stale draft (deleted product / over-stock qty) is pruned on restore', () => {
+  // a draft from another tab mentioning a product that no longer exists, and a
+  // qty beyond what is on the shelf — restoring it must not crash or oversell
+  const ui = boot(undefined, s => {
+    const pid = JSON.parse(s['dekkan.v1']).products[0].id;
+    s['dekkan.draft'] = JSON.stringify({
+      basket: [{ id: 'ghost', qty: 5 }, { id: pid, qty: 999 }],
+      freeItems: [{ name: '', price: 1, qty: 1 }, { name: 'Cafe', price: 2, qty: 1 }]
+    });
+  });
+  // the ghost is dropped; the real product's qty is clamped to the 10 on the shelf;
+  // the nameless free line is dropped, the real one kept
+  const d = JSON.parse(ui.store['dekkan.draft'] || '{"basket":[],"freeItems":[]}');
+  assert.strictEqual(d.basket.length, 1, 'only the real product survives');
+  assert.ok(d.basket[0].qty <= 10, 'and never more than the shelf holds');
+  assert.strictEqual(d.freeItems.length, 1, 'the nameless free line is dropped');
+  assert.doesNotThrow(() => ui.goto('#/sell'), 'the page still renders');
+});

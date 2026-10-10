@@ -20,6 +20,10 @@
   const A = DEK.actions;
   const LS_KEY = 'dekkan.v1';
   const BK_KEY = 'dekkan.backup';
+  // P0-8: the half-built order lives in its OWN key, never inside the shop state
+  // (a draft must not touch stock/cash/report — SALE-002). A refresh, a tab switch
+  // or a phone screen-off must not eat an order the cashier already scanned.
+  const DRAFT_KEY = 'dekkan.draft';
   const A_VERSION = '0.19.0';
 
   // ---------- helpers ----------
@@ -132,6 +136,41 @@
     return { date: D.todayStr(), openedAt: Date.now(), startCash: 0, soldCost: 0, entries: [], checks: [], soldByProduct: {}, soldFree: {} };
   }
   C.state = load();
+  // restore a draft the shopkeeper left behind (a refresh/tab-switch mid-order).
+  // Anything stale is pruned here: a deleted product, an over-shelf qty, a blank
+  // free line — the order must never come back broken or able to oversell.
+  function loadDraft() {
+    try {
+      const j = localStorage.getItem(DRAFT_KEY);
+      if (!j) return;
+      const d = JSON.parse(j) || {};
+      const basket = Array.isArray(d.basket) ? d.basket : [];
+      const freeItems = Array.isArray(d.freeItems) ? d.freeItems : [];
+      C.basket = basket.filter(function (b) {
+        if (!b) return false;
+        const p = D.getProduct(C.state, b.id);
+        if (!p || p.stock <= 0) return false;              // product gone or sold out
+        b.qty = Math.min(Math.max(1, Math.floor(b.qty) || 1), p.stock); // never over the shelf
+        return true;
+      });
+      C.freeItems = freeItems.filter(function (f) {
+        return f && f.name && String(f.name).trim() && Number.isFinite(f.qty) && f.qty > 0;
+      });
+    } catch (e) { /* a broken draft is just ignored */ }
+    // re-save the pruned draft so a stale key never lingers on disk
+    saveDraft();
+  }
+  // mirrored on every render, so the draft always matches what is on screen
+  function saveDraft() {
+    try {
+      if ((!C.basket || !C.basket.length) && (!C.freeItems || !C.freeItems.length)) {
+        localStorage.removeItem(DRAFT_KEY);
+      } else {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({ basket: C.basket, freeItems: C.freeItems }));
+      }
+    } catch (e) { /* storage full — the order still lives in memory */ }
+  }
+  loadDraft();
   C.save = save;
   C.load = load;
 
@@ -151,7 +190,7 @@
       toast(e.message, true);
     }
   }
-  function render() { P.render(C); }
+  function render() { saveDraft(); P.render(C); }
   C.run = run;
   C.render = render;
 

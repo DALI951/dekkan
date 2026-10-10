@@ -409,6 +409,7 @@
       paid: bill ? bill.paid : null,
       rest: bill ? bill.rest : 0,
       change: bill ? bill.change : 0,
+      tax: bill ? bill.tax : null,
       when: e.at
     });
   }
@@ -686,6 +687,9 @@
 
     let t = '<div class="r-row big"><span>' + T.t('receipt.total') + '</span><b>' + money(r.net) + '</b></div>';
     if (r.discount > 0) t += '<div class="r-row dim"><span>' + T.t('sell.discount') + '</span><span>−' + money(r.discount) + '</span></div>';
+    if (r.tax && r.tax.code) {
+      t += '<div class="r-row dim"><span>' + esc(r.tax.code) + ' ' + Math.round(r.tax.rate * 100) + '%</span><b>' + money(r.net * r.tax.rate) + '</b></div>';
+    }
     if (r.paid !== null) {
       t += '<div class="r-row"><span>' + T.t('receipt.paid') + '</span><b>' + money(r.paid) + '</b></div>';
       if (r.change > 0) t += '<div class="r-row ok"><span>' + T.t('sell.change') + '</span><b>' + money(r.change) + '</b></div>';

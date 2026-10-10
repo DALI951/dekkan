@@ -6,7 +6,7 @@
   if (typeof module === 'object' && module.exports) module.exports = factory;
   if (typeof window !== 'undefined' && root.DEK && root.DEK.core) factory(root.DEK.core);
 })(typeof self !== 'undefined' ? self : this, function (K) {
-  const { money, cash, pushEntry, ensureCustomer, rollover, getProduct, discountOff, addDebt, getDebtByName, clone, stockMove } = K;
+  const { money, cash, pushEntry, ensureCustomer, rollover, getProduct, discountOff, addDebt, getDebtByName, clone, stockMove, currentTax } = K;
 
 
 // FULL CHECKOUT — one customer, one bill, one numbered sale entry.
@@ -65,6 +65,8 @@ function sellAll(state, opts) {
   const customer = String(opts.customer || opts.creditTo || '').trim();
   const cashIn = paidVal === null ? (customer ? 0 : net) : money(Math.min(paidVal, net));
   const bill = billOf(lines, disc, net, paidVal, cashIn);
+  const tax = currentTax(state);
+  if (tax) bill.tax = tax; // TAX-002: the rate snapshot rides with the bill, forever
 
   state = applyPayment(state, net, opts, refs.join(', '), bill);
   recordSaleMoves(state, items);
@@ -126,6 +128,8 @@ function sell(state, opts) {
   const customer = String(opts.customer || opts.creditTo || '').trim();
   const cashIn = paidVal === null ? (customer ? 0 : net) : money(Math.min(paidVal, net));
   const bill = billOf(lines, disc, net, paidVal, cashIn);
+  const tax = currentTax(state);
+  if (tax) bill.tax = tax; // TAX-002: the rate snapshot rides with the bill, forever
 
   state = applyPayment(state, net, opts, refs.join(', '), bill);
   recordSaleMoves(state, items);
@@ -154,6 +158,8 @@ function sellFree(state, opts) {
     [{ name: String(opts.name).trim(), qty: qty, price: money(price), total: money(price * qty) }],
     disc, net, paidVal, cashIn
   );
+  const tax = currentTax(state);
+  if (tax) bill.tax = tax; // TAX-002: the rate snapshot rides with the bill, forever
   state = applyPayment(state, net, opts, opts.name + 'x' + qty, bill);
   return clone(state);
 }
@@ -240,7 +246,8 @@ function billOf(lines, discount, net, paidVal, cashIn) {
     net: money(net),
     paid: paidVal === null ? null : money(paidVal),
     rest: money(Math.max(0, net - cashIn)),
-    change: money(Math.max(0, (paidVal === null ? 0 : paidVal) - net)) // cashIn is clamped; change is paid BEYOND the net
+    change: money(Math.max(0, (paidVal === null ? 0 : paidVal) - net)), // cashIn is clamped; change is paid BEYOND the net
+    tax: null // TAX-002: the rate snapshot, stamped by the seller at post time
   };
 }
 

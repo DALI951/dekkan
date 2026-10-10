@@ -110,6 +110,7 @@
     if (!s.settings || typeof s.settings !== 'object') s.settings = {};
     if (typeof s.settings.allowDiscount !== 'boolean') s.settings.allowDiscount = true;
     if (typeof s.settings.allowRefund !== 'boolean') s.settings.allowRefund = true;
+    if (D.ensureTaxState) D.ensureTaxState(s);
     if (!s.shop || typeof s.shop !== 'object') s.shop = { name: T.t('app.name'), startCash: 0 };
     if (!s.day || typeof s.day !== 'object') s.day = newDay();
     else {

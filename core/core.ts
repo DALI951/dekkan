@@ -41,7 +41,11 @@ function createShop(opts) {
     // Options the shopkeeper can turn on/off. The UI shows/hides them.
     settings: {
       allowDiscount: opts.allowDiscount !== undefined ? !!opts.allowDiscount : true,
-      allowRefund: opts.allowRefund !== undefined ? !!opts.allowRefund : true
+      allowRefund: opts.allowRefund !== undefined ? !!opts.allowRefund : true,
+      // Tax profiles (workbook CFG-005 / TAX-001..003): optional, configurable,
+      // with effective dates + ONE rounding policy. The default below is the
+      // Tunisian standard — it lives HERE in config, never in posting code.
+      tax: opts.tax || defaultTaxConfig()
     },
     // every customer name ever used (sales + notebook) — the counter's memory
     customers: [],
@@ -174,8 +178,62 @@ function restoreState(raw) {
     s.categories = { in: [], out: [] };
   }
   if (!Array.isArray(s.employees)) s.employees = [];
+  ensureTaxState(s);
   ensureMovements(s);
   return s;
+}
+
+
+// ---------- TAX PROFILES (CFG-005, TAX-001..003) ----------
+// Rates are config (never hard-coded in posting code), each with effective
+// dates; posted lines keep a snapshot so a later rate change never rewrites
+// history. `rounding` is the ONE rounding policy for the whole shop.
+function defaultTaxConfig() {
+  return {
+    rounding: 'half-up',
+    profiles: [
+      { code: 'TVA', name: 'TVA 19%', rate: 0.19, from: '2000-01-01', to: null }
+    ]
+  };
+}
+
+
+// the profile in force for a given day (latest effective date wins)
+function taxProfileFor(state, date) {
+  const profiles = (state.settings && state.settings.tax && state.settings.tax.profiles) || [];
+  if (!profiles.length) return null;
+  const d = String(date || todayStr());
+  let best = null;
+  for (const p of profiles) {
+    if (p.from && String(p.from) > d) continue;
+    if (p.to && String(p.to) < d) continue;
+    if (!best || String(p.from || '') > String(best.from || '')) best = p;
+  }
+  if (best) return best;
+  // nothing is active on that date (all future-dated): the earliest configured one
+  let fallback = profiles[0];
+  for (const p of profiles) {
+    if (String(p.from || '') < String(fallback.from || '')) fallback = p;
+  }
+  return fallback;
+}
+
+
+// the compact snapshot posted with every bill (code + rate, nothing else)
+function currentTax(state) {
+  const p = taxProfileFor(state, todayStr());
+  return p ? { code: p.code, rate: p.rate } : null;
+}
+
+
+// repairs old saves that predate the tax config
+function ensureTaxState(state) {
+  if (!state.settings || typeof state.settings !== 'object') state.settings = {};
+  if (!state.settings.tax || !Array.isArray(state.settings.tax.profiles) || state.settings.tax.profiles.length === 0) {
+    state.settings.tax = defaultTaxConfig();
+  }
+  if (typeof state.settings.tax.rounding !== 'string') state.settings.tax.rounding = 'half-up';
+  return state;
 }
 
 
@@ -281,4 +339,8 @@ function ensureMovements(state) {
   K.stockIntegrity = stockIntegrity;
   K.reconcileStock = reconcileStock;
   K.ensureMovements = ensureMovements;
+  K.defaultTaxConfig = defaultTaxConfig;
+  K.taxProfileFor = taxProfileFor;
+  K.currentTax = currentTax;
+  K.ensureTaxState = ensureTaxState;
 });

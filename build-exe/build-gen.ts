@@ -112,17 +112,17 @@ const seamsApp = [
   '// ----- THEMES (colors live in js/themes.js — the app just asks) -----',
   '// ---------- events bound once ----------',
 ];
-emit('js/app.js', seamsApp, 'js/parts', buildLines);
+emit('ui/app.js', seamsApp, 'ui/parts', buildLines);
 
 // write build.cjs
-buildLines.push('', "module.exports = function () {", "  const prev = { app: 'js/app.js', core: 'core/dekkan-core.js' };", "  const pair = [];");
+buildLines.push('', "module.exports = function () {", "  const prev = { app: 'ui/app.js', core: 'core/dekkan-core.js' };", "  const pair = [];");
 buildLines.push('  pair.push([path.join(ROOT, prev.app), null]);');
 buildLines.push('  return { output: out, targets: pair };');
 buildLines.push('};');
 
 fs.writeFileSync(path.join(ROOT, 'build.cjs'), buildLines.join('\n') + '\n');
 
-const appBuf = fs.readFileSync(path.join(ROOT, 'js/app.js'), 'latin1');
+const appBuf = fs.readFileSync(path.join(ROOT, 'ui/app.js'), 'latin1');
 const coreBuf = fs.readFileSync(path.join(ROOT, 'core/dekkan-core.js'), 'latin1');
 console.log('core parts: ' + buildLinesInCore());
 console.log('parts written; any seam left dangling is FATAL — run: node build.cjs && node test');

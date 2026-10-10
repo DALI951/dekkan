@@ -5,12 +5,13 @@
   "private": true,
   "scripts": {
     "build": "tsc",
-    "test": "npm run build && node --test test/*.test.js",
-    "test:sim": "npm run build && node scripts/simulate.js",
-    "test:i18n": "npm run build && node scripts/check-i18n.js",
-    "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test test/*.test.ts",
+    "test:sim": "node scripts/simulate.ts",
+    "test:i18n": "node scripts/check-i18n.ts",
+    "test:e2e": "npm run build && playwright test",
     "serve": "npm run build && node scripts/serve.js 4173",
-    "check": "npm run build && node --test test/*.test.js && node scripts/simulate.js && node scripts/check-i18n.js"
+    "check": "npm run typecheck && node --test test/*.test.ts && node scripts/simulate.ts && node scripts/check-i18n.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

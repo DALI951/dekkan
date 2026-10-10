@@ -13,7 +13,8 @@ const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
-const { fakeFirebase } = require('./fake-firebase.js');
+const { stripTypeScriptTypes } = require('module');
+const { fakeFirebase } = require('./fake-firebase.ts');
 
 const ROOT = path.join(__dirname, '..');
 
@@ -80,7 +81,7 @@ function boot(seed, pre, env) {
   if (env && env.fb) sandbox.DEKKAN_FIREBASE = fakeFirebase(env.fb);
   vm.createContext(sandbox);
 
-  const core = require(path.join(ROOT, 'core', 'dekkan-core.js'));
+  const core = require(path.join(ROOT, 'core', 'dekkan-core.ts'));
   let s = core.createShop({ name: 'Test', startCash: 50 });
   s = core.addProduct(s, { name: 'Coca', buy: 0.8, sell: 1.5, stock: 10, lowAt: 3 });
   if (seed) s = seed(core, s);
@@ -89,10 +90,10 @@ function boot(seed, pre, env) {
   // device, a saved session) and it must win over the freshly built shop
   if (pre) pre(store);
 
-  ['core/dekkan-core.js', 'core/core.js', 'core/products.js', 'core/debts.js',
-    'core/sales.js', 'core/refunds.js', 'core/employees.js', 'core/cashbox.js', 'core/report.js', 'core/shop.js', 'core/pin.js',
-    'js/themes.js', 'js/lang.js', 'js/fmt.js', 'js/pages.js', 'js/actions.js', 'js/config.js', 'js/auth.js', 'js/app.js'].forEach(f => {
-    vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f });
+  ['core/dekkan-core.ts', 'core/core.ts', 'core/products.ts', 'core/debts.ts',
+    'core/sales.ts', 'core/refunds.ts', 'core/employees.ts', 'core/cashbox.ts', 'core/report.ts', 'core/shop.ts', 'core/pin.ts',
+    'ui/themes.ts', 'ui/lang.ts', 'ui/fmt.ts', 'ui/pages.ts', 'ui/actions.ts', 'ui/config.ts', 'ui/auth.ts', 'ui/app.ts'].forEach(f => {
+    vm.runInContext(stripTypeScriptTypes(fs.readFileSync(path.join(ROOT, f), 'utf8')), sandbox, { filename: f });
   });
 
   const $ = id => doc.getElementById(id);

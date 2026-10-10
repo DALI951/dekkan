@@ -3,7 +3,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert');
-const D = require('../core/dekkan-core.js');
+const D = require('../core/dekkan-core.ts');
 
 function shop() {
   let s = D.createShop({ name: 'X', startCash: 100 });

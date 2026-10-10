@@ -6,7 +6,7 @@ playwright-report/
 # The repo holds ONLY .ts sources; `npm run build` (tsc) emits these .js files.
 /*.js
 /core/*.js
-/js/*.js
+/ui/*.js
 /scripts/*.js
 /test/*.js
 *.tsbuildinfo

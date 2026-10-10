@@ -34,7 +34,7 @@ test('online load IGNORES a poisoned stale cache (network-first beats cache)', a
       { headers: { 'content-type': 'text/javascript' } });
     await Promise.all([
       c.put('http://127.0.0.1:4173/', html),
-      c.put('http://127.0.0.1:4173/js/lang.js', lang)
+      c.put('http://127.0.0.1:4173/ui/lang.js', lang)
     ]);
   });
 

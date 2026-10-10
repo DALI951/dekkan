@@ -2,14 +2,14 @@
 // JS -> TS migration (first pass): this file is the dynamic DOM / service-worker /
 // vm-harness layer (loose globals + event targets). Types get tightened incrementally.
 /* DEKKAN — the shop webapp (v4: theme engine + till-style report).
- * UI SHELL ONLY: builds window.DEK.app (the ctx for js/fmt.js, js/pages.js,
- * js/actions.js), wires every button/input/keyboard/key, and persists state.
+ * UI SHELL ONLY: builds window.DEK.app (the ctx for ui/fmt.js, ui/pages.js,
+ * ui/actions.js), wires every button/input/keyboard/key, and persists state.
  * Every business rule lives in core/dekkan-core.js.
- * Every user-visible string goes through T.t() (js/lang.js).
- * Every color comes from a theme token (js/themes.js) — no hardcoded colors here.
+ * Every user-visible string goes through T.t() (ui/lang.js).
+ * Every color comes from a theme token (ui/themes.js) — no hardcoded colors here.
  *
- * The renderers live in js/pages.js, the click handlers in js/actions.js,
- * the display helpers in js/fmt.js — this file only glues them to the DOM.
+ * The renderers live in ui/pages.js, the click handlers in ui/actions.js,
+ * the display helpers in ui/fmt.js — this file only glues them to the DOM.
  */
 'use strict';
 (function () {
@@ -131,7 +131,7 @@
   C.save = save;
   C.load = load;
 
-  // the account layer (js/auth.js): session + cloud sync — available to every render
+  // the account layer (ui/auth.js): session + cloud sync — available to every render
   const AUTH = window.DEK.Auth;
   AUTH.init();
   C.auth = AUTH;
@@ -315,7 +315,7 @@
   navigate();
 
   // ---------- the account: cloud backup (opt-in, from Settings) ----------
-  // js/auth.js talks to the API; this block decides when the form is up.
+  // ui/auth.js talks to the API; this block decides when the form is up.
   // THE RULE (2026-09-26): the shop NEVER ambushes you with a login form.
   // It opens straight into the till, signed in or not. The account lives in one
   // Settings card, and a cloud copy can never replace a till that has money in

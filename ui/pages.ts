@@ -2,9 +2,9 @@
 // JS -> TS migration (first pass): this file is the dynamic DOM / service-worker /
 // vm-harness layer (loose globals + event targets). Types get tightened incrementally.
 /* DEKKAN UI — pages: every renderer and modal lightbox, one per page.
- * Split mechanically from js/app.js — bodies untouched, only each function's
+ * Split mechanically from ui/app.js — bodies untouched, only each function's
  * signature changed to (C) with its ctx needs destructured on the first line.
- * C = window.DEK.app (created by js/app.js): { state, basket, freeItems,
+ * C = window.DEK.app (created by ui/app.js): { state, basket, freeItems,
  * refundMode, refundProductId, editProductId, payDebtId, newDebtFlag,
  * receiptEntryId, storageRead, $, T, D, version, save, run, render, toast }.
  */
@@ -40,7 +40,7 @@
 
   // ---------- ONE quote for the whole till ----------
   // What the screen shows and what the till charges used to be computed TWICE
-  // (here for the number, in js/actions.js for the sale). They drifted: type a
+  // (here for the number, in ui/actions.js for the sale). They drifted: type a
   // discount over 100% and the screen said 0.000 while the core refused the sale
   // with an english error. One function, one answer — the discount is capped
   // here, exactly like it is displayed.
@@ -612,7 +612,7 @@
     renderPin(C);
   }
 
-  // ----- THEMES (colors live in js/themes.js — the app just asks) -----
+  // ----- THEMES (colors live in ui/themes.js — the app just asks) -----
   function themes() { return window.DEK && window.DEK.Themes; }
 
   function renderThemes(C) {

@@ -47,7 +47,7 @@ jobs:
         run: |
           mkdir -p _site
           cp index.html manifest.webmanifest sw.js _site/
-          cp -r css js core icon _site/
+          cp -r css ui core icon _site/
           ls -R _site
 
       - name: every precached file must exist

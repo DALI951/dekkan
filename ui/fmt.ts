@@ -1,6 +1,6 @@
 /* DEKKAN UI — fmt: pure display helpers (number/currency/esc/kind labels).
- * Split mechanically from js/app.js — bodies untouched.
- * T is injected at boot (js/app.js calls DEK.fmt._setT(window.T)) so these
+ * Split mechanically from ui/app.js — bodies untouched.
+ * T is injected at boot (ui/app.js calls DEK.fmt._setT(window.T)) so these
  * stay closure-free and unit-testable without a DOM.
  */
 (function (root, factory) {

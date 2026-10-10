@@ -2,7 +2,7 @@
 // JS -> TS migration (first pass): this file is the dynamic DOM / service-worker /
 // vm-harness layer (loose globals + event targets). Types get tightened incrementally.
 /* DEKKAN auth — the account layer, on FIREBASE (Authentication + Firestore).
- * The UI shell (js/app.js) decides WHEN to show the login wall; this file
+ * The UI shell (ui/app.js) decides WHEN to show the login wall; this file
  * only answers HOW: sign in/up with email+password or Google, sessions, and
  * the cloud state blob (one JSON string per owner, stored in Firestore at
  * `shops/{uid}`).

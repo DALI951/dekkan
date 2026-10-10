@@ -3,18 +3,19 @@
 // vm-harness layer (loose globals + event targets). Types get tightened incrementally.
 // DEKKAN i18n check — every key used in the UI must exist in BOTH ar and en.
 // Verifies: index.html data-i18n/-ph/-title keys, the UI files' T.t('...') keys,
-// and that the two dicts in js/lang.js carry the exact same key set.
+// and that the two dicts in ui/lang.ts carry the exact same key set.
 // Usage: node scripts/check-i18n.js
 'use strict';
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
+const { stripTypeScriptTypes } = require('module');
 
 const ROOT = path.join(__dirname, '..');
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-const lang = fs.readFileSync(path.join(ROOT, 'js', 'lang.js'), 'utf8');
+const lang = fs.readFileSync(path.join(ROOT, 'ui', 'lang.ts'), 'utf8');
 // the UI layer is split across several files now — scan them all
-const uiFiles = ['js/app.js', 'js/fmt.js', 'js/pages.js', 'js/actions.js', 'js/auth.js'];
+const uiFiles = ['ui/app.ts', 'ui/fmt.ts', 'ui/pages.ts', 'ui/actions.ts', 'ui/auth.ts'];
 
 // load the dicts exactly like the browser would (lang.js only touches
 // localStorage/document inside try/catch + set/apply, which never run at load)
@@ -26,11 +27,11 @@ const sandbox = {
   addEventListener: function () {}
 };
 vm.createContext(sandbox);
-vm.runInContext(lang, sandbox);
+vm.runInContext(stripTypeScriptTypes(lang), sandbox);
 const dicts = sandbox.window.__DEKKAN_I18N__;
 const ar = dicts && dicts.AR;
 const en = dicts && dicts.EN;
-if (!ar) { console.error('FAIL: js/lang.js did not expose the dicts'); process.exit(1); }
+if (!ar) { console.error('FAIL: ui/lang.ts did not expose the dicts'); process.exit(1); }
 
 const htmlKeys = new Set();
 for (const attr of ['data-i18n', 'data-i18n-ph', 'data-i18n-title']) {

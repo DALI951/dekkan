@@ -9,7 +9,7 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert');
-const D = require('../core/dekkan-core.js');
+const D = require('../core/dekkan-core.ts');
 
 const pad = n => (n < 10 ? '0' : '') + n;
 const locDay = iso => {           // the LOCAL date of a stamp — same rule the app uses

@@ -12,7 +12,7 @@
 // Print format: every aspect gets its own PASS line, so you SEE what got checked.
 
 'use strict';
-const D = require('../core/dekkan-core.js');
+const D = require('../core/dekkan-core.ts');
 
 let passes = 0, fails = 0;
 
@@ -228,13 +228,14 @@ console.log('-- the counter remembers only named customers, and never runs out o
 const vm = require('node:vm');
 const fs = require('node:fs');
 const path = require('node:path');
+const { stripTypeScriptTypes } = require('node:module');
 const sandbox = { window: {} };
 vm.createContext(sandbox);
 sandbox.window = sandbox;
 sandbox.self = sandbox;
-['dekkan-core.js', 'core.js', 'products.js', 'debts.js', 'sales.js', 'refunds.js',
-  'employees.js', 'cashbox.js', 'report.js', 'shop.js', 'pin.js'].forEach(f => {
-  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'core', f), 'utf8'), sandbox);
+['dekkan-core.ts', 'core.ts', 'products.ts', 'debts.ts', 'sales.ts', 'refunds.ts',
+  'employees.ts', 'cashbox.ts', 'report.ts', 'shop.ts', 'pin.ts'].forEach(f => {
+  vm.runInContext(stripTypeScriptTypes(fs.readFileSync(path.join(__dirname, '..', 'core', f), 'utf8')), sandbox);
 });
 ok(typeof sandbox.window.Dekkan === 'object' && typeof sandbox.window.Dekkan.createShop === 'function',
   'browser load: the same files expose window.Dekkan (the webapp can use it)');

@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="description" content="دكّان — دفتر الصندوق والمخزون والديون لمحلك الصغير">
 <link rel="stylesheet" href="css/style.css">
-<script src="js/themes.js"></script>
+<script src="ui/themes.js"></script>
 <script>if (window.DEK) window.DEK.Themes.restore();</script>
 <script>
   /* Same no-flash pattern as themes: if English is what the shopkeeper saved,
@@ -547,19 +547,19 @@
 <script src="core/report.js"></script>
 <script src="core/shop.js"></script>
 <script src="core/pin.js"></script>
-<script src="js/lang.js"></script>
-<script src="js/fmt.js"></script>
-<script src="js/pages.js"></script>
-<script src="js/actions.js"></script>
+<script src="ui/lang.js"></script>
+<script src="ui/fmt.js"></script>
+<script src="ui/pages.js"></script>
+<script src="ui/actions.js"></script>
 <!-- Firebase (compat SDK): auth + firestore. Loaded before config/auth so the
      account layer binds to window.firebase. Not part of the SW shell: offline
      the app still boots and simply says the cloud is unreachable. -->
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="js/config.js"></script>
-<script src="js/auth.js"></script>
-<script src="js/app.js"></script>
+<script src="ui/config.js"></script>
+<script src="ui/auth.js"></script>
+<script src="ui/app.js"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function () { window.T.apply(); });
   if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {

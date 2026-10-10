@@ -21,7 +21,7 @@
   },
   "include": [
     "core/**/*.ts",
-    "js/**/*.ts",
+    "ui/**/*.ts",
     "scripts/**/*.ts",
     "test/**/*.ts",
     "sw.ts",

@@ -2,9 +2,9 @@
 // JS -> TS migration (first pass): this file is the dynamic DOM / service-worker /
 // vm-harness layer (loose globals + event targets). Types get tightened incrementally.
 /* DEKKAN UI — actions: every click/key handler that changes the shop state.
- * Split mechanically from js/app.js — bodies untouched, signatures became
+ * Split mechanically from ui/app.js — bodies untouched, signatures became
  * (C, ...) with ctx destructured on the first line.
- * C = window.DEK.app (created by js/app.js): { state, basket, freeItems,
+ * C = window.DEK.app (created by ui/app.js): { state, basket, freeItems,
  * refundMode, refundProductId, editProductId, payDebtId, newDebtFlag,
  * receiptEntryId, $, T, D, save, run, render, toast }.
  */

@@ -143,17 +143,24 @@ at month 7 of it feature-wise, month 1 of it validation-wise.
 
 ## K. Development & build (TypeScript)
 
-The app is written in TypeScript and **compiled in place**: `tsc` emits the runnable `.js`
-next to each `.ts`. The emitted `.js` (and `sw.js`) are git-ignored — the repo tracks `.ts`
-only. The browser `<script src="js/*.js">` tags and the test harness keep loading the
-compiled output, so **build before running**.
+The app source is **`.ts` only** — browser shell in `ui/`, domain logic in `core/`, tests in
+`test/`, tooling in `scripts/`. Two ways to run it:
 
-- `npm run build` — type-check + emit every `.js` (`tsc`).
-- `npm test` — build, then `node --test` the unit suite.
-- `npm run test:sim` — build, then the full open-to-close day simulation.
-- `npm run test:i18n` — build, then check Arabic/English key parity.
-- `npm run test:e2e` — Playwright (PC + Phone projects).
-- `npm run check` — build + unit + sim + i18n (the CI gate).
+- **Node (tests, sims, checks) runs the `.ts` directly** — Node ≥ 23.6 strips TypeScript
+  types natively, so `npm test` / `test:sim` / `test:i18n` / `check` never touch a `.js`.
+  The vm-based harnesses (`test/ui.test.ts`, `scripts/simulate.ts`, `scripts/check-i18n.ts`)
+  also read the `.ts` sources and strip types on the fly (`module.stripTypeScriptTypes`).
+- **The browser still needs compiled `.js`** — a browser can only execute JavaScript, not
+  TypeScript, so `tsc` emits the `.js` next to each `.ts` for `serve`/`e2e`/deploy. Those
+  emitted `.js` are git-ignored (`.gitignore`); the repo tracks `.ts` only.
+
+- `npm run build` — emit every `.js` (`tsc`, in place).
+- `npm run typecheck` — types only, emits nothing.
+- `npm test` — the unit suite straight from `test/*.test.ts`.
+- `npm run test:sim` — the full open-to-close day simulation.
+- `npm run test:i18n` — Arabic/English key parity.
+- `npm run test:e2e` — Playwright (PC + Phone projects; builds first — the browser needs `.js`).
+- `npm run check` — `typecheck` + unit + sim + i18n; the CI-style gate, zero `.js` produced.
 - `npm run serve` — build, then serve the app on `:4173`.
 
 Notes: `e2e/` and `playwright.config.ts` run as TypeScript directly (excluded from `tsc`).

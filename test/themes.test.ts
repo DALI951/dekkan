@@ -6,7 +6,7 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { THEMES, Themes, BASE } = require('../js/themes.js');
+const { THEMES, Themes, BASE } = require('../ui/themes.ts');
 
 const CSS_COLOR = /^(#[0-9a-fA-F]{3,8}|rgba?\([^)]*\)|hsla?\([^)]*\)|transparent|currentColor)$/;
 

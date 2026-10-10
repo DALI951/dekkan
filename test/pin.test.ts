@@ -2,7 +2,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert');
-const D = require('../core/dekkan-core.js');
+const D = require('../core/dekkan-core.ts');
 
 test('a fresh shop has no PIN', () => {
   const s = D.createShop({ name: 'Test' });

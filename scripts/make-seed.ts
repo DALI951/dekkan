@@ -14,7 +14,7 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
-const D = require('../core/dekkan-core.js');
+const D = require('../core/dekkan-core.ts');
 
 let s = D.createShop({ name: 'Café Ben Arous', startCash: 150 });
 s = D.updateShop(s, { name: 'Café Ben Arous — Demo' });

@@ -10,15 +10,15 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { fakeFirebase } = require('./fake-firebase.js');
+const { fakeFirebase } = require('./fake-firebase.ts');
 
 function setOnline(on) { Object.defineProperty(global, 'navigator', { value: { onLine: on }, configurable: true, writable: true }); }
 setOnline(true);
 
 function loadAuth(fake) {
   global.window = fake ? { DEKKAN_FIREBASE: fake } : {};
-  delete require.cache[require.resolve('../js/auth.js')];
-  const Auth = require('../js/auth.js').Auth;
+  delete require.cache[require.resolve('../ui/auth.ts')];
+  const Auth = require('../ui/auth.ts').Auth;
   Auth.init();
   return Auth;
 }

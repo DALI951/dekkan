@@ -31,7 +31,7 @@ are updated as phases close.
 | M01 Define MVP | Wireframes reviewed with 2 target users, P0 scope agreed | Implicit (built), never reviewed with real users |
 | M02 Foundation | Repo, auth, roles, tenant isolation, error handling | **DONE differently**: per-account state blob = hard isolation; roles = PIN + cashier names, not RBAC |
 | M03 Catalogue | Products, units, categories, SKU uniqueness, search | **PARTIAL**: products/categories/search exist; **no SKU field**, no supplier ref, no import |
-| M04 Stock ledger | Opening stock, stock card, adjustments + reasons, negative guard | **WEAK**: stock = a number on the product; no source-linked ledger, no stock card screen, no reason codes. Negative guard ✓ |
+| M04 Stock ledger | Opening stock, stock card, adjustments + reasons, negative guard | **MOSTLY DONE (2026-10-10)**: source-linked ledger (opening/sale/buy/refund/adjust/undo) + stock card screen live; adjustment **reason codes** still pending. Negative guard ✓ |
 | M05 Sales posting | Draft cart, totals/discount, atomic post, receipt, idempotency | **DONE (client-side core)**: basket → checkout → receipt/facture, discounts clamped, refund path |
 | M06 Payments & dashboard | Cash tender, daily reports, on-hand | **DONE**: till equation is derived (`start + Σentries`, cannot drift), day report, monthly review, by-cashier |
 | M07 Hardening | Backups, restore drill, access tests, docs | **PARTIAL**: 222 unit + 65 sim + i18n + 114 E2E = strong tests; **no automated backup, no restore drill, no monitoring** |
@@ -47,10 +47,12 @@ market-wise = M00 never happened. Phases below fix exactly that order.
 
 Each item = workbook IDs · what it means for Dekkan · acceptance test to write RED-first.
 
-1. **Stock ledger + stock card** — `STK-001/007`, `RPT-006`
-   Every stock change becomes an immutable, source-linked movement; on-hand is derived; new
-   *stock card* screen per product (opening → movements → running balance). Today `product.stock`
-   is edited directly by ops. → Test: `STK-003` opening + signed movements tie to balance.
+1. **Stock ledger + stock card** — `STK-001/007`, `RPT-006` ✅ DONE (2026-10-10, commits `586e2cf` + `33d731e`)
+   Every stock change becomes an immutable, source-linked movement (`opening|sale|buy|refund|adjust|undo`); on-hand is
+   derived; stock card screen per product (opening → movements → running balance) opens from the Stock page.
+   `stockIntegrity()` audits counter vs ledger, `reconcileStock()` rebuilds, legacy saves get an opening movement.
+   Tests: `test/stock.test.ts` 9/9, `e2e/stock-card.spec.ts` PC+Phone, battery 239 unit + 65 sim + 334 i18n + 120 e2e.
+   **Not yet:** adjustment *reason codes* (stockMove accepts an optional note; the UI doesn't prompt for one yet).
 2. **Tax profiles** — `CFG-005`, `TAX-001..003`
    Configurable TVA code/rate/effective dates + one rounding policy; posted lines keep a rate
    snapshot. Tunisian defaults live in **config**, never hard-coded. → Test: posted receipt keeps its rate after settings change.

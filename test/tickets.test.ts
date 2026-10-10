@@ -109,7 +109,7 @@ test('legacy sell() and sellFree() also stamp their bills on the entry', () => {
 test('non-sale entries carry NO bill', () => {
   const { s: s0, coca } = shop();
   let s = D.sellAll(s0, { items: [{ id: coca, qty: 1 }], paid: 1.5 });
-  s = D.refund(s, { items: [{ id: coca, qty: 1 }] });
+  s = D.refund(s, { items: [{ id: coca, qty: 1 }], reason: 'test' });
 
   const refund = s.day.entries[s.day.entries.length - 1];
   assert.strictEqual(refund.kind, 'refund');
@@ -134,14 +134,14 @@ test('refund carries the number of the sale it reversed', () => {
   const saleId = s.day.entries[s.day.entries.length - 1].id;
   const saleNo = D.clientNoOf(s, saleId); // derived, 1-based — the # the receipt showed
   assert.strictEqual(saleNo, 1, 'the sale took number 1');
-  s = D.refund(s, { items: [{ id: coca, qty: 2 }], saleNo: saleNo });
+  s = D.refund(s, { items: [{ id: coca, qty: 2 }], saleNo: saleNo, reason: 'test' });
   const r = s.day.entries[s.day.entries.length - 1];
   assert.strictEqual(r.kind, 'refund');
   assert.strictEqual(r.saleNo, saleNo, 'the refund says which sale it undid');
 
   // the refund budget requires the free item to have been sold today first
   s = D.sellFree(s, { name: 'Cafe', price: 2, qty: 1 });
-  s = D.refundFree(s, { name: 'Cafe', qty: 1, price: 2, saleNo: 7 });
+  s = D.refundFree(s, { name: 'Cafe', qty: 1, price: 2, saleNo: 7, reason: 'test' });
   const rf = s.day.entries[s.day.entries.length - 1];
   assert.strictEqual(rf.saleNo, 7, 'and free-line refunds too');
 });

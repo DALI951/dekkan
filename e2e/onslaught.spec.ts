@@ -430,6 +430,7 @@ test.describe('onslaught: receipt refunds (tickets)', () => {
     await gotoTab(page, '#/sell');
     await sellOne(page, 1.5);
     await expect(page.locator('#receipt')).not.toHaveClass(/hidden/);
+    await page.locator('#receiptRefundReason').fill('damaged');
     await page.locator('#btnReceiptRefund').click(); // refund from the open receipt
     expect(await toastText(page)).toBe('تم الاسترجاع');
     await expect(page.locator('#receipt')).toHaveClass(/hidden/); // it closes itself
@@ -447,6 +448,7 @@ test.describe('onslaught: receipt refunds (tickets)', () => {
     await gotoTab(page, '#/sell');
     await sellOne(page, undefined, 'Ali'); // full credit sale
     await expect(page.locator('#receipt')).not.toHaveClass(/hidden/);
+    await page.locator('#receiptRefundReason').fill('wrong order');
     await page.locator('#btnReceiptRefund').click();
     expect(await toastText(page)).toBe('تم الاسترجاع');
     expect(await tillNow(page)).toBe(0); // empty till stayed empty (no phantom cash)

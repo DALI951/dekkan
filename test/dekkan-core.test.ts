@@ -230,7 +230,7 @@ test('refund on credit: debt goes down, cash does NOT move', () => {
   const coca = s.products[0];
   s = D.sell(s, { items: [{ id: coca.id, qty: 2 }], creditTo: 'Samir' }); // owes 3
   assert.equal(D.cash(s), 50);
-  s = D.refund(s, { items: [{ id: coca.id, qty: 2 }], creditTo: 'Samir' });
+  s = D.refund(s, { items: [{ id: coca.id, qty: 2 }], creditTo: 'Samir', reason: 'test' });
   assert.equal(D.cash(s), 50);
   assert.equal(D.debtsOwed(s), 0);
   assert.equal(D.getProduct(s, coca.id).stock, 10);
@@ -240,7 +240,7 @@ test('refund on credit: debt goes down, cash does NOT move', () => {
 test('refundFree for non-stock items', () => {
   let s = shop();
   s = D.sellFree(s, { name: 'Cafe maçon', price: 1.2, qty: 3 }); // +3.6
-  s = D.refundFree(s, { name: 'Cafe maçon', price: 1.2, qty: 1, note: 'wrong order' });
+  s = D.refundFree(s, { name: 'Cafe maçon', price: 1.2, qty: 1, note: 'wrong order', reason: 'test' });
   assert.equal(D.cash(s), 50 + 3.6 - 1.2);
   assert.equal(D.stats(s).dayRefunds, 1.2);
 });
@@ -306,7 +306,7 @@ test('dayReport lists every move: start cash, each entry, totals, profit', () =>
   let s = shop();
   s = D.sell(s, { items: [{ id: s.products[0].id, qty: 2 }] });          // +3.00
   s = D.sellFree(s, { name: 'Kitkat', price: 2, qty: 1 });              // +2.00
-  s = D.refund(s, { items: [{ id: s.products[0].id, qty: 1 }] });       // -1.50
+  s = D.refund(s, { items: [{ id: s.products[0].id, qty: 1 }], reason: 'test' });       // -1.50
   s = D.expense(s, { amount: 4, note: 'electricity' });                 // -4.00
   s = D.income(s, { amount: 10, note: 'from home' });                   // +10.00
   s = D.checkCash(s, { counted: D.cash(s) });                           // ok check
@@ -371,7 +371,7 @@ test('setSettings toggles allowDiscount and allowRefund', () => {
   // back on: both work again
   s = D.setSettings(s, { allowDiscount: true, allowRefund: true });
   s = D.sell(s, { items: [{ id: s.products[0].id, qty: 1 }], discount: { percent: 10 } });
-  s = D.refund(s, { items: [{ id: s.products[0].id, qty: 1 }] });
+  s = D.refund(s, { items: [{ id: s.products[0].id, qty: 1 }], reason: 'test' });
   assert.equal(s.day.entries.filter(e => e.kind === 'refund').length, 1);
 });
 
@@ -465,7 +465,7 @@ test('partial pay: a refund on the paid part still only moves real cash', () => 
   let s = shop();
   const coca = s.products[0].id;
   s = D.sell(s, { items: [{ id: coca, qty: 2 }], paid: 1, creditTo: 'Samir' }); // cash 51, owes 2
-  s = D.refund(s, { items: [{ id: coca, qty: 1 }] });                           // gives 1.5 back
+  s = D.refund(s, { items: [{ id: coca, qty: 1 }], reason: 'test' });                           // gives 1.5 back
   assert.equal(D.cash(s), 49.5);
   assert.equal(s.debts[0].total, 2, 'the debt is untouched by a normal refund');
 });

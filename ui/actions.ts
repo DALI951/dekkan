@@ -40,6 +40,15 @@
     const { state, receiptEntryId, $, T, D, fmt, save, render, toast } = C;
     const { n3 } = fmt;
     const hideReceipt = DEK.pages.hideReceipt;
+    // P0-9: a refund must say WHY. First tap reveals the reason field and asks
+    // for it; the refund only runs once a reason is typed (then the PIN gate).
+    const reason = ($('receiptRefundReason').value || '').trim();
+    if (!reason) {
+      $('receiptRefundRow').classList.remove('hidden');
+      const rf = $('receiptRefundReason');
+      if (rf && rf.focus) rf.focus();
+      return toast(T.t('toast.refundReason'), true);
+    }
     const doRefund = function () {
       if (!receiptEntryId) return toast(T.t('toast.refundPick'), true);
       const entry = (state.day.entries || []).find(function (e) { return e.id === receiptEntryId; });
@@ -77,8 +86,8 @@
       try {
         let s = state;
         const saleNo = D.clientNoOf(state, receiptEntryId); // the # of the sale being reversed
-        if (items.length) s = D.refund(s, { items: items, reason: 'refund', saleNo: saleNo, creditTo: creditTo, cash: share(itemsValue), discount: hadDiscount });
-        if (freeNames.length) s = D.refundFree(s, { name: freeNames.join(' + '), qty: 1, price: n3(freePrice), saleNo: saleNo, creditTo: creditTo, cash: share(freePrice), discount: hadDiscount });
+        if (items.length) s = D.refund(s, { items: items, reason: reason, saleNo: saleNo, creditTo: creditTo, cash: share(itemsValue), discount: hadDiscount });
+        if (freeNames.length) s = D.refundFree(s, { name: freeNames.join(' + '), qty: 1, price: n3(freePrice), reason: reason, saleNo: saleNo, creditTo: creditTo, cash: share(freePrice), discount: hadDiscount });
         C.state = s;
         save();
         C.receiptEntryId = null;

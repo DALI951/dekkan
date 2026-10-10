@@ -126,7 +126,7 @@ ok(D.cash(s) === cashLine, 'refund: 1.50 back to the customer');
 ok(D.getProduct(s, s.products[0].id).stock === 18, 'cola shelf re-checked after refund (30-5-4-2-2+1=18)');
 
 // credit refund: Ahmed returns one of his couscous — his debt shrinks
-s = D.refund(s, { items: [{ id: s.products[2].id, qty: 1 }], creditTo: 'Ahmed' });
+s = D.refund(s, { items: [{ id: s.products[2].id, qty: 1 }], creditTo: 'Ahmed', reason: 'test' });
 ok(D.cash(s) === cashLine, 'credit refund: NO cash moves');
 // Ahmed: owed 15, paid 10 -> 5 left; refund 6 clamps to remaining 5 -> settled.
 // The notebook now only shows Rami's 2.
@@ -215,7 +215,7 @@ ok(D.nextClientNo(s) === 5, 'credit customers are customers too');
 ok(D.customerNames(s)[0] === 'Riadh', 'Riadh jumps to the top of the counter\'s memory');
 
 // a refund is NOT a customer
-s = D.refund(s, { items: [{ id: s.products[1].id, qty: 1 }] });
+s = D.refund(s, { items: [{ id: s.products[1].id, qty: 1 }], reason: 'test' });
 c3 -= 1;
 ok(D.cash(s) === c3, 'the refund moved cash back (open to close honesty holds)');
 ok(D.nextClientNo(s) === 5, 'a refund does not take a number — the queue waits');

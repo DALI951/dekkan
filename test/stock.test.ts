@@ -33,7 +33,7 @@ test('STK-003: every stock change is a signed movement; the ladder ties to balan
   const coca = s.products[0].id;
   s = D.sell(s, { items: [{ id: coca, qty: 3 }] });       // -3
   s = D.buyStock(s, coca, 5, 0.8);                        // +5
-  s = D.refund(s, { items: [{ id: coca, qty: 1 }] });     // +1
+  s = D.refund(s, { items: [{ id: coca, qty: 1 }], reason: 'test' });     // +1
   const card = D.stockCard(s, coca);
   assert.deepStrictEqual(card.moves.map(function (m) { return m.kind; }), ['opening', 'sale', 'buy', 'refund']);
   assert.deepStrictEqual(card.moves.map(function (m) { return m.qty; }), [10, -3, 5, 1]);

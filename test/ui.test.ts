@@ -482,6 +482,7 @@ test('receipt refund: the sale on the receipt is refundable in one tap', () => {
   ui.$('btnSell').fire('click');
   assert.strictEqual(ui.cashNow(), 53, 'the box took the 3.000');
 
+  ui.$('receiptRefundReason').value = 'damaged';
   ui.$('btnReceiptRefund').fire('click');
   const s = ui.saved();
   assert.strictEqual(s.products[0].stock, 10, 'the goods went back on the shelf');
@@ -502,6 +503,7 @@ test('receipt refund: free lines are cleared without stock, the sale stays filed
   ui.$('paidCash').fire('input');
   ui.$('btnSell').fire('click');
 
+  ui.$('receiptRefundReason').value = 'damaged';
   ui.$('btnReceiptRefund').fire('click');
   const s = ui.saved();
   assert.strictEqual(s.products[0].stock, 10, 'coca restocked from the bill line id');
@@ -517,6 +519,7 @@ test("today's moves: bare number rows and refunds name the sale they undid", () 
   ui.$('paidCash').value = '1.5';
   ui.$('paidCash').fire('input');
   ui.$('btnSell').fire('click');
+  ui.$('receiptRefundReason').value = 'changed mind';
   ui.$('btnReceiptRefund').fire('click');
 
   const html = ui.$('entriesList').innerHTML;
@@ -796,6 +799,7 @@ test('a part-paid sale refunded takes the cash back and writes the credit off', 
   ui.$('btnSell').fire('click');
   assert.strictEqual(ui.cashNow(), 51, '1.000 in the drawer, 0.500 on Samir');
 
+  ui.$('receiptRefundReason').value = 'damaged';
   ui.$('btnReceiptRefund').fire('click');
   const s = ui.saved();
   assert.strictEqual(ui.cashNow(), 50, 'only the 1.000 that came in went back out');
@@ -811,6 +815,7 @@ test('a fully discounted sale refunded takes NOTHING out of the drawer', () => {
   ui.$('btnSell').fire('click');
   assert.strictEqual(ui.cashNow(), 50, 'the till never moved');
 
+  ui.$('receiptRefundReason').value = 'damaged';
   ui.$('btnReceiptRefund').fire('click');
   const s = ui.saved();
   assert.strictEqual(ui.cashNow(), 50, 'and the refund takes nothing either — the shelf price is not money he took');
@@ -827,6 +832,7 @@ test('a half-discounted sale refunded gives back exactly what was paid', () => {
   ui.$('btnSell').fire('click');
   assert.strictEqual(ui.cashNow(), 50.75, '0.750 in the drawer');
 
+  ui.$('receiptRefundReason').value = 'damaged';
   ui.$('btnReceiptRefund').fire('click');
   assert.strictEqual(ui.cashNow(), 50, 'exactly 0.750 came back out — not the 1.500 shelf price');
 });

@@ -59,7 +59,7 @@ test('client numbers run 1..N in order and ride on the report', () => {
 test('refunds and debt payments never consume client numbers', () => {
   let s = shop();
   s = D.sellAll(s, { items: [{ id: s.products[0].id, qty: 2 }], paid: 1, customer: 'Samir' }); // #1, 2.00 rest
-  s = D.refund(s, { items: [{ id: s.products[0].id, qty: 1 }] });                             // a refund
+  s = D.refund(s, { items: [{ id: s.products[0].id, qty: 1 }], reason: 'test' });                             // a refund
   const samir = s.debts.find(function (d) { return d.name === 'Samir'; });
   s = D.payDebt(s, samir.id, { amount: 2 });                                                  // a debt payment
   assert.strictEqual(D.nextClientNo(s), 2, 'still #2 — refunds/payments are not customers');
@@ -221,7 +221,7 @@ test('refunding more cash than the drawer holds is still refused', () => {
   const before = JSON.stringify(s);
   // 1.500 back but the drawer holds 0.000 — the till must not go negative
   assert.throws(function () {
-    D.refund(s, { items: [{ id: s.products[0].id, qty: 1 }], creditTo: 'Samir', cash: 1.5 });
+    D.refund(s, { items: [{ id: s.products[0].id, qty: 1 }], creditTo: 'Samir', cash: 1.5, reason: 'test' });
   }, /drawer|cash/i);
   assert.strictEqual(JSON.stringify(s), before, 'a refused refund changes nothing');
 });

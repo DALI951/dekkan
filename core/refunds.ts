@@ -8,6 +8,15 @@
 })(typeof self !== 'undefined' ? self : this, function (K) {
   const { money, cash, pushEntry, rollover, getProduct, sell, getDebtByName, clone, stockMove } = K;
 
+// P0-9 / RET-001: a refund must say WHY. An unexplained refund is exactly the hole
+// an owner wants closed, so an empty (or whitespace) reason is refused before anything
+// moves. Function declaration -> hoisted, usable above. Returns the trimmed reason.
+function _reason(opts) {
+  const r = opts && opts.reason != null ? String(opts.reason).trim() : '';
+  if (!r) throw new Error('toast.refundReason');
+  return r;
+}
+
 
 // REFUND — the customer brings it back.
 //   For a normal sale: cash back, goods back on the shelf, cost undone.
@@ -51,7 +60,7 @@ function _settle(state, back, cashOut, creditTo, note, refs, saleNo, allowGap) {
     }
   }
   const note2 = credit > 0 && creditTo ? 'credit refund: ' + creditTo : (note || null);
-  pushEntry(state, 'refund', -out, refs, note2, { saleNo: saleNo || null });
+  pushEntry(state, 'refund', -out, refs, note2, { saleNo: saleNo || null, reason: note || null });
   return state;
 }
 
@@ -60,6 +69,7 @@ function refund(state, opts) {
   if (!state.settings.allowRefund) throw new Error('refunds are turned off');
   const items = (opts && opts.items) || [];
   if (items.length === 0) throw new Error('nothing to refund');
+  const reason = _reason(opts);
 
   let back = 0, costBack = 0, refs = [], moves = [];
   for (const it of items) {
@@ -85,9 +95,9 @@ function refund(state, opts) {
   let out;
   if (opts.creditTo) {
     // was a credit sale -> undo it on the (open) debt, no cash moves
-    out = _settle(state, back, opts.cash, opts.creditTo, opts.reason, refs.join(', '), opts.saleNo, opts.discount === true);
+    out = _settle(state, back, opts.cash, opts.creditTo, reason, refs.join(', '), opts.saleNo, opts.discount === true);
   } else {
-    out = _settle(state, back, opts.cash, null, opts.reason, refs.join(', '), opts.saleNo, opts.discount === true);
+    out = _settle(state, back, opts.cash, null, reason, refs.join(', '), opts.saleNo, opts.discount === true);
   }
   // goods coming back are source-linked shelf movements against the refund entry
   const rentry = out.day.entries[out.day.entries.length - 1];
@@ -104,6 +114,7 @@ function refundFree(state, opts) {
   if (!opts || !opts.name || !opts.name.trim()) throw new Error('need an item name');
   const qty = Math.floor(opts.qty || 1);
   if (!Number.isFinite(qty) || qty <= 0) throw new Error('refund qty must be positive');
+  const reason = _reason(opts);
   // the free-item budget, by NAME — you can only give back what was sold today
   const broad = (state.day.soldFree = state.day.soldFree || {});
   const sfn = String(opts.name).trim();
@@ -112,9 +123,9 @@ function refundFree(state, opts) {
   broad[sfn] = sold - qty;
   const back = money((opts.price || 0) * qty);
   if (opts.creditTo) {
-    return _settle(state, back, opts.cash, opts.creditTo, opts.note, sfn + 'x' + qty, opts.saleNo, opts.discount === true);
+    return _settle(state, back, opts.cash, opts.creditTo, reason, sfn + 'x' + qty, opts.saleNo, opts.discount === true);
   }
-  return _settle(state, back, opts.cash, null, opts.note, sfn + 'x' + qty, opts.saleNo, opts.discount === true);
+  return _settle(state, back, opts.cash, null, reason, sfn + 'x' + qty, opts.saleNo, opts.discount === true);
 }
 
   K.refund = refund;

@@ -707,6 +707,9 @@
       t += '<div class="r-row bad"><span>' + T.t('sell.rest') + '</span><b>' + money(r.rest) + '</b></div>';
     }
     $('rTotals').innerHTML = t;
+    // a fresh receipt starts with no refund reason typed and the row tucked away
+    if ($('receiptRefundReason')) $('receiptRefundReason').value = '';
+    if ($('receiptRefundRow')) $('receiptRefundRow').classList.add('hidden');
     rec.classList.remove('hidden');
     if (document.body) document.body.classList.add('no-scroll');
   }

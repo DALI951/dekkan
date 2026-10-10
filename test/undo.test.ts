@@ -95,7 +95,7 @@ test('canUndoSale is false when the day is empty or the last action is not a sal
   s = shopWith([COLA]); // fresh: a refund after a sale also blocks
   const p2 = s.products[0].id;
   s = D.sellAll(s, { items: [{ id: p2, qty: 1 }] });
-  s = D.refund(s, { items: [{ id: p2, qty: 1 }] });
+  s = D.refund(s, { items: [{ id: p2, qty: 1 }], reason: 'test' });
   assert.strictEqual(D.canUndoSale(s), false, 'a later refund blocks undo');
 });
 

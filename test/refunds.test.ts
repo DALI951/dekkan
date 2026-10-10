@@ -25,11 +25,11 @@ test('refund is capped at what was actually sold today', () => {
   s = D.addProduct(s, { name: 'Soda', buy: 0.5, sell: 1.5, stock: 10, lowAt: 2 });
   const id = s.products[0].id;
   s = D.sellAll(s, { items: [{ id, qty: 3 }] }); // only 3 left the shelf
-  assert.throws(() => D.refund(s, { items: [{ id, qty: 4 }] }), /sold today/);
+  assert.throws(() => D.refund(s, { items: [{ id, qty: 4 }], reason: 'test' }), /sold today/);
   // partial refunds consume the budget: 3 -> refund 2 -> only 1 left
-  s = D.refund(s, { items: [{ id, qty: 2 }] });
-  assert.throws(() => D.refund(s, { items: [{ id, qty: 2 }] }), /sold today/);
-  s = D.refund(s, { items: [{ id, qty: 1 }] }); // exactly the remaining budget
+  s = D.refund(s, { items: [{ id, qty: 2 }], reason: 'test' });
+  assert.throws(() => D.refund(s, { items: [{ id, qty: 2 }], reason: 'test' }), /sold today/);
+  s = D.refund(s, { items: [{ id, qty: 1 }], reason: 'test' }); // exactly the remaining budget
   assert.strictEqual(s.day.soldByProduct[id], 0);
   assert.strictEqual(s.products[0].stock, 10, 'stock fully restored');
 });
@@ -39,9 +39,9 @@ test('a cash refund cannot take more out than the till physically holds', () => 
   s = D.addProduct(s, { name: 'Soda', buy: 0.5, sell: 1.5, stock: 10, lowAt: 2 });
   const id = s.products[0].id;
   s = D.sellAll(s, { items: [{ id, qty: 1 }], customer: 'Ali' }); // full credit: no cash moved
-  assert.throws(() => D.refund(s, { items: [{ id, qty: 1 }] }), /not enough cash/);
+  assert.throws(() => D.refund(s, { items: [{ id, qty: 1 }], reason: 'test' }), /not enough cash/);
   // the honest way back: creditTo undoes the receivable instead of cash
-  s = D.refund(s, { items: [{ id, qty: 1 }], creditTo: 'Ali' });
+  s = D.refund(s, { items: [{ id, qty: 1 }], creditTo: 'Ali', reason: 'test' });
   const d = s.debts.find(x => x.name === 'Ali');
   assert.strictEqual(d && d.total, 0, 'the debt went back to zero');
   assert.ok(d.settled);
@@ -51,8 +51,8 @@ test('free-item refunds are capped by the free-item sales budget', () => {
   let s = shop();
   s = D.sellFree(s, { name: 'Coffee', price: 2, qty: 2 });
   assert.strictEqual(s.day.soldFree.Coffee, 2);
-  s = D.refundFree(s, { name: 'Coffee', qty: 2 });
-  assert.throws(() => D.refundFree(s, { name: 'Coffee', qty: 1 }), /sold today/);
+  s = D.refundFree(s, { name: 'Coffee', qty: 2, reason: 'test' });
+  assert.throws(() => D.refundFree(s, { name: 'Coffee', qty: 1, reason: 'test' }), /sold today/);
 });
 
 test('expenses cannot push the till below zero', () => {
@@ -77,7 +77,7 @@ test('a discounted walk-in sale refunds what was paid, not the shelf price', () 
   const id = s.products[0].id;
   s = D.sellAll(s, { items: [{ id, qty: 1 }], discount: { percent: 50 }, paid: 0.75 });
   assert.strictEqual(D.cash(s), 100.75, 'he paid 0.750 of a 1.500 bottle');
-  s = D.refund(s, { items: [{ id, qty: 1, price: 1.5 }], cash: 0.75, discount: true });
+  s = D.refund(s, { items: [{ id, qty: 1, price: 1.5 }], cash: 0.75, discount: true, reason: 'test' });
   assert.strictEqual(D.cash(s), 100, 'exactly what he took came back');
   assert.strictEqual(s.products[0].stock, 10, 'and the bottle is back on the shelf');
 });
@@ -88,7 +88,7 @@ test('a 100%-off (free) sale refunds nothing but still returns the goods', () =>
   const id = s.products[0].id;
   s = D.sellAll(s, { items: [{ id, qty: 1 }], discount: { percent: 100 }, paid: 0 });
   assert.strictEqual(D.cash(s), 100, 'a free sale leaves the till alone');
-  s = D.refund(s, { items: [{ id, qty: 1, price: 1.5 }], cash: 0, discount: true });
+  s = D.refund(s, { items: [{ id, qty: 1, price: 1.5 }], cash: 0, discount: true, reason: 'test' });
   assert.strictEqual(D.cash(s), 100, 'refunding it takes nothing either');
   assert.strictEqual(s.products[0].stock, 10, 'the bottle came back');
 });
@@ -99,6 +99,6 @@ test('without the discount flag a gap is still refused (nothing goes missing sil
   const id = s.products[0].id;
   s = D.sellAll(s, { items: [{ id, qty: 1 }] });
   s = D.sellAll(s, { items: [{ id, qty: 1 }] });
-  assert.throws(() => D.refund(s, { items: [{ id, qty: 1, price: 1.5 }], cash: 0.5 }),
+  assert.throws(() => D.refund(s, { items: [{ id, qty: 1, price: 1.5 }], cash: 0.5, reason: 'test' }),
     /on credit/, 'taking 0.500 of a 1.500 return with no customer is refused');
 });

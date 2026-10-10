@@ -114,6 +114,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
         dekkan_json(409, ['error' => 'state_rejected', 'problems' => array_slice($problems, 0, 10)]);
     }
 
+    // P0-6 RBAC light (SEC-001): a CASHIER may run the till, but never the
+    // lock. Compare the pinned settings against the currently stored blob —
+    // any change to pinHash/pinSalt (or a wipe) is a 403, nothing is written.
+    if (($user['role'] ?? 'owner') === 'cashier') {
+        $st = $db->prepare('SELECT data FROM dekkan_state WHERE user_id = ?');
+        $st->execute([$user['id']]);
+        $stored = $st->fetch();
+        if ($stored) {
+            $old = json_decode($stored['data'], true);
+            if (is_array($old)) {
+                $oldPin = ($old['settings']['pinHash'] ?? null) . '|' . ($old['settings']['pinSalt'] ?? null);
+                $newPin = ($decoded['settings']['pinHash'] ?? null) . '|' . ($decoded['settings']['pinSalt'] ?? null);
+                if ($oldPin !== $newPin) {
+                    dekkan_json(403, ['error' => 'owner_only_pin']);
+                }
+            }
+        }
+    }
+
     $db->prepare(
         'INSERT INTO dekkan_state (user_id, data, version)
          VALUES (?, ?, 1)

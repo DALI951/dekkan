@@ -341,6 +341,27 @@ function stateProblems(state) {
 }
 
 
+// ---------- RBAC LIGHT (SEC-001) ----------
+// Owner vs Cashier, enforced SERVER-side (the PIN stays the in-app action
+// gate). The rule lives HERE so both the PHP API and the client can share it:
+// a cashier may run the till day-to-day but can never touch the lock —
+// settings.pinHash / settings.pinSalt (change, wipe, or add are all denied).
+const OWNER_ONLY_FIELDS = { pinHash: 1, pinSalt: 1 };
+
+function canApply(role, oldState, newState) {
+  if (!role || role === 'owner') return { ok: true };
+  if (role !== 'cashier') return { ok: false, reason: 'unknown role ' + String(role) };
+  if (!oldState || !newState) return { ok: false, reason: 'missing state' };
+  if (!oldState.settings || !newState.settings) return { ok: false, reason: 'cashier may not wipe settings' };
+  for (const f in OWNER_ONLY_FIELDS) {
+    if (oldState.settings[f] !== newState.settings[f]) {
+      return { ok: false, reason: 'owner-only field changed: ' + f };
+    }
+  }
+  return { ok: true };
+}
+
+
 // accept either the id string itself or { id } — small convenience
 function idTrusted(state, id) {
   if (id && typeof id === 'object' && id.id) return id.id;
@@ -450,4 +471,5 @@ function ensureMovements(state) {
   K.fmtDoc = fmtDoc;
   K.ensureDocState = ensureDocState;
   K.stateProblems = stateProblems;
+  K.canApply = canApply;
 });

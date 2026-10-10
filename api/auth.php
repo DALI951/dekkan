@@ -1,12 +1,12 @@
-<?php
+﻿<?php
 /**
- * DEKKAN API — accounts (register / login / logout / me).
+ * DEKKAN API â€” accounts (register / login / logout / me).
  *
  * POST api/auth.php?action=register   {email, password, shopName}
  * POST api/auth.php?action=login      {email, password}
- * POST api/auth.php?action=google     {credential}   (the Google ID token — verified with Google)
+ * POST api/auth.php?action=google     {credential}   (the Google ID token â€” verified with Google)
  * POST api/auth.php?action=logout     {token}  (or Bearer header)
- * GET  api/auth.php?action=me         (Bearer header) → the signed-in user
+ * GET  api/auth.php?action=me         (Bearer header) â†’ the signed-in user
  *
  * Errors are short codes on purpose: auth.js maps them to AR/EN strings.
  */
@@ -34,7 +34,7 @@ function dekkan_token_for(int $userId): string
 
 function dekkan_user_json(array $u): array
 {
-    return ['id' => (int)$u['id'], 'email' => $u['email'], 'shopName' => $u['shop_name']];
+    return ['id' => (int)$u['id'], 'email' => $u['email'], 'shopName' => $u['shop_name'], 'role' => $u['role'] ?? 'owner'];
 }
 
 // A plain HTTP GET that works whether or not the host has php-curl enabled.
@@ -70,7 +70,7 @@ function dekkan_verify_google_idtoken(string $idToken, string $clientId): ?array
         return null;
     }
     if ((string)($j['aud'] ?? '') !== $clientId) {
-        return null; // minted for a different app — reject
+        return null; // minted for a different app â€” reject
     }
     $iss = (string)($j['iss'] ?? '');
     if ($iss !== 'accounts.google.com' && $iss !== 'https://accounts.google.com') {
@@ -101,6 +101,10 @@ switch ($action) {
         $email    = strtolower(trim((string)($body['email'] ?? '')));
         $pass     = (string)($body['password'] ?? '');
         $shopName = trim((string)($body['shopName'] ?? ''));
+        // RBAC light (SEC-001): the ROLE is server-owned, never taken from the
+        // state blob. First user of a shop is the owner by default; a cashier
+        // account cannot touch the owner's lock (enforced on every PUT).
+        $role = ($body['role'] ?? 'owner') === 'cashier' ? 'cashier' : 'owner';
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 190) {
             dekkan_json(400, ['error' => 'invalid_email']);
@@ -121,27 +125,27 @@ switch ($action) {
         }
 
         $db->prepare(
-            'INSERT INTO dekkan_users (email, pass_hash, shop_name) VALUES (?, ?, ?)'
-        )->execute([$email, password_hash($pass, PASSWORD_DEFAULT), $shopName]);
+            'INSERT INTO dekkan_users (email, pass_hash, shop_name, role) VALUES (?, ?, ?, ?)'
+        )->execute([$email, password_hash($pass, PASSWORD_DEFAULT), $shopName, $role]);
         $userId = (int)$db->lastInsertId();
 
         dekkan_json(201, [
             'ok'    => true,
             'token' => dekkan_token_for($userId),
-            'user'  => dekkan_user_json(['id' => $userId, 'email' => $email, 'shop_name' => $shopName]),
+            'user'  => dekkan_user_json(['id' => $userId, 'email' => $email, 'shop_name' => $shopName, 'role' => $role]),
         ]);
-        // no break — dekkan_json exits
+        // no break â€” dekkan_json exits
 
     case 'login':
         $email = strtolower(trim((string)($body['email'] ?? '')));
         $pass  = (string)($body['password'] ?? '');
 
         $db = dekkan_db();
-        $st = $db->prepare('SELECT id, email, shop_name, pass_hash FROM dekkan_users WHERE email = ?');
+        $st = $db->prepare('SELECT id, email, shop_name, role, pass_hash FROM dekkan_users WHERE email = ?');
         $st->execute([$email]);
         $u = $st->fetch();
         if (!$u || !password_verify($pass, $u['pass_hash'])) {
-            // one message for both cases — never reveal which failed
+            // one message for both cases â€” never reveal which failed
             dekkan_json(401, ['error' => 'bad_credentials']);
         }
 
@@ -171,7 +175,7 @@ switch ($action) {
         $gName  = trim($claims['name']) !== '' ? trim($claims['name']) : explode('@', $gEmail)[0];
 
         $db = dekkan_db();
-        $st = $db->prepare('SELECT id, email, shop_name FROM dekkan_users WHERE email = ?');
+        $st = $db->prepare('SELECT id, email, shop_name, role FROM dekkan_users WHERE email = ?');
         $st->execute([$gEmail]);
         $u = $st->fetch();
         if (!$u) {

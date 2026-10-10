@@ -38,7 +38,7 @@ function dekkan_json(int $status, array $payload): void
 /**
  * Resolve the Bearer token (or ?token=) to a user row, or die 401.
  *
- * @return array{id:int,email:string,shop_name:string}
+ * @return array{id:int,email:string,shop_name:string,role:string}
  */
 function dekkan_require_user(): array
 {
@@ -61,7 +61,7 @@ function dekkan_require_user(): array
     $hash = hash('sha256', $raw);
     $db = dekkan_db();
     $st = $db->prepare(
-        'SELECT u.id, u.email, u.shop_name FROM dekkan_tokens t
+        'SELECT u.id, u.email, u.shop_name, u.role FROM dekkan_tokens t
          JOIN dekkan_users u ON u.id = t.user_id
          WHERE t.token_hash = ?'
     );

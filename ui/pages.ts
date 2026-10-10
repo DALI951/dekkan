@@ -403,6 +403,7 @@
     const bill = e.bill;
     showReceipt(C, {
       customer: e.note || '', no: no,
+      doc: e.doc || null,
       lines: bill && bill.lines ? bill.lines : [],
       discount: bill ? bill.discount : 0,
       net: bill ? bill.net : e.amount,
@@ -680,6 +681,12 @@
     $('rShop').textContent = state.shop.name;
     $('rWhen').textContent = String(when).slice(0, 10) + ' ' + entryTime(when);
     $('rClient').textContent = r.customer ? esc(r.customer) + ' #' + r.no : '#' + r.no;
+    if (r.doc && r.doc.no) {
+      $('rDoc').textContent = r.doc.no;
+      $('rDoc').classList.remove('hidden');
+    } else {
+      $('rDoc').classList.add('hidden');
+    }
     $('rLines').innerHTML = r.lines.map(function (l) {
       return '<div class="r-line"><span>' + esc(l.name) + ' <span class="r-q">×' + l.qty
         + ' @ ' + money(l.price) + '</span></span><b>' + money(l.total) + '</b></div>';

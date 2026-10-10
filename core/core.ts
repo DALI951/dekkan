@@ -42,11 +42,17 @@ function createShop(opts) {
     settings: {
       allowDiscount: opts.allowDiscount !== undefined ? !!opts.allowDiscount : true,
       allowRefund: opts.allowRefund !== undefined ? !!opts.allowRefund : true,
+      // Document-number prefixes (DOC-001/002, CFG-006): per document kind,
+      // configurable — the DEFAULTS live here in config.
+      docPrefix: { sale: 'F', refund: 'R', buy: 'A' },
       // Tax profiles (workbook CFG-005 / TAX-001..003): optional, configurable,
       // with effective dates + ONE rounding policy. The default below is the
       // Tunisian standard — it lives HERE in config, never in posting code.
       tax: opts.tax || defaultTaxConfig()
     },
+    // GLOBAL per-kind document counters (never reset at midnight — only the
+    // client # resets daily). Single writer per account => unique by construction.
+    seq: { sale: 0, refund: 0, buy: 0 },
     // every customer name ever used (sales + notebook) — the counter's memory
     customers: [],
     // every cashier name ever used, most recent first (who rang each sale)
@@ -78,9 +84,20 @@ function cash(state) {
 function pushEntry(state, kind, amount, ref, note, extra) {
   const entry = {
     id: uid(), kind, amount: money(amount), at: new Date().toISOString(), ref: ref || null, note: note || null,
-    bill: null
+    bill: null,
+    doc: null // DOC-001: set below for sale/refund/buy entries
   };
   if (extra) for (const k in extra) entry[k] = extra[k];
+  // DOC number (DOC-001): factures/refunds/buys carry a per-kind GLOBAL
+  // sequence + configurable prefix. Allocated HERE — the one chokepoint every
+  // entry flows through — so no poster can forget or duplicate it.
+  if (kind === 'sale' || kind === 'refund' || kind === 'buy') {
+    state.seq = state.seq || { sale: 0, refund: 0, buy: 0 };
+    const prefix = (state.settings && state.settings.docPrefix && state.settings.docPrefix[kind]) ||
+      (kind === 'sale' ? 'F' : kind === 'refund' ? 'R' : 'A');
+    state.seq[kind] = Number(state.seq[kind] || 0) + 1;
+    entry.doc = { kind: kind, no: fmtDoc(prefix, state.seq[kind]) };
+  }
   state.day.entries.push(entry);
   return state;
 }
@@ -179,6 +196,7 @@ function restoreState(raw) {
   }
   if (!Array.isArray(s.employees)) s.employees = [];
   ensureTaxState(s);
+  ensureDocState(s);
   ensureMovements(s);
   return s;
 }
@@ -233,6 +251,27 @@ function ensureTaxState(state) {
     state.settings.tax = defaultTaxConfig();
   }
   if (typeof state.settings.tax.rounding !== 'string') state.settings.tax.rounding = 'half-up';
+  return state;
+}
+
+
+// ---------- DOCUMENT NUMBERING (DOC-001/002, CFG-006) ----------
+// Per-kind GLOBAL sequences with prefix, e.g. "F-0001". The sequence never
+// resets at midnight — only the DAILY client # does (nextClientNo). One
+// store, one writer => sequential allocation is unique by construction.
+function fmtDoc(prefix, n) {
+  return String(prefix || '').toUpperCase() + '-' + String(n).padStart(4, '0');
+}
+
+
+// repairs old saves that predate the doc-numbering state
+function ensureDocState(state) {
+  state.seq = state.seq || { sale: 0, refund: 0, buy: 0 };
+  if (!state.settings || typeof state.settings !== 'object') state.settings = {};
+  state.settings.docPrefix = Object.assign({ sale: 'F', refund: 'R', buy: 'A' }, state.settings.docPrefix || {});
+  for (const k of ['sale', 'refund', 'buy']) {
+    if (typeof state.seq[k] !== 'number' || !Number.isFinite(state.seq[k])) state.seq[k] = 0;
+  }
   return state;
 }
 
@@ -343,4 +382,6 @@ function ensureMovements(state) {
   K.taxProfileFor = taxProfileFor;
   K.currentTax = currentTax;
   K.ensureTaxState = ensureTaxState;
+  K.fmtDoc = fmtDoc;
+  K.ensureDocState = ensureDocState;
 });

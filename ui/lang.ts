@@ -533,6 +533,10 @@
     'stockCard.move.adjust': 'تعديل',
     'stockCard.move.undo': 'تراجع'
   });
+  Object.assign(AR, {
+    'receipt.doc': 'وثيقة رقم'
+  });
+
   Object.assign(EN, {
     'stock.card': 'Card',
     'stockCard.title': 'Stock card',
@@ -544,7 +548,8 @@
     'stockCard.move.buy': 'Buy',
     'stockCard.move.refund': 'Refund',
     'stockCard.move.adjust': 'Adjustment',
-    'stockCard.move.undo': 'Undo'
+    'stockCard.move.undo': 'Undo',
+    'receipt.doc': 'Doc #'
   });
 
   window.T = T;

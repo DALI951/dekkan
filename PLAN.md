@@ -163,9 +163,17 @@ Already covered or partially covered by the existing battery (222 unit + 65 sim 
 traceable), `STK-003` (oversell guards), `PAY-002` (partial payment), `CASH-001` (derived till).
 
 **Status (2026-10-11):** P0 items **1–11 are all DONE** (Phase 1 trust pack + the two M04/M07 leftovers
-closed same day). Battery: **291 unit + 65 sim + i18n AR=EN=350 + 132 E2E (PC + Phone)**; `npm run check`
-exit 0. All pushed to `origin/main`. Remaining: the UI/UX polish sweep (§7) — then Phase 0 interviews;
-the server dump needs a live host run (config.php keys + cron).
+closed same day), **and the UI/UX polish sweep is CLOSED the same day** (`64b2a00`). Battery:
+**291 unit + 65 sim + i18n AR=EN=350 + 135 E2E (PC + Phone)**; `npm run check` exit 0. All pushed to
+`origin/main`. **No engineering work remains.** Next: Phase 0 / M00 interviews (never done — the biggest
+real gap) or the Phase 2 ship-polish list in §5; the server dump still needs a live host run (config.php
+keys + cron + one restore drill).
+
+**The sweep was worth doing:** it was not cosmetic. Measuring every page in a real browser (PC 1280 +
+Pixel 5) caught two layout bugs the entire battery could not see — desktop was rendering the *phone*
+header over the sidebar (so every page started 67px lower than designed), and on a phone the tab strip
+slid *over* the header mid-scroll and hid the shop name. Both are now fixed and locked by three
+DOM-measurement regressions that were each verified to fail on the pre-fix CSS.
 
 **House rule (unchanged):** every feature ships with validation, error states, and its test —
 a happy-path demo is not "done".

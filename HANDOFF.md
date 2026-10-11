@@ -21,7 +21,9 @@ Last updated: 2026-10-11 — by Big Pickle (DESKTOP-OJME2E2)
   can never pass vacuously.
 - Measured clean: no page scrolls sideways, zero page errors, every card fits. The one remaining "overflow" is
   the till card's decorative `::before` glow, clipped on purpose by `.till{overflow:hidden}` — not a bug.
-- Screenshots for Dali's own eyeball (gitignored): `test-results/ux-audit/{pc,phone}-<page>.png` (9 pages each).
+- Screenshots for Dali's own eyeball: **`C:\Users\Dali\Documents\dekkan-ux-screens\`** — `pc-*.png` + `phone-*.png`
+  for all 9 pages, plus `phone-scrolled-header.png` (the fixed header mid-scroll). Kept **outside** the repo on
+  purpose: `npm run test:e2e` wipes `test-results/` at the start of every run, which ate the first batch.
 - Earlier the same day: M04 reason codes (`a4fd3c5`) and the encrypted MySQL dump (`9955aeb`).
 
 ## In progress

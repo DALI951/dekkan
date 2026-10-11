@@ -198,6 +198,13 @@ function restoreState(raw) {
   ensureTaxState(s);
   ensureDocState(s);
   ensureMovements(s);
+  // DATA-001 ("upload success != recoverability"): a file that PARSES is not
+  // proof of a shop that can come back. Run the SAME integrity gate the server
+  // runs on push (stateProblems) BEFORE this state can replace the live shop —
+  // a structurally-broken backup is refused, never allowed to become the only
+  // copy. stateProblems is hoisted, so calling it here is safe.
+  const problems = stateProblems(s);
+  if (problems.length) throw new Error('backup fails integrity: ' + problems[0]);
   return s;
 }
 

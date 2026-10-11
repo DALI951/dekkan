@@ -19,10 +19,23 @@ const { fakeFirebase } = require('./fake-firebase.ts');
 const ROOT = path.join(__dirname, '..');
 
 function el(id) {
+  // a REAL class list: half of what the shopkeeper sees is a class (`.hidden`,
+  // `.on`) and a stub that always answers "no" cannot tell a hidden button from
+  // a dead one (that is exactly how the refunds-off button hid from us).
+  const cls = new Set();
   const e = {
     id, value: '', textContent: '', innerHTML: '', className: '', checked: false,
     style: {}, _h: {},
-    classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } },
+    classList: {
+      add(...names) { names.forEach(n => cls.add(n)); },
+      remove(...names) { names.forEach(n => cls.delete(n)); },
+      toggle(name, force) {
+        const on = force === undefined ? !cls.has(name) : !!force;
+        if (on) cls.add(name); else cls.delete(name);
+        return on;
+      },
+      contains(name) { return cls.has(name); }
+    },
     addEventListener(type, fn) { (e._h[type] = e._h[type] || []).push(fn); },
     fire(type, ev) { (e._h[type] || []).forEach(fn => fn(ev || {})); },
     closest() { return null; }, querySelectorAll() { return []; },
@@ -538,6 +551,30 @@ test('receipt refund: free lines are cleared without stock, the sale stays filed
   const refunds = s.day.entries.filter(e => e.kind === 'refund');
   assert.strictEqual(refunds.length, 2, 'one refund for the stock line, one for the free line');
   assert.ok(s.day.entries.some(e => e.kind === 'sale'), 'the original sale stays filed');
+});
+
+test('refunds OFF in settings: the refund buttons leave the screen (never a dead button)', () => {
+  const ui = boot((core, s) => core.setSettings(s, { allowRefund: false }));
+  // the sell page: the button is GONE while the shop has refunds turned off
+  assert.ok(ui.$('btnRefundMode').classList.contains('hidden'),
+    'the Refund button is off the screen when refunds are turned off');
+  ui.$('btnRefundMode').fire('click');
+  assert.ok(ui.$('refundPanel').classList.contains('hidden'), 'and the panel can never open');
+  assert.ok(ui.$('toast').textContent.length > 0, 'he is told WHY (not a silent button)');
+
+  // a plain sale still works — only the refund path is closed
+  ui.click('sell-add', ui.pid);              // Coca x1 -> 1.500
+  ui.$('paidCash').value = '1.5';
+  ui.$('paidCash').fire('input');
+  ui.$('btnSell').fire('click');
+  assert.strictEqual(ui.cashNow(), 51.5, 'the sale went through normally');
+  assert.ok(ui.$('btnReceiptRefund').classList.contains('hidden'),
+    'the ticket carries no refund button either');
+  ui.$('receiptRefundReason').value = 'why not';
+  ui.$('btnReceiptRefund').fire('click');
+  assert.strictEqual(ui.cashNow(), 51.5, 'and pressing it took nothing out of the box');
+  assert.strictEqual(ui.saved().day.entries.filter(e => e.kind === 'refund').length, 0,
+    'no refund reached the ledger');
 });
 
 test("today's moves: bare number rows and refunds name the sale they undid", () => {

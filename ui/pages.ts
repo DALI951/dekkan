@@ -66,8 +66,14 @@
     const { state, basket, freeItems, refundMode, refundProductId, $, T, D, fmt } = C;
     const { money, n3, esc, stockLeft } = fmt;
     const P = DEK.pages;
-    $('btnRefundMode').classList.toggle('on', refundMode);
-    $('refundPanel').classList.toggle('hidden', !refundMode);
+    // Settings > "Refunds allowed": with the feature turned OFF the buttons
+    // leave the screen entirely — a button that looks alive and refuses is
+    // worse than no button at all (Dali, 2026-10-11). The core stays the
+    // authority; this is the visible half of the same switch.
+    const canRefund = state.settings.allowRefund !== false;
+    $('btnRefundMode').classList.toggle('hidden', !canRefund);
+    $('btnRefundMode').classList.toggle('on', refundMode && canRefund);
+    $('refundPanel').classList.toggle('hidden', !refundMode || !canRefund);
 
     // the search box filters the tiles as the shopkeeper types (name OR SKU)
     const q = (($('sellSearch') || {}).value || '').trim().toLowerCase();
@@ -714,6 +720,10 @@
     // a fresh receipt starts with no refund reason typed and the row tucked away
     if ($('receiptRefundReason')) $('receiptRefundReason').value = '';
     if ($('receiptRefundRow')) $('receiptRefundRow').classList.add('hidden');
+    // refunds turned off in Settings: the ticket offers no refund button
+    if ($('btnReceiptRefund')) {
+      $('btnReceiptRefund').classList.toggle('hidden', state.settings.allowRefund === false);
+    }
     rec.classList.remove('hidden');
     if (document.body) document.body.classList.add('no-scroll');
   }

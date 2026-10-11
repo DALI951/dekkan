@@ -40,6 +40,8 @@
     const { state, receiptEntryId, $, T, D, fmt, save, render, toast } = C;
     const { n3 } = fmt;
     const hideReceipt = DEK.pages.hideReceipt;
+    // refunds turned off in Settings: no button, and no way to sneak past it
+    if (state.settings.allowRefund === false) return toast(T.t('toast.refundsOff'), true);
     // P0-9: a refund must say WHY. First tap reveals the reason field and asks
     // for it; the refund only runs once a reason is typed (then the PIN gate).
     const reason = ($('receiptRefundReason').value || '').trim();
@@ -198,7 +200,10 @@
   }
 
   function toggleRefundMode(C) {
-    const { render } = C;
+    const { state, T, render, toast } = C;
+    // the button is off the screen while refunds are turned off, but a stale tap
+    // (an old tab, a restored session) must never LOOK like it worked.
+    if (state.settings.allowRefund === false) return toast(T.t('toast.refundsOff'), true);
     C.refundMode = !C.refundMode;
     C.refundProductId = null;
     render();
@@ -206,6 +211,7 @@
 
   function doRefund(C) {
     const { state, refundProductId, $, T, D, run, toast } = C;
+    if (state.settings.allowRefund === false) return toast(T.t('toast.refundsOff'), true);
     if (!refundProductId) return toast(T.t('toast.refundPick'), true);
     const qty = parseFloat($('refundQty').value) || 1;
     const reason = $('refundReason').value.trim();

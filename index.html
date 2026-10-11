@@ -58,7 +58,11 @@
   </div>
 </aside>
 
-<!-- ================= mobile topbar ================= -->
+<!-- ============ mobile head: the bar + the tab strip = ONE sticky unit ============
+     They must never be two independent stickies at top:0 — when they were, the
+     tab strip slid up over the bar and covered the shop name as soon as the page
+     scrolled. One wrapper, one stuck edge. -->
+<div class="mhead">
 <header class="topbar">
   <div class="brand">
     <span class="logo">د</span>
@@ -85,6 +89,7 @@
   <button class="tab" data-hash="#/cashbox"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 7l2 5M18 7l-2 5" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.cashbox">الخزينة</span></button>
   <button class="tab" data-hash="#/settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3 1a7 7 0 0 0-2-1.2L14.3 3h-4l-.3 2.7a7 7 0 0 0-2 1.2l-2.3-1-2 3.4 2 1.5A7 7 0 0 0 5.6 12a7 7 0 0 0 .1 1.2l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 2 1.2l.3 2.7h4l.3-2.7a7 7 0 0 0 2-1.2l2.3 1 2-3.4-2-1.5A7 7 0 0 0 19 12z" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="tab.settings">الإعدادات</span></button>
 </nav>
+</div>
 
 <main id="view">
   <!-- SELL -->

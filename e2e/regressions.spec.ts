@@ -8,7 +8,8 @@ const { test, expect } = require('@playwright/test');
 const { open, seedPrefs } = require('./helpers');
 
 test.afterEach(async ({ page }) => {
-  expect(page.__errors).toEqual([]);
+  // a test that skipped itself (wrong viewport) never opened the app at all
+  expect(page.__errors || []).toEqual([]);
 });
 
 test('v0.8.3 regression: English saved + hard refresh keeps LTR English layout', async ({ page, context }) => {
@@ -49,4 +50,78 @@ test('default theme is Gold Souk on a truly fresh profile', async ({ page }) => 
   const bg = await page.evaluate(() =>
     getComputedStyle(document.documentElement).getPropertyValue('--bg').trim());
   expect(bg).toBe('#0e0c0a'); // Gold Souk is the default look
+});
+
+/* ============================================================ LAYOUT REGRESSIONS
+ * Two layout bugs that no functional test could see, both found by measuring the
+ * real DOM (2026-10-11 UI/UX sweep):
+ *   1. the mobile bar was never actually hidden on desktop — a later unscoped
+ *      `.topbar{display:flex}` beat the ≥900px hide, so the phone bar rendered on
+ *      top of the sidebar brand and pushed every page down;
+ *   2. the phone bar and the tab strip were two independent stickies at top:0, so
+ *      the moment the page scrolled the tab strip rode up OVER the bar and hid the
+ *      shop name behind a translucent strip.
+ */
+test('desktop shows the sidebar and NEVER the phone bar / tab strip', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'PC', 'desktop-only assertion');
+  await open(page, '#/sell');
+  const shown = (sel) => page.locator(sel).evaluate((el) => getComputedStyle(el).display !== 'none');
+  expect(await shown('.sidebar'), 'the sidebar rail is the desktop nav').toBe(true);
+  expect(await shown('.topbar'), 'the mobile bar must not paint on desktop').toBe(false);
+  expect(await shown('.topnav'), 'the mobile tab strip must not paint on desktop').toBe(false);
+  // the page starts right under the top edge, not 67px down under a phantom bar
+  const top = await page.locator('#view .page.show').evaluate((el) => el.getBoundingClientRect().top);
+  expect(top).toBeLessThan(60);
+});
+
+test('phone: the tab strip docks UNDER the bar when the page is scrolled', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'Phone', 'phone-only assertion');
+  await open(page, '#/stock');
+  // a tall spacer after everything guarantees the document really scrolls,
+  // whatever the seeded shop happens to contain — otherwise this test is vacuous
+  await page.evaluate(() => {
+    const d = document.createElement('div');
+    d.style.cssText = 'height:2000px';
+    document.body.appendChild(d);
+  });
+  await page.evaluate(() => window.scrollTo(0, 300));
+  await page.waitForTimeout(200);
+
+  const box = await page.evaluate(() => {
+    const b = document.querySelector('.topbar').getBoundingClientRect();
+    const n = document.querySelector('.topnav').getBoundingClientRect();
+    return { y: Math.round(window.scrollY), barTop: Math.round(b.top), barBottom: Math.round(b.bottom), navTop: Math.round(n.top) };
+  });
+  expect(box.y, 'the page must really have scrolled, or this test proves nothing').toBeGreaterThan(100);
+  expect(box.barTop, 'the bar stays stuck to the top').toBe(0);
+  expect(box.navTop, 'the tab strip must sit BELOW the bar, not over it').toBeGreaterThanOrEqual(box.barBottom - 1);
+});
+
+test('phone: a stock row fits inside its card (name readable, no button hanging off)', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'Phone', 'phone-only assertion');
+  await open(page, '#/stock');
+  await page.locator('#btnAddProduct').click();
+  await page.locator('#pName').fill('Couscous extra long name');
+  await page.locator('#pBuy').fill('3');
+  await page.locator('#pSell').fill('4.5');
+  await page.locator('#pStock').fill('8');
+  await page.locator('#btnSaveProduct').click();
+  await expect(page.locator('#stockList')).toContainText('Couscous');
+
+  const bad = await page.evaluate(() => {
+    const out = [];
+    document.querySelectorAll('#stockList .stock-card').forEach((card) => {
+      const c = card.getBoundingClientRect();
+      if (card.scrollWidth > card.clientWidth + 1) out.push('row overflows its card');
+      card.querySelectorAll('button').forEach((b) => {
+        const r = b.getBoundingClientRect();
+        if (r.left < c.left - 0.5 || r.right > c.right + 0.5) out.push('button ' + b.textContent + ' hangs outside the card');
+      });
+      // the product name is the reason the row exists — it must stay readable
+      const name = card.querySelector('.s-name');
+      if (name && name.getBoundingClientRect().width < 60) out.push('name crushed to ' + Math.round(name.getBoundingClientRect().width) + 'px');
+    });
+    return out;
+  });
+  expect(bad).toEqual([]);
 });

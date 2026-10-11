@@ -31,10 +31,10 @@ are updated as phases close.
 | M01 Define MVP | Wireframes reviewed with 2 target users, P0 scope agreed | Implicit (built), never reviewed with real users |
 | M02 Foundation | Repo, auth, roles, tenant isolation, error handling | **DONE differently**: per-account state blob = hard isolation; roles = PIN + cashier names, not RBAC |
 | M03 Catalogue | Products, units, categories, SKU uniqueness, search | **PARTIAL**: products/categories/search exist; **no SKU field**, no supplier ref, no import |
-| M04 Stock ledger | Opening stock, stock card, adjustments + reasons, negative guard | **MOSTLY DONE (2026-10-10)**: source-linked ledger (opening/sale/buy/refund/adjust/undo) + stock card screen live; adjustment **reason codes** still pending. Negative guard ✓ |
+| M04 Stock ledger | Opening stock, stock card, adjustments + reasons, negative guard | **MOSTLY DONE (2026-10-10)**: source-linked ledger (opening/sale/buy/refund/adjust/undo) + stock card screen live; adjustment **reason codes** live too (2026-10-11, M04 closed). Negative guard ✓ |
 | M05 Sales posting | Draft cart, totals/discount, atomic post, receipt, idempotency | **DONE (client-side core)**: basket → checkout → receipt/facture, discounts clamped, refund path |
 | M06 Payments & dashboard | Cash tender, daily reports, on-hand | **DONE**: till equation is derived (`start + Σentries`, cannot drift), day report, monthly review, by-cashier |
-| M07 Hardening | Backups, restore drill, access tests, docs | **MOSTLY DONE (2026-10-11)**: 280 unit + 65 sim + i18n + 130 E2E (PC+Phone); backup **restore drill + integrity gate** (`DATA-001`) live; **no automated server dump, no monitoring** |
+| M07 Hardening | Backups, restore drill, access tests, docs | **MOSTLY DONE (2026-10-11)**: 291 unit + 65 sim + i18n + 132 E2E (PC+Phone); backup **restore drill + integrity gate** (`DATA-001`) live; **automated encrypted MySQL dump** shipped (`api/backup.php`, schedule + retention — not yet run on the host); monitoring still open |
 | M08 Pilot | Real user repeats the workflow, concrete feedback | **NOT STARTED** |
 | M09–M13 | Purchasing, production readiness, paid launch, growth | Future |
 
@@ -52,7 +52,11 @@ Each item = workbook IDs · what it means for Dekkan · acceptance test to write
    derived; stock card screen per product (opening → movements → running balance) opens from the Stock page.
    `stockIntegrity()` audits counter vs ledger, `reconcileStock()` rebuilds, legacy saves get an opening movement.
    Tests: `test/stock.test.ts` 9/9, `e2e/stock-card.spec.ts` PC+Phone, battery 239 unit + 65 sim + 334 i18n + 120 e2e.
-   **Not yet:** adjustment *reason codes* (stockMove accepts an optional note; the UI doesn't prompt for one yet).
+   **Adjustment reason codes DONE (2026-10-11):** a manual count change is an
+   ADJUSTMENT and must carry a code from the closed list `count|damage|loss|other`
+   (`STOCK_REASONS`); the code lives on the movement (never on the product) and
+   the stock card prints it. Refused without a code, and the refusal writes
+   nothing (`test/stock-reason.test.ts` 9/9, UI tests, e2e PC+Phone, battery 291 unit + 350 i18n + 132 e2e).
 2. **Tax profiles** — `CFG-005`, `TAX-001..003` ✅ DONE (2026-10-10, `8eb81ed`)
    Configurable TVA code/rate/effective dates + one rounding policy; posted lines keep a rate
    snapshot. Tunisian defaults live in **config**, never hard-coded. → Test: posted receipt keeps its rate after settings change.
@@ -86,8 +90,7 @@ Each item = workbook IDs · what it means for Dekkan · acceptance test to write
     not reconcile — "upload success ≠ recoverability". Drill documented in `docs/restore-drill.md`;
     test `DATA-001` (`test/drill.test.ts`) exports a real multi-day shop, restores it and reconciles till /
     day report / month / stock / customers / debts, then proves a tampered-but-parseable file is refused.
-    **Not yet:** the *automated encrypted MySQL dump* (schedule + retention) for `api/*.php` — it lives on
-    the host and the app is local-first + Firebase today (open, tracked here).
+    **Not yet:** ~~the *automated encrypted MySQL dump* (schedule + retention) for `api/*.php`~~ — **DONE (2026-10-11): `api/backup.php`** — PDO dump of the three `dekkan_*` tables → gzip → AES-256-CBC (`backupKey`), timestamped files under `api/backups/` (0700 + deny-all `.htaccess`), `backupKeep` retention, CLI or web-cron (`?run=backupRunKey`), log lines; restore steps in `docs/restore-drill.md`. NOT yet run on the live host (config + cron are server-side work; php absent from dev env).
 11. **Walk-in customer rule, written down** — `CUST-001` ✅ DONE (2026-10-11, commit `e97eebc`)
     An anonymous sale is the day's next client # and pays normally, but NEVER creates a customer record;
     three walk-ins are three client #s, not one shared client. Frozen in `test/walk-in.test.ts` (CUST-001).
@@ -159,10 +162,10 @@ Already covered or partially covered by the existing battery (222 unit + 65 sim 
 `SALE-001` (checkout tests), `SALE-005` (totals), `SALE-007/008` (tickets store the facture; refunds
 traceable), `STK-003` (oversell guards), `PAY-002` (partial payment), `CASH-001` (derived till).
 
-**Status (2026-10-11):** P0 items **2–11 are DONE** (Phase 1 trust pack closes). Battery: **280 unit +
-65 sim + i18n AR=EN=343 + 130 E2E (PC + Phone)**; `npm run check` exit 0. All pushed to `origin/main`
-(HEAD `3632dd2`). Remaining: the server-side automated MySQL dump (§2 item 10), adjustment *reason codes*
-(§2 item 1), and the UI/UX polish sweep (§7) — then Phase 0 interviews.
+**Status (2026-10-11):** P0 items **1–11 are all DONE** (Phase 1 trust pack + the two M04/M07 leftovers
+closed same day). Battery: **291 unit + 65 sim + i18n AR=EN=350 + 132 E2E (PC + Phone)**; `npm run check`
+exit 0. All pushed to `origin/main`. Remaining: the UI/UX polish sweep (§7) — then Phase 0 interviews;
+the server dump needs a live host run (config.php keys + cron).
 
 **House rule (unchanged):** every feature ships with validation, error states, and its test —
 a happy-path demo is not "done".

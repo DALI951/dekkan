@@ -39,7 +39,9 @@ FILES = [
     # the account API (config.php is created on the server, never shipped;
     # setup.php is one-shot: run it manually on the server AFTER schema changes)
     'api/.htaccess', 'api/config.example.php', 'api/db.php',
-    'api/auth.php', 'api/state.php',
+    'api/auth.php', 'api/state.php', 'api/backup.php',
+    # the dumps folder ships with a deny-all guard (backup.php creates itself)
+    'api/backups/.htaccess',
 ]
 
 

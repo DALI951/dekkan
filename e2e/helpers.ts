@@ -63,4 +63,14 @@ async function closeReceipt(page) {
   await expect(page.locator('#receipt')).toHaveClass(/hidden/);
 }
 
-module.exports = { open, gotoTab, seedPrefs, tillNow, toastText, sellOne, closeReceipt, expect };
+// Pin the UI language before any dekkan script runs — the same moment a
+// returning shopkeeper's browser would already hold the choice. The app boots
+// ENGLISH by default now, so specs written against the Arabic UI seed 'ar'.
+function seedLang(context, lang) {
+  return context.addInitScript(
+    (l) => { try { localStorage.setItem('dekkan.lang', l); } catch (e) {} },
+    lang
+  );
+}
+
+module.exports = { open, gotoTab, seedPrefs, seedLang, tillNow, toastText, sellOne, closeReceipt, expect };

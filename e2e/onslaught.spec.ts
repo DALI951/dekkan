@@ -9,7 +9,11 @@
 'use strict';
 const fs = require('node:fs');
 const { test, expect } = require('@playwright/test');
-const { open, gotoTab, sellOne, closeReceipt, tillNow, toastText } = require('./helpers');
+const { open, gotoTab, sellOne, closeReceipt, tillNow, toastText, seedLang } = require('./helpers');
+
+// This whole spec was written against the Arabic UI (toast text, page titles).
+// The app now boots English by default, so pin Arabic before boot.
+test.beforeEach(async ({ context }) => { await seedLang(context, 'ar'); });
 
 test.afterEach(async ({ page }) => {
   expect(page.__errors).toEqual([]);

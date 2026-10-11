@@ -24,11 +24,11 @@ test('v0.8.3 regression: English saved + hard refresh keeps LTR English layout',
   await expect(page.locator('#page-sell h2')).toHaveText('Sell');
 });
 
-test('birth direction: a fresh visitor gets Arabic RTL (never English LTR)', async ({ page }) => {
+test('birth direction: a fresh visitor gets English LTR (the new default)', async ({ page }) => {
   await open(page);
-  await expect(page.locator('html')).toHaveAttribute('lang', 'ar');
-  await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
-  await expect(page.locator('#page-sell h2')).toHaveText('البيع');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+  await expect(page.locator('html')).toHaveAttribute('dir', 'ltr');
+  await expect(page.locator('#page-sell h2')).toHaveText('Sell');
 });
 
 test('the chosen theme applies from the first paint and survives a reload', async ({ page, context }) => {
@@ -41,7 +41,7 @@ test('the chosen theme applies from the first paint and survives a reload', asyn
 
   await page.reload();
   expect(await bg()).toBe('#06140f');
-  await expect(page.locator('#themeGrid')).toContainText('الزمرد'); // …and it's marked in the UI
+  await expect(page.locator('#themeGrid')).toContainText('Midnight Mint'); // …and it's marked in the UI
 });
 
 test('default theme is Gold Souk on a truly fresh profile', async ({ page }) => {

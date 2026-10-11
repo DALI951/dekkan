@@ -4,7 +4,10 @@
  */
 'use strict';
 const { test, expect } = require('@playwright/test');
-const { open, gotoTab, sellOne, closeReceipt, tillNow, toastText } = require('./helpers');
+const { open, gotoTab, sellOne, closeReceipt, tillNow, toastText, seedLang } = require('./helpers');
+
+// Arabic UI spec — pin Arabic before boot (the app now defaults to English).
+test.beforeEach(async ({ context }) => { await seedLang(context, 'ar'); });
 
 // every opened page must be exception-free
 test.afterEach(async ({ page }) => {

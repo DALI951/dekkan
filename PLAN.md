@@ -34,7 +34,7 @@ are updated as phases close.
 | M04 Stock ledger | Opening stock, stock card, adjustments + reasons, negative guard | **MOSTLY DONE (2026-10-10)**: source-linked ledger (opening/sale/buy/refund/adjust/undo) + stock card screen live; adjustment **reason codes** still pending. Negative guard ✓ |
 | M05 Sales posting | Draft cart, totals/discount, atomic post, receipt, idempotency | **DONE (client-side core)**: basket → checkout → receipt/facture, discounts clamped, refund path |
 | M06 Payments & dashboard | Cash tender, daily reports, on-hand | **DONE**: till equation is derived (`start + Σentries`, cannot drift), day report, monthly review, by-cashier |
-| M07 Hardening | Backups, restore drill, access tests, docs | **PARTIAL**: 222 unit + 65 sim + i18n + 114 E2E = strong tests; **no automated backup, no restore drill, no monitoring** |
+| M07 Hardening | Backups, restore drill, access tests, docs | **MOSTLY DONE (2026-10-11)**: 280 unit + 65 sim + i18n + 130 E2E (PC+Phone); backup **restore drill + integrity gate** (`DATA-001`) live; **no automated server dump, no monitoring** |
 | M08 Pilot | Real user repeats the workflow, concrete feedback | **NOT STARTED** |
 | M09–M13 | Purchasing, production readiness, paid launch, growth | Future |
 
@@ -53,39 +53,44 @@ Each item = workbook IDs · what it means for Dekkan · acceptance test to write
    `stockIntegrity()` audits counter vs ledger, `reconcileStock()` rebuilds, legacy saves get an opening movement.
    Tests: `test/stock.test.ts` 9/9, `e2e/stock-card.spec.ts` PC+Phone, battery 239 unit + 65 sim + 334 i18n + 120 e2e.
    **Not yet:** adjustment *reason codes* (stockMove accepts an optional note; the UI doesn't prompt for one yet).
-2. **Tax profiles** — `CFG-005`, `TAX-001..003`
+2. **Tax profiles** — `CFG-005`, `TAX-001..003` ✅ DONE (2026-10-10, `8eb81ed`)
    Configurable TVA code/rate/effective dates + one rounding policy; posted lines keep a rate
    snapshot. Tunisian defaults live in **config**, never hard-coded. → Test: posted receipt keeps its rate after settings change.
-3. **Document numbering** — `DOC-001/002`, `CFG-006`
+3. **Document numbering** — `DOC-001/002`, `CFG-006` ✅ DONE (2026-10-10, `92e70f5`)
    Configurable prefixes/sequences per document type (facture, refund, buy); unique under
    concurrency (server-allocated when multi-device). Today: client # resets daily — good, extend it.
    → Test: `DOC-001` concurrent post = no duplicate number.
-4. **SKU + unique SKU** — `CAT-001`
+4. **SKU + unique SKU** — `CAT-001` ✅ DONE (2026-10-10, `de21312`)
    Add SKU field (case/whitespace normalization), uniqueness per shop, search by SKU. → Test: `PROD-001`.
-5. **Server stops blindly trusting the client** — `SAL-004`, `TEN-002`, `NFR-002`
+5. **Server stops blindly trusting the client** — `SAL-004`, `TEN-002`, `NFR-002` ✅ DONE (2026-10-10, `37133ba`)
    Today `PUT state` stores the blob verbatim. Minimum viable: API **validates integrity on push**
    (sum of entries ⇒ cash, stock ⇒ movements, totals reconcile, pin hash untouched, blob belongs to
    the token's user) and rejects with 409. Ideal (later): move posting itself to the API.
    → Test: forged state (cash ≠ entries, foreign user id) rejected, nothing written.
-6. **RBAC light** — Permissions sheet
+6. **RBAC light** — Permissions sheet ✅ DONE (2026-10-10, `dd1876b`)
    Owner vs Cashier enforced **server-side** (PIN stays as the in-app action gate). Full 8-role
    matrix is P1 — only after real teams appear. → Test: `SEC-001`-style cross-user access denied.
-7. **Supplier record** — Purchasing P0 (`PUR-001` area)
+7. **Supplier record** — Purchasing P0 (`PUR-001` area) ✅ DONE (2026-10-10, `d11b91c`)
    `buyStock` gains a supplier (name + optional contact). Receipt-vs-bill split is P1.
    → Test: buy records supplier; history lists buys per supplier.
-8. **Draft sale survives** — `SAL-001`
+8. **Draft sale survives** — `SAL-001` ✅ DONE (2026-10-10, `52b2920` RED + `7db6764`)
    Persist the in-progress basket (refresh/offline/tab-switch must not eat a half-built order).
    → Test: `SALE-002` draft touches no stock/cash/report.
-9. **Refund/return discipline** — `RET-001/003`, `SAL-009/010`
+9. **Refund/return discipline** — `RET-001/003`, `SAL-009/010` ✅ DONE (2026-10-10, `e677762`)
    Refund already restocks from the *stored bill* (can't exceed what was sold) and is PIN-gated.
    Close the rest: mandatory reason, keep "no silent delete" + "reprint is read-only" as tests.
    → Tests: `RET-001`, `RET-003`, `SALE-007`.
-10. **Backup + restore drill** — `REL-001`, `NFR-012`, `CFG-015`
-    Automated encrypted MySQL dump (schedule + retention) and **one documented restore test**
-    — "upload success ≠ recoverability". → Test: `DATA-001` restore reconciles sample totals.
-11. **Walk-in customer rule, written down** — `CUST-001`
-    Anonymous sale = client # of the day (already true). Freeze it as an explicit test so it
-    never regresses into "one customer record per anonymous sale".
+10. **Backup + restore drill** — `REL-001`, `NFR-012`, `CFG-015` ✅ DONE (2026-10-11, commit `b230b21`)
+    Export (Settings JSON) + import already existed; this closes the *proof* half. `restoreState()` now
+    runs the SAME integrity gate as the server push (`stateProblems`) and **throws** on a backup that does
+    not reconcile — "upload success ≠ recoverability". Drill documented in `docs/restore-drill.md`;
+    test `DATA-001` (`test/drill.test.ts`) exports a real multi-day shop, restores it and reconciles till /
+    day report / month / stock / customers / debts, then proves a tampered-but-parseable file is refused.
+    **Not yet:** the *automated encrypted MySQL dump* (schedule + retention) for `api/*.php` — it lives on
+    the host and the app is local-first + Firebase today (open, tracked here).
+11. **Walk-in customer rule, written down** — `CUST-001` ✅ DONE (2026-10-11, commit `e97eebc`)
+    An anonymous sale is the day's next client # and pays normally, but NEVER creates a customer record;
+    three walk-ins are three client #s, not one shared client. Frozen in `test/walk-in.test.ts` (CUST-001).
 
 **Not P0 but already decided good:** AR/EN + RTL (workbook puts it P2 — we ship it at MVP),
 local-first offline safety (matches `DEC-008` deferred), derived cash ledger (stronger than
@@ -153,6 +158,11 @@ P0 subset to implement RED-first inside Phase 1:
 Already covered or partially covered by the existing battery (222 unit + 65 sim + i18n 315 + 114 E2E):
 `SALE-001` (checkout tests), `SALE-005` (totals), `SALE-007/008` (tickets store the facture; refunds
 traceable), `STK-003` (oversell guards), `PAY-002` (partial payment), `CASH-001` (derived till).
+
+**Status (2026-10-11):** P0 items **2–11 are DONE** (Phase 1 trust pack closes). Battery: **280 unit +
+65 sim + i18n AR=EN=343 + 130 E2E (PC + Phone)**; `npm run check` exit 0. All pushed to `origin/main`
+(HEAD `3632dd2`). Remaining: the server-side automated MySQL dump (§2 item 10), adjustment *reason codes*
+(§2 item 1), and the UI/UX polish sweep (§7) — then Phase 0 interviews.
 
 **House rule (unchanged):** every feature ships with validation, error states, and its test —
 a happy-path demo is not "done".

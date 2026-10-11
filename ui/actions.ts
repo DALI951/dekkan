@@ -261,7 +261,7 @@
       $('productForm').classList.add('hidden');
       render();
       toast(T.t('toast.savedOk'));
-    } catch (e) { toast(e.message, true); }
+    } catch (e) { toast(T.t(e.message), true); }
   }
 
   // ----- staff (hire / edit / fire) -----

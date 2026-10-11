@@ -187,7 +187,10 @@
       render();
       if (okMsg) toast(okMsg);
     } catch (e) {
-      toast(e.message, true);
+      // a core op may throw an i18n KEY (e.g. 'toast.refundReason'); translate
+      // it so the shopkeeper never sees a raw key. Plain English messages pass
+      // straight through (T.t returns the input unchanged when it is not a key).
+      toast(T.t(e.message), true);
     }
   }
   function render() { saveDraft(); P.render(C); }

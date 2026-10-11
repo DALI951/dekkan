@@ -68,6 +68,7 @@ test.describe('onslaught: money + stock honesty (the 4 holes)', () => {
 
     await page.locator('#btnRefundMode').click();
     await page.locator('[data-action="refund-pick"]').first().click();
+    await page.locator('#refundReason').fill('changed mind'); // P0-9: a refund needs a reason
     await page.locator('#refundQty').fill('99'); // only 1 was ever sold
     await page.locator('#btnDoRefund').click();
     expect(await toastText(page)).toContain('exceeds what was sold today');
@@ -82,6 +83,7 @@ test.describe('onslaught: money + stock honesty (the 4 holes)', () => {
     await closeReceipt(page);
     await page.locator('#btnRefundMode').click();
     await page.locator('[data-action="refund-pick"]').first().click();
+    await page.locator('#refundReason').fill('changed mind'); // P0-9: a refund needs a reason
     await page.locator('#refundQty').fill('-5');
     await page.locator('#btnDoRefund').click();
     expect(await toastText(page)).toContain('must be positive');
@@ -434,6 +436,7 @@ test.describe('onslaught: receipt refunds (tickets)', () => {
     await gotoTab(page, '#/sell');
     await sellOne(page, 1.5);
     await expect(page.locator('#receipt')).not.toHaveClass(/hidden/);
+    await page.locator('#btnReceiptRefund').click(); // P0-9: first tap reveals the reason field
     await page.locator('#receiptRefundReason').fill('damaged');
     await page.locator('#btnReceiptRefund').click(); // refund from the open receipt
     expect(await toastText(page)).toBe('تم الاسترجاع');
@@ -452,6 +455,7 @@ test.describe('onslaught: receipt refunds (tickets)', () => {
     await gotoTab(page, '#/sell');
     await sellOne(page, undefined, 'Ali'); // full credit sale
     await expect(page.locator('#receipt')).not.toHaveClass(/hidden/);
+    await page.locator('#btnReceiptRefund').click(); // P0-9: first tap reveals the reason field
     await page.locator('#receiptRefundReason').fill('wrong order');
     await page.locator('#btnReceiptRefund').click();
     expect(await toastText(page)).toBe('تم الاسترجاع');

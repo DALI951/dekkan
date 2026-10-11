@@ -78,6 +78,7 @@ test('refund needs the owner code; the backup JSON never shows the digits', asyn
   await gotoTab(page, '#/sell');
   await page.locator('#btnRefundMode').click();
   await page.locator('[data-action="refund-pick"]').first().click();
+  await page.locator('#refundReason').fill('damaged'); // P0-9: a refund needs a reason
   await page.locator('#btnDoRefund').click();
   await expect(page.locator('#pinPanel')).toBeVisible();
 

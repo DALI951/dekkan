@@ -1,48 +1,71 @@
 # RULES.md — dekkan
 
-> Project rules. Binding for every session, on every machine (injected automatically).
+> Project rules. **Binding for every session, on every machine** (injected automatically).
 > Rules only — current state lives in `HANDOFF.md`.
-> Seeded 2026-10-11 — lines marked `[ ] ASK DALI` are not answers yet.
+> Filled from verified work on 2026-10-11 (Big Pickle). `UNSURE` = not confirmed by Dali.
+> Restored 2026-10-11 (part 2): commit `aa0f676` accidentally overwrote this file with the
+> seed template — the real contract was recovered from `9699780` and re-landed with the
+> additions listed in "Decisions".
 
 ## What this project is
-Dekkan — Arabic-first small-shop kit. Cash box, stock, debts, profit. (The algorithm, tested.)
+Dekkan — Arabic-first small-shop kit (POS/till): cash box, stock, debts, profit.
+Client-side core is the tested truth; a small PHP API (`api/`) carries the optional cloud account.
 
 ## Stack
-plain JS/HTML
-Package manager: `npm`
+- Plain HTML/CSS/JS in the browser, no framework, no bundler. `index.html` + `ui/*.ts` (UMD factories) + `css/style.css`.
+- `core/*.ts` = the domain core, UMD factories that read their deps off `K` at load — usable in the browser **and** in Node tests.
+- Build = `tsc` only (emits `.js` next to `.ts`; **the `.js` files are gitignored, never committed**). The repo holds `.ts` sources only.
+- API = PHP + MySQL (`api/*.php`). **`php` is NOT installed in the dev environment** → PHP changes are reviewed by reading, never executed locally.
+- Tests = `node --test` (unit, runs `.ts` directly), `scripts/simulate.ts`, `scripts/check-i18n.ts`, Playwright (e2e, PC + Phone projects).
 
 ## Repo
-- Root: `C:/Users/Dali/Projects/dekkan`
-- Remote: `https://github.com/DALI951/dekkan.git`  ← check visibility before putting anything private in here
-- Branch: `main`
+- Root: `C:\Users\Dali\Projects\dekkan` (dekkan, two k's — not `dekan`)
+- Remote: `https://github.com/DALI951/dekkan` — **PUBLIC**: nothing private/secrety ever lands here
+- Branch: `main` only (no feature branches unless Dali asks) · never force-push
 
-## Commands (exact)
-| Purpose | Command | Working dir |
-|---|---|---|
-| build | `npm run build` | `C:/Users/Dali/Projects/dekkan` |
-| test | `npm run test` | `C:/Users/Dali/Projects/dekkan` |
-| test | `npm run test:sim` | `C:/Users/Dali/Projects/dekkan` |
-| test | `npm run test:e2e` | `C:/Users/Dali/Projects/dekkan` |
-| lint + test battery | `npm run check` | `C:/Users/Dali/Projects/dekkan` |
-| typecheck | `npm run typecheck` | `C:/Users/Dali/Projects/dekkan` |
-| test:i18n | `npm run test:i18n` | `C:/Users/Dali/Projects/dekkan` |
-| serve | `npm run serve` | `C:/Users/Dali/Projects/dekkan` |
+## Commands (exact — run from the repo root)
+| Purpose | Command |
+|---|---|
+| the gate: typecheck + unit + sim + i18n | `npm run check` |
+| typecheck only | `npm run typecheck` |
+| unit tests | `npm test` |
+| simulation checks | `npm run test:sim` |
+| i18n parity (AR must equal EN) | `npm run test:i18n` |
+| build (REQUIRED before e2e — the browser loads `.js`) | `npm run build` |
+| e2e, both layouts | `npm run test:e2e` (= build + Playwright) |
+| dev server for manual use | `npm run serve` → http://127.0.0.1:4173 |
+
+**The gate:** `npm run check` must exit 0 before any commit. Never commit on a red gate.
 
 ## Conventions
-- [ ] ASK DALI — naming, file layout, formatting, UI language (AR/EN?), branch habits
+- **RED-first**: write the failing test, then implement, then the gate, then commit **one item per commit**.
+- Commits use Dali's author flags only, never a global git identity:
+  `git -c user.name=DALI951 -c user.email=dali951@users.noreply.github.com commit`
+  then push to `origin/main`. Commit messages with `>=`/`<=` must go through `git commit -F <file>` (PowerShell parses them as redirection).
+- **Money/state**: every mutation is pure — clone, mutate the clone, return it; a failed op throws and changes **nothing**. Cash is always **derived** (`day.startCash + Σ entries`), never stored. The stock counter must always equal the ledger sum.
+- **Adding a core module means updating THREE boot lists** (or it silently loads in one place only): `index.html`, the boot list in `test/ui.test.ts`, `scripts/simulate.ts`.
+- **i18n parity is a hard rule**: every new key goes into AR **and** EN in the same commit; `check-i18n` reads `index.html` ids too.
+- `state.version` is 4 — a shape change means a migration path, not a version bump alone.
+- Comment style in this repo: explain **why**, in plain English, with the date of the decision when it matters.
 
 ## Do NOT
-- Never commit secrets, tokens or passwords (this may be a public repo).
-- Never force-push a shared branch. Never destroy uncommitted work without asking.
-- Never "fix" a failing test by weakening the test.
-- [ ] ASK DALI — what has broken here before / what must never happen again
+- **Never commit secrets/tokens/passwords.** `api/config.php` and `js/config.js` hold server/account config — real values live only on the host; only `config.example.php` ships.
+- Never commit build output (`*.js`, `*.tsbuildinfo` are gitignored on purpose).
+- Never weaken or delete a test to make it pass — fix the code, or delete the test with a written reason.
+- Never force-push; never destroy uncommitted work without asking.
+- Never ship a new file without adding it to `scripts/deploy.py`'s `FILES` list (otherwise it exists locally and 404s on the host).
+- Never edit `index.html` into bare LF: **the file is CRLF**. After any edit, re-normalize and check (`bareLF=0`).
+- Never make the phone header and the phone tab strip two independent stickies at `top:0` — they collide mid-scroll (fixed 2026-10-11 by wrapping both in one `.mhead` sticky unit). Desktop must hide `.mhead`/`.topbar`/`.topnav` entirely.
+- **Never park keeper artifacts (screenshots, dumps) in `test-results/`** — Playwright wipes the dir at the start of every run (it ate the first sweep screenshots 2026-10-11). Keeper material lives in `C:\Users\Dali\Documents\dekkan-ux-screens\`.
+- Leave `scripts/seed-test.json` untracked — it is deliberate (local seeding aid, not part of the app).
 
 ## Decisions (why — append-only)
-- (none recorded yet)
+- **2026-10-11 — English is the born-default UI language**; Arabic stays a first-class equal (`AR=EN` parity enforced). A fresh profile gets English LTR.
+- **2026-10-11 — M04 adjustments need a closed reason code** (`count|damage|loss|other`): a real stock count change without a code refuses and writes nothing. Reason codes beat free text for reports.
+- **2026-10-11 — Backups are encrypted at rest**: `api/backup.php` dumps the three `dekkan_*` tables, gzips, AES-256-CBC with `backupKey`, keeps `backupKeep` (14) files, logs to `backup.log`; the folder ships with a deny-all `.htaccess`.
+- **2026-10-11 — Layout bugs are locked with DOM-measurement regressions**, not with eye-checks: `e2e/regressions.spec.ts` asserts the desktop never paints the phone head, the tab strip docks *under* the bar when scrolled (and that the page really scrolled), and that a stock row fits its card on a phone.
+- **2026-10-11 — Settings toggles must take their UI with them**: `allowRefund=false` hides the refund buttons + panel entirely. A button that stays on screen and "does nothing" (the shopkeeper's words) is worse than no button — reported live on the Sell page. Mirrors the existing `allowDiscount` behaviour; the redirect in the UI can never reopen a hidden path.
 
 ## Open questions for Dali
-- [ ] What are the exact build/test/deploy commands you actually use?
-- [ ] What conventions must always be followed in this repo?
-- [ ] What must never happen here (past pain points)?
-- [ ] Anything about deployment / hosting / credentials *location* (not the secrets themselves)?
-- [ ] `74` test/spec files detected — is the battery green right now?
+- `UNSURE` — deployment: where the host lives and who runs `api/schema-p0.sql` + sets `backupKey`/`backupRunKey`/cron (Dali's hands as of 2026-10-11).
+- `UNSURE` — anything that must *never* happen here from past pain (beyond the do-nots above).

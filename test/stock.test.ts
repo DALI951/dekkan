@@ -56,7 +56,7 @@ test('STK-003: a sale movement points back at its ledger entry (source-linked)',
 test('STK-001: a manual stock edit is recorded as an adjust, never a silent overwrite', () => {
   let s = shop();
   const coca = s.products[0].id; // 10
-  s = D.setProduct(s, coca, { stock: 7 }); // delta -3
+  s = D.setProduct(s, coca, { stock: 7, stockReason: 'count' }); // delta -3, reason mandatory (M04)
   const adj = D.stockMovementsFor(s, coca).find(function (m) { return m.kind === 'adjust'; });
   assert.equal(adj.qty, -3);
   assert.equal(D.getProduct(s, coca).stock, 7);

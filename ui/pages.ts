@@ -483,10 +483,14 @@
       refund: 'stockCard.move.refund', adjust: 'stockCard.move.adjust', undo: 'stockCard.move.undo'
     };
     const label = function (k) { return T.t(moveKey[k] || 'stockCard.move.adjust'); };
+    // M04: an adjustment says WHY — show the reason code beside the movement.
+    const reasonText = function (m) { return m.reason ? T.t('stock.reason.' + m.reason) : ''; };
     let rows = '';
     card.moves.forEach(function (m) {
       const when = entryTime ? entryTime(m.at) : '';
+      const why = reasonText(m);
       rows += '<div class="entry"><span class="growx">' + esc(label(m.kind))
+        + (why ? ' <span class="e-note">· ' + esc(why) + '</span>' : '')
         + ' <span class="e-note">' + esc(when) + (m.note ? ' · ' + esc(m.note) : '') + '</span></span>'
         + '<b class="e-amt ' + (m.qty > 0 ? 'in' : 'bad') + '">' + (m.qty > 0 ? '+' : '') + m.qty
         + ' <span class="e-note">= ' + m.balance + '</span></b></div>';

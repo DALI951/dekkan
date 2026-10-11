@@ -5,7 +5,7 @@
  */
 'use strict';
 const { test, expect } = require('@playwright/test');
-const { open, gotoTab, closeReceipt } = require('./helpers');
+const { open, gotoTab, closeReceipt, toastText } = require('./helpers');
 
 test.afterEach(async ({ page }) => {
   expect(page.__errors).toEqual([]);
@@ -47,4 +47,31 @@ test('the stock card tells the shelf story: opening, sale, on-hand', async ({ pa
   // the panel closes like every other panel
   await page.locator('#btnMetricClose').click();
   await expect(page.locator('#metricPanel')).toHaveClass(/hidden/);
+});
+
+test('M04: a manual count change must say WHY — refused without a reason, kept on the card with one', async ({ page }) => {
+  await open(page, '#/stock');
+  await page.locator('#btnAddProduct').click();
+  await page.locator('#pName').fill('Coca');
+  await page.locator('#pBuy').fill('0.8');
+  await page.locator('#pSell').fill('1.5');
+  await page.locator('#pStock').fill('10');
+  await page.locator('#btnSaveProduct').click();
+  await expect(page.locator('#stockList')).toContainText('Coca');
+
+  // count it wrong on purpose, with no reason picked
+  await page.locator('[data-action="stock-edit"]').first().click();
+  await page.locator('#pStock').fill('4');
+  await page.locator('#btnSaveProduct').click();
+  expect(await toastText(page)).toBe('Say why the count changed');
+  await expect(page.locator('#stockList .s-stock')).toContainText('10'); // nothing moved
+
+  // say why — the shelf moves and the story is on the card
+  await page.locator('#pReason').selectOption('damage');
+  await page.locator('#btnSaveProduct').click();
+  await expect(page.locator('#stockList .s-stock')).toContainText('4');
+
+  await page.locator('[data-action="stock-card"]').first().click();
+  await expect(page.locator('#metricBody')).toContainText('-6');
+  await expect(page.locator('#metricBody')).toContainText('Damage');
 });

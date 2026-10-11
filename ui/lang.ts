@@ -549,6 +549,16 @@
     'buy.save': 'حفظ الشراء'
   });
 
+  Object.assign(AR, {
+    'stock.reason': 'سبب التعديل',
+    'stock.reason.pick': '— اختر السبب —',
+    'stock.reason.count': 'جرد',
+    'stock.reason.damage': 'تلف',
+    'stock.reason.loss': 'ضياع',
+    'stock.reason.other': 'سبب آخر',
+    'toast.stockReason': 'اذكر سبب تعديل الكمية'
+  });
+
   Object.assign(EN, {
     'stock.card': 'Card',
     'stockCard.title': 'Stock card',
@@ -567,7 +577,14 @@
     'buy.qty': 'Quantity',
     'buy.supplier': 'Supplier',
     'buy.contact': 'Contact',
-    'buy.save': 'Save buy'
+    'buy.save': 'Save buy',
+    'stock.reason': 'Reason for the change',
+    'stock.reason.pick': '— choose a reason —',
+    'stock.reason.count': 'Stock count',
+    'stock.reason.damage': 'Damage',
+    'stock.reason.loss': 'Loss',
+    'stock.reason.other': 'Other reason',
+    'toast.stockReason': 'Say why the count changed'
   });
 
   window.T = T;

@@ -349,7 +349,7 @@ function stockCard(state, productId) {
     .filter(function (m) { return m.productId === productId; })
     .map(function (m) {
       bal += m.qty;
-      return { id: m.id, at: m.at, qty: m.qty, kind: m.kind, ref: m.ref, note: m.note, balance: bal };
+      return { id: m.id, at: m.at, qty: m.qty, kind: m.kind, ref: m.ref, note: m.note, reason: m.reason || null, balance: bal };
     });
   return {
     product: { id: p.id, name: p.name, sku: p.sku || null, unit: p.unit || null },

@@ -236,6 +236,6 @@ test('stock can never be typed negative — the product book refuses it', () => 
     D.addProduct(s, { name: 'Ghost', buy: 1, sell: 1, stock: -1, lowAt: 0 });
   }, /negative/i, 'a new product too');
   assert.strictEqual(JSON.stringify(s), before, 'nothing was written');
-  s = D.setProduct(s, id, { stock: 0 });           // zero is fine (sold out)
+  s = D.setProduct(s, id, { stock: 0, stockReason: 'count' }); // zero is fine (sold out)
   assert.strictEqual(s.products[0].stock, 0);
 });

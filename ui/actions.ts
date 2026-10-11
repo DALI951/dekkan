@@ -223,6 +223,8 @@
     C.editProductId = 'new';
     $('productFormTitle').textContent = T.t('stock.new');
     $('pName').value = ''; $('pBuy').value = ''; $('pSell').value = ''; $('pStock').value = '0'; $('pLow').value = '3'; $('pSku').value = '';
+    $('pReason').value = '';
+    $('pReasonWrap').classList.add('hidden'); // a NEW product is an opening count — no reason needed
     $('productForm').classList.remove('hidden');
     revealProductForm(C);
   }
@@ -239,6 +241,7 @@
     const stock = parseInt($('pStock').value, 10) || 0;
     const lowAt = parseInt($('pLow').value, 10) || 0;
     const sku = $('pSku').value;
+    const reason = $('pReason').value;
     try {
       if (!name) throw new Error(T.t('toast.prodName'));
       if (!(sell >= 0)) throw new Error(T.t('toast.prodPrice'));
@@ -248,8 +251,15 @@
       if (editProductId === 'new') {
         C.state = D.addProduct(state, { name: name, buy: buy, sell: sell, stock: stock, lowAt: lowAt, sku: sku });
       } else {
+        // M04: a manual count change is an ADJUSTMENT — it must say why (a code from the closed list).
+        // Only when the count really moves: fixing a price on the same shelf explains nothing.
+        const was = D.getProduct(state, editProductId);
+        const moved = !!(was && stock !== was.stock);
+        if (moved && D.STOCK_REASONS.indexOf(reason) === -1) throw new Error(T.t('toast.stockReason'));
+        const patch = { name: name, buy: buy, sell: sell, stock: stock, lowAt: lowAt, sku: sku };
+        if (moved) patch.stockReason = reason;
         try {
-          C.state = D.setProduct(state, editProductId, { name: name, buy: buy, sell: sell, stock: stock, lowAt: lowAt, sku: sku });
+          C.state = D.setProduct(state, editProductId, patch);
         } catch (e) {
           // the product died under us (another tab / a fresh clone): don't fail the save
           if (e.message === 'toast.prodNotFound') {
@@ -555,6 +565,8 @@
       $('productFormTitle').textContent = T.t('stock.edit') + ': ' + p.name;
 $('pName').value = p.name; $('pBuy').value = p.buy; $('pSell').value = p.sell;
     $('pStock').value = p.stock; $('pLow').value = p.lowAt; $('pSku').value = p.sku || '';
+      $('pReason').value = '';
+      $('pReasonWrap').classList.remove('hidden'); // an existing shelf can explain a count change
       $('productForm').classList.remove('hidden');
       P.revealProductForm(C); // the label only exists NOW — make sure it is actually on screen
     }

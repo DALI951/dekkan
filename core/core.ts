@@ -384,14 +384,32 @@ function idTrusted(state, id) {
 //   ref : the thing that caused it (a sale/refund/buy entry id), when there is one
 // product.stock stays the fast counter; the movements are the audit trail.
 // stockIntegrity() proves they agree; reconcileStock() rebuilds the counter.
+//
+// A manual edit (kind 'adjust') must say WHY: the reason is a CODE from a closed
+// vocabulary (the workbook's M04 "adjustments + reasons"), carried on the movement
+// itself — the product record stays a catalogue, the ledger stays the audit trail.
 
-function stockMove(state, productId, qty, kind, ref, note) {
+const STOCK_REASONS = ['count', 'damage', 'loss', 'other'];
+
+function isStockReason(code) {
+  return typeof code === 'string' && STOCK_REASONS.indexOf(code) !== -1;
+}
+
+
+function assertStockReason(code) {
+  if (!isStockReason(code)) throw new Error('toast.stockReason');
+  return code;
+}
+
+
+function stockMove(state, productId, qty, kind, ref, note, reason) {
   const q = Math.floor(qty);
   if (!Number.isFinite(q) || q === 0) throw new Error('stock move must be a non-zero whole number');
   state.movements = state.movements || [];
   state.movements.push({
     id: uid(), at: new Date().toISOString(), productId: productId,
-    qty: q, kind: kind || 'adjust', ref: ref != null ? ref : null, note: note != null ? note : null
+    qty: q, kind: kind || 'adjust', ref: ref != null ? ref : null,
+    note: note != null ? note : null, reason: isStockReason(reason) ? reason : null
   });
   return state;
 }
@@ -443,7 +461,7 @@ function ensureMovements(state) {
     if (!has && Number.isFinite(p.stock) && Math.floor(p.stock) !== 0) {
       state.movements.push({
         id: uid(), at: new Date().toISOString(), productId: p.id,
-        qty: Math.floor(p.stock), kind: 'opening', ref: null, note: null
+        qty: Math.floor(p.stock), kind: 'opening', ref: null, note: null, reason: null
       });
     }
   }
@@ -465,6 +483,9 @@ function ensureMovements(state) {
   K.clone = clone;
   K.restoreState = restoreState;
   K.idTrusted = idTrusted;
+  K.STOCK_REASONS = STOCK_REASONS;
+  K.isStockReason = isStockReason;
+  K.assertStockReason = assertStockReason;
   K.stockMove = stockMove;
   K.stockMovementsFor = stockMovementsFor;
   K.stockFromMovements = stockFromMovements;

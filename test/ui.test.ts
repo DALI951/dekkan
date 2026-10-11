@@ -445,6 +445,33 @@ test('stock: the edit label is invisible by default and only appears on action',
     'and the page scrolls so the label is actually visible');
 });
 
+test('M04: editing a count with NO reason is refused — the shelf keeps its number', () => {
+  const ui = boot();
+  ui.goto('#/stock');
+  ui.click('stock-edit', ui.pid);           // the real edit button (10 in the book)
+  ui.$('pStock').value = '7';
+  ui.$('btnSaveProduct').fire('click');
+
+  assert.strictEqual(ui.saved().products[0].stock, 10, 'the count did NOT move without a reason');
+  assert.ok(ui.$('toast').textContent.indexOf('سبب') !== -1, 'and he is told to pick one');
+});
+
+test('M04: editing a count with a reason writes an adjust movement carrying the code', () => {
+  const ui = boot();
+  ui.goto('#/stock');
+  ui.click('stock-edit', ui.pid);
+  ui.$('pStock').value = '7';
+  ui.$('pReason').value = 'damage';
+  ui.$('btnSaveProduct').fire('click');
+
+  const s = ui.saved();
+  assert.strictEqual(s.products[0].stock, 7, 'the count moved');
+  const adj = s.movements.filter(m => m.kind === 'adjust')[0];
+  assert.ok(adj, 'the adjustment is on the ledger');
+  assert.strictEqual(adj.qty, -3);
+  assert.strictEqual(adj.reason, 'damage');
+});
+
 test('stock: a sold-out product cannot be added to the basket', () => {
   const ui = boot((core, s) => {
     s = core.addProduct(s, { name: 'Choco', buy: 1, sell: 2, stock: 0, lowAt: 3 });

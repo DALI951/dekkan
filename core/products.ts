@@ -6,7 +6,7 @@
   if (typeof module === 'object' && module.exports) module.exports = factory;
   if (typeof window !== 'undefined' && root.DEK && root.DEK.core) factory(root.DEK.core);
 })(typeof self !== 'undefined' ? self : this, function (K) {
-  const { uid, money, cash, pushEntry, rollover, sell, clone, idTrusted, stockMove } = K;
+  const { uid, money, cash, pushEntry, rollover, sell, clone, idTrusted, stockMove, assertStockReason } = K;
 
 
 // ---------- SKU (CAT-001 / PROD-001) ----------
@@ -90,10 +90,16 @@ function setProduct(state, id, patch) {
   if ('sku' in patch) patch.sku = normalizeSku(patch.sku);
   if ('sku' in patch) assertSkuFree(state, patch.sku, p.id);
   const oldStock = p.stock;
-  for (const k in patch) p[k] = patch[k];
+  // M04: a real stock edit is an ADJUSTMENT and it must say WHY (a closed code).
+  // Optional free text rides along as stockNote. Neither ever lands on the product.
+  if ('stock' in patch && patch.stock !== oldStock) assertStockReason(patch.stockReason);
+  for (const k in patch) {
+    if (k === 'stockReason' || k === 'stockNote') continue;
+    p[k] = patch[k];
+  }
   // a direct stock edit is an ADJUSTMENT, never a silent overwrite (the workbook rule)
   if ('stock' in patch && p.stock !== oldStock) {
-    stockMove(state, p.id, p.stock - oldStock, 'adjust', null, patch.stockReason || null);
+    stockMove(state, p.id, p.stock - oldStock, 'adjust', null, patch.stockNote || null, patch.stockReason);
   }
   return state;
 }

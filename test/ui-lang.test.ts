@@ -27,14 +27,18 @@ function bootLang(saved) {
       removeItem: k => { delete store[k]; }
     },
     document: doc,
-    window: {},
     CustomEvent: function (t, o) { this.type = t; this.detail = o && o.detail; }
   };
   sandbox.window = sandbox;
+  sandbox.self = sandbox;
   sandbox.window.dispatchEvent = function () {};
   sandbox.window.addEventListener = function () {};
   vm.createContext(sandbox);
-  vm.runInContext(stripTypeScriptTypes(fs.readFileSync(path.join(ROOT, 'ui', 'lang.ts'), 'utf8')), sandbox, { filename: 'ui/lang.ts' });
+  // the engine owns direction/persistence now, so it loads FIRST and the
+  // dictionaries register themselves through it (the browser's real order).
+  ['ui/langs.ts', 'ui/lang.ts'].forEach(f => {
+    vm.runInContext(stripTypeScriptTypes(fs.readFileSync(path.join(ROOT, f), 'utf8')), sandbox, { filename: f });
+  });
   return { T: sandbox.window.T || sandbox.T, doc, store };
 }
 

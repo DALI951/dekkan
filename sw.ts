@@ -6,7 +6,7 @@
  * Bump SW_VERSION to force a refresh of the shell after a deploy. */
 'use strict';
 
-const SW_VERSION = 'v42';
+const SW_VERSION = 'v43';
 const SHELL = [
   './',
   './index.html',
@@ -19,6 +19,7 @@ const SHELL = [
   './ui/config.js',
   './ui/auth.js',
   './ui/app.js',
+  './ui/langs.js',
   './ui/lang.js',
   './core/dekkan-core.js',
   './core/core.js',

@@ -20,9 +20,15 @@
    * inline default above is already en/ltr. Only a shopkeeper who explicitly
    * saved Arabic gets the RIGHT direction declared BEFORE the first paint. */
   (function () {
-    var l = null;
-    try { l = localStorage.getItem('dekkan.lang'); } catch (e) {}
-    if (l === 'ar') { document.documentElement.lang = 'ar'; document.documentElement.dir = 'rtl'; }
+    var l = null, d = null;
+    try { l = localStorage.getItem('dekkan.lang'); d = localStorage.getItem('dekkan.langdir'); } catch (e) {}
+    /* the engine writes dekkan.langdir on every language change, so a new RTL
+     * language needs no edit here. The 'ar' test covers phones that saved a
+     * language BEFORE the engine existed. */
+    if (d === 'rtl' || (d === null && l === 'ar')) {
+      document.documentElement.lang = l || 'ar';
+      document.documentElement.dir = 'rtl';
+    }
   })();
 </script>
 </head>
@@ -380,10 +386,7 @@
 
       <p class="sect" data-i18n="settings.sect.lang">اللغة</p>
       <div class="card">
-        <div class="seg">
-          <button class="segbtn" id="langAr">العربية</button>
-          <button class="segbtn" id="langEn">English</button>
-        </div>
+        <div class="seg" id="langSeg"></div>
       </div>
 
       <p class="sect" data-i18n="settings.sect.behave">السلوك</p>
@@ -569,6 +572,7 @@
 <script src="core/report.js"></script>
 <script src="core/shop.js"></script>
 <script src="core/pin.js"></script>
+<script src="ui/langs.js"></script>
 <script src="ui/lang.js"></script>
 <script src="ui/fmt.js"></script>
 <script src="ui/pages.js"></script>

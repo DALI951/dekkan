@@ -333,9 +333,14 @@
   });
   $('btnReset').addEventListener('click', function () { A.resetAll(C); });
 
-  // language toggle
-  $('langAr').addEventListener('click', function () { T.set('ar'); });
-  $('langEn').addEventListener('click', function () { T.set('en'); });
+  // Language: ONE delegated listener on the generated container (ui/pages.ts
+  // renderLanguages builds the buttons from the registry). A new language
+  // therefore needs no code here — it is an object, not a branch.
+  $('langSeg').addEventListener('click', function (e) {
+    var btn = e.target && e.target.closest ? e.target.closest('[data-lang]') : null;
+    if (!btn) return;
+    T.set(btn.getAttribute('data-lang'));
+  });
   window.addEventListener('dekkan:lang', render);
   document.addEventListener('dekkan:theme', function () { P.renderThemes(C); });
 

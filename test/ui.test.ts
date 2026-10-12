@@ -111,7 +111,7 @@ function boot(seed, pre, env) {
 
   ['core/dekkan-core.ts', 'core/core.ts', 'core/products.ts', 'core/debts.ts',
     'core/sales.ts', 'core/refunds.ts', 'core/employees.ts', 'core/cashbox.ts', 'core/report.ts', 'core/shop.ts', 'core/pin.ts',
-    'ui/themes.ts', 'ui/lang.ts', 'ui/fmt.ts', 'ui/pages.ts', 'ui/actions.ts', 'ui/config.ts', 'ui/auth.ts', 'ui/app.ts'].forEach(f => {
+    'ui/themes.ts', 'ui/langs.ts', 'ui/lang.ts', 'ui/fmt.ts', 'ui/pages.ts', 'ui/actions.ts', 'ui/config.ts', 'ui/auth.ts', 'ui/app.ts'].forEach(f => {
     vm.runInContext(stripTypeScriptTypes(fs.readFileSync(path.join(ROOT, f), 'utf8')), sandbox, { filename: f });
   });
 

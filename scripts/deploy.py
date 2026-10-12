@@ -29,7 +29,7 @@ LOCAL_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 FILES = [
     'index.html', 'manifest.webmanifest', 'sw.js',
     'css/style.css',
-    'ui/app.js', 'ui/fmt.js', 'ui/pages.js', 'ui/actions.js', 'ui/lang.js', 'ui/themes.js', 'ui/auth.js', 'ui/config.js',
+    'ui/app.js', 'ui/fmt.js', 'ui/pages.js', 'ui/actions.js', 'ui/langs.js', 'ui/lang.js', 'ui/themes.js', 'ui/auth.js', 'ui/config.js',
     'core/dekkan-core.js',
     'core/core.js', 'core/products.js', 'core/debts.js', 'core/sales.js',
     'core/refunds.js', 'core/employees.js', 'core/cashbox.js', 'core/report.js', 'core/shop.js',

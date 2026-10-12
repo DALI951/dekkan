@@ -552,8 +552,8 @@
     $('cfgStartCash').value = state.day.startCash;
     $('cfgDiscount').checked = !!state.settings.allowDiscount;
     $('cfgRefund').checked = !!state.settings.allowRefund;
-    $('langAr').classList.toggle('active', T.lang === 'ar');
-    $('langEn').classList.toggle('active', T.lang === 'en');
+    P.renderThemes(C);
+    P.renderLanguages(C);
     if ($('appVersion')) $('appVersion').textContent = version;
     P.renderThemes(C);
     P.updateStorage(C);
@@ -669,6 +669,24 @@
           return '<i style="background:' + c + '"></i>';
         }).join('') + '</span>'
         + '<b>' + T.t(th.nameKey) + '</b></button>';
+    }).join('');
+  }
+
+  // ----- LANGUAGES (text lives in ui/lang.ts, the registry in ui/langs.ts) -----
+  // One button per language OBJECT: adding a language shows up here with no edit.
+  // Ids stay `lang<Id>` (`ar` -> #langAr) so the e2e selectors keep holding.
+  function languages() { return window.DEK && window.DEK.Langs; }
+
+  function renderLanguages(C) {
+    const { $, T } = C;
+    const LG = languages();
+    const seg = $('langSeg');
+    if (!LG || !seg) return;
+    seg.innerHTML = LG.all().map(function (l) {
+      const id = 'lang' + l.id.charAt(0).toUpperCase() + l.id.slice(1);
+      return '<button type="button" class="segbtn' + (l.id === T.lang ? ' active' : '') + '"'
+        + ' id="' + id + '" data-lang="' + l.id + '" lang="' + l.id + '"'
+        + ' dir="' + l.dir + '">' + l.native + '</button>';
     }).join('');
   }
 
@@ -831,7 +849,7 @@
     renderStock: renderStock, renderDebts: renderDebts, renderClients: renderClients, setNewDebt: setNewDebt,
     renderReport: renderReport, openTicket: openTicket, openMetric: openMetric, openStockCard: openStockCard,
     renderCashBox: renderCashBox, catOptions: catOptions, catChips: catChips,
-    renderSettings: renderSettings, renderThemes: renderThemes, updateStorage: updateStorage,
+    renderSettings: renderSettings, renderThemes: renderThemes, renderLanguages: renderLanguages, updateStorage: updateStorage,
     showReceipt: showReceipt, hideReceipt: hideReceipt, revealProductForm: revealProductForm,
     renderEmployees: renderEmployees, renderMonthly: renderMonthly,
     openPin: openPin, closePin: closePin, pinKey: pinKey

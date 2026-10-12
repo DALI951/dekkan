@@ -1,13 +1,24 @@
-/* DEKKAN i18n — Arabic (default) + English, RTL/LTR flip, persisted.
+/* DEKKAN i18n — the DATA (Arabic + English) + the T facade.
+ *
+ * The engine lives in ui/langs.ts (loaded BEFORE this file): a language is an
+ * OBJECT registered through DEK.Langs.add() — id, name, native name, direction,
+ * and the key table. Adding a language = one object (see ui/langs.ts header),
+ * never an `=== 'ar'` branch here.
+ *
  * Static text:  [data-i18n]  = textContent
  *                [data-i18n-ph]  = placeholder
  *                [data-i18n-title] = title / aria-label
- * Dynamic text (app.js): T.t('key')
+ * Dynamic text: T.t('key')   (this file is only the facade the app already uses)
  * A change fires 'dekkan:lang' so views re-render their text.
  */
 'use strict';
 (function () {
-  const LS_LANG = 'dekkan.lang';
+  const ENGINE = (typeof window !== 'undefined' && window.DEK && window.DEK.Langs) ||
+    (typeof DEK !== 'undefined' && DEK.Langs) || null;
+  // Loud, not silent: without the registry a new language would be invisible.
+  if (!ENGINE) throw new Error('ui/lang.ts needs ui/langs.ts loaded first');
+  const L = ENGINE;
+  const LS_LANG = L.STORE_KEY;
 
   const AR = {
     'app.name': 'دكان', 'app.tagline': 'صندوق + مخزون + ديون لمحلك',
@@ -486,21 +497,26 @@
     'toast.empFields': 'Name and type are required', 'toast.empSalary': 'Salary is not valid'
   };
 
+  // ---------- the registry: each dictionary becomes a language OBJECT ----------
+  // (the key tables above stay byte-for-byte what they always were)
+  L.add({ id: 'en', name: 'English', native: 'English', dir: 'ltr', keys: EN });
+  L.add({ id: 'ar', name: 'Arabic', native: 'العربية', dir: 'rtl', keys: AR });
+
+  // ---------- the facade the app already uses ----------
+  // T.t / T.set / T.apply / T.lang keep their old signatures: the engine now owns
+  // resolution, direction, persistence and fallback, so nothing in pages/app has
+  // to know how many languages exist.
   const T = {
-    lang: 'ar',
+    lang: L.base,
     t: function (k) {
-      const d = this.lang === 'ar' ? AR : EN;
-      if (d[k] !== undefined) return d[k];
-      if (AR[k] !== undefined) return AR[k];
-      return k;
+      return L.t(this.lang, k);
     },
     set: function (lang) {
-      this.lang = (lang === 'en') ? 'en' : 'ar';
-      try { localStorage.setItem(LS_LANG, this.lang); } catch (e) {}
-      document.documentElement.lang = this.lang;
-      document.documentElement.dir = this.lang === 'ar' ? 'rtl' : 'ltr';
+      if (!L.set(lang)) return false; // an unknown language is refused, not coerced
+      this.lang = lang;
       this.apply();
       window.dispatchEvent(new CustomEvent('dekkan:lang'));
+      return true;
     },
     apply: function () {
       var self = this;
@@ -513,18 +529,10 @@
     }
   };
 
-  // English is the first-time default: a fresh visitor lands in EN, and only
-  // an explicit AR choice (persisted) brings the Arabic UI back.
-  var saved = null;
-  try { saved = localStorage.getItem(LS_LANG); } catch (e) {}
-  T.lang = saved === 'ar' ? 'ar' : 'en';
-
-  // The shell ships LEFT (index.html: <html lang="en" dir="ltr">) — English is
-  // the default. A shopkeeper who saved Arabic gets RTL declared inline before
-  // the first paint; here we declare the real direction on every boot so the
-  // layout and the words always agree.
-  document.documentElement.lang = T.lang;
-  document.documentElement.dir = T.lang === 'ar' ? 'rtl' : 'ltr';
+  // English is the first-time default: a fresh visitor lands in EN, and only an
+  // explicit choice (persisted) brings another language back. The ENGINE decides
+  // that (resolve + declare), so a device that saved French would come back in French.
+  T.lang = L.restore();
 
   // The stock card (workbook STK-007 / RPT-006). Added here so the Arabic
   // block above stays byte-for-byte untouched.
@@ -590,6 +598,7 @@
   });
 
   window.T = T;
-  // exposed for the i18n consistency check (node scripts/check-i18n.js)
-  window.__DEKKAN_I18N__ = { AR: AR, EN: EN };
+  // exposed for the i18n consistency check (node scripts/check-i18n.js):
+  // the engine's registry is the source of truth, the old dicts stay readable
+  window.__DEKKAN_I18N__ = { AR: AR, EN: EN, LANGS: L };
 })();

@@ -133,13 +133,33 @@ Customization stops where **trust** begins — these stay fixed and tested:
 - **Layer 6:** templates + report builder = 1 wave each; custom receipt HTML = optional, last.
 - **"White-label builder"** (arbitrary HTML/CSS by the user) is a *different product* and a security liability — **not recommended**; the token + settings route gives 95 % of the perceived freedom with 5 % of the risk.
 
-## B4. Build order I recommend (each item = one RED-first commit)
+## B4. Build order (each item = one RED-first commit — the wave workflow in RULES.md)
+0. **Language engine** — DONE 2026-10-12 (`4d27ce0`). Dali asked for the theme-engine pattern
+   applied to languages BEFORE wave 1: one language = one object registered through `DEK.Langs`
+   (`ui/langs.ts`), parity enforced against the base language by `check-i18n`, and the Settings
+   language list generated from the registry. This is the groundwork wave 6 (French) needed —
+   French is now a data file, not a refactor.
 1. **Settings shape**: introduce `state.custom` (brand, currency, format, print, tabs) + migration + validation → foundation, no visible change, tests only.
+   **DONE 2026-10-12** — `defaultCustom()` / `customProblems()` / `ensureCustomState()` (repair on
+   boot + import) in `core/core.ts`, strict `setCustom()` in `core/shop.ts`, `stateProblems()`
+   reports `custom: …`, 14 tests in `test/custom.test.ts`. Nothing reads it visually yet, on purpose.
 2. **Theme editor + theme JSON import/export** (Layer 2) — the demo-worthy one, and all the tokens already exist.
 3. **Brand & documents** (Layer 1 + print sizes + receipt wording) — this is what a shopkeeper shows his customers.
 4. **Editable lists + custom fields** (Layer 4.5–4.6).
 5. **Tab order / landing / density** (Layer 3).
 6. **French** (Layer 5), then templates (Layer 6.1).
 
-Every wave ships with: parity AR=EN (or AR=EN=FR), a migration test for old backups, an e2e that
-proves a *changed* setting actually changes the screen, and no regression in the 292-unit battery.
+Every wave ships with: parity for every registered language, a migration test for old backups, an e2e
+that proves a *changed* setting actually changes the screen (once the wave is visible), and no
+regression in the unit battery (318 as of 2026-10-12).
+
+### Wave 1 — what actually landed (2026-10-12)
+- `state.custom` = `{ brand, money, date, print, receipt, tabs, docLanguage }`; defaults in
+  `defaultCustom()` (TND / 3 decimals / 80mm / ISO dates / all 9 pages in order).
+- Two deliberately different paths: `ensureCustomState()` REPAIRS what it inherits and never throws
+  (a repaired state is a fixed point), `setCustom()` REFUSES anything it cannot prove and changes
+  nothing (a typo in a section name or inside one, an out-of-range value, a hidden page outside the
+  order).
+- `stateProblems()` reports `custom: …`, so a half-readable format can never replace the live shop.
+- Left open ON PURPOSE: the PHP mirror of the custom checks (`api/state.php`) lands with wave 3, when
+  these values start driving money display and the printed receipt. The values are inert until then.

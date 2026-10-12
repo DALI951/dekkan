@@ -3,7 +3,7 @@
 > State of the work for whoever picks this up next (other device, other chat, future you).
 > Rewrite it, don't append. The body may be `Nothing pending.` — the file always exists.
 
-Last updated: 2026-10-11 (part 2) — by Big Pickle (DESKTOP-OJME2E2)
+Last updated: 2026-10-12 (part 2) — by Big Pickle (DESKTOP-OJME2E2)
 
 ## Done (this session)
 - **Refunds-off switch now really turns the feature off** (`01e8b35`, pushed): turning off
@@ -32,6 +32,25 @@ Last updated: 2026-10-11 (part 2) — by Big Pickle (DESKTOP-OJME2E2)
   eyeball: `C:\Users\Dali\Documents\dekkan-ux-screens\` (outside the repo on purpose).
 - Earlier the same day: M04 reason codes (`a4fd3c5`) and the encrypted MySQL dump (`9955aeb`).
 
+## Done (2026-10-12, part 2)
+- **Language engine** (`4d27ce0`): `ui/langs.ts` is the theme engine applied to words — a language
+  is `{id, name, native, dir, keys}` registered through `DEK.Langs`; `add()` refuses a malformed or
+  duplicate language loudly, `t()` resolves current → base → key, `dir()` lives on the object (no
+  `=== 'ar'` checks anywhere), `parity(id)` compares a language with the base, `resolve()` honours a
+  saved choice and falls back on garbage, and the engine writes `dekkan.langdir` so the pre-paint
+  snippet needs no language list. `ui/lang.ts` keeps its `T` facade (AR/EN key tables byte-identical),
+  so no page changed. The Settings language list is GENERATED from the registry (`#langSeg`, ids
+  `lang<Id>` so `#langAr`/`#langEn` still exist for e2e). `check-i18n` now enforces parity for EVERY
+  registered language. Loader lists all updated (index.html, ui.test.ts boot list, ui-lang.test.ts,
+  check-i18n sandbox, sw SHELL v42→v43, deploy.py FILES).
+- **Wave 1 — `state.custom` foundation** (`e4f809e`): the customization shape as DATA (brand, money
+  format, dates, print, receipt wording, tab order/hidden, docLanguage) with `defaultCustom()`,
+  `customProblems()`, `ensureCustomState()` (repair on boot + import, never throws) and strict
+  `setCustom()` (throws + writes nothing). `stateProblems()` reports `custom: …`. 14 RED-first tests
+  in `test/custom.test.ts`. **Invisible on purpose** — waves 2–6 read this shape.
+- Battery at this HEAD: `npm run check` exit 0 → **318 unit** · **65 sim** · **i18n en=351 ar=351** ·
+  **137 e2e** (PC + Phone). index.html still CRLF (bare LF = 0).
+
 ## In progress
 - **2026-10-12 verification pass + customization plan (`docs/customize-plan.md`).** Dali asked
   "list everything left and how customizable can this get — maximum". The repo is green
@@ -45,8 +64,8 @@ Last updated: 2026-10-11 (part 2) — by Big Pickle (DESKTOP-OJME2E2)
   **Awaiting Dali's pick of the next wave** — nothing else is in flight.
 
 ## Next step
-1. Dali picks a wave from `docs/customize-plan.md` Part B.4 (wave 1 = the `state.custom`
-   settings foundation, wave 2 = theme editor + theme JSON, wave 3 = brand & documents).
+1. **Dali tests wave 1 + the language engine himself**, then picks wave 2 (theme editor + theme
+   JSON import/export) or names another wave. One wave in flight at a time (RULES.md).
 2. He also still owes an answer on the `UNSURE` below (`api/schema-p0.sql` on the host?) and on
    the two stale/dead hosts in "Blocked".
 
@@ -62,13 +81,13 @@ Last updated: 2026-10-11 (part 2) — by Big Pickle (DESKTOP-OJME2E2)
 ## Environment notes
 - Machine: `DESKTOP-OJME2E2` (Win 10, PowerShell 5.1 — **not bash**), Node v26.5.0, npm 11.17.0. `php` absent.
 - Repo root `C:\Users\Dali\Projects\dekkan` — branch `main` — remote `https://github.com/DALI951/dekkan` (PUBLIC).
-- Battery at this HEAD: `npm run check` exit 0 · **292 unit** · **65 sim** · **i18n AR=EN=351** · **137 e2e** (PC+Phone).
+- Battery at this HEAD: `npm run check` exit 0 · **318 unit** · **65 sim** · **i18n en=351 ar=351** · **137 e2e** (PC+Phone).
 - `npm run build` is required before e2e (the browser loads the emitted `.js`; those files are gitignored).
 - Dev server still up: `node scripts/serve.js 4173` → http://127.0.0.1:4173 (local mode seeded).
 
 ## Watch out
 - `index.html` is **CRLF** — re-normalize after any edit and verify zero bare LF.
-- New core module → update all three boot lists (`index.html`, `test/ui.test.ts`, `scripts/simulate.ts`).
+- **A new loaded file must join EVERY loader list** (RULES.md): `index.html`, `test/ui.test.ts`, `sw.ts` SHELL (+ `SW_VERSION`), `scripts/deploy.py` FILES, and the vm sandboxes that load that layer (`scripts/check-i18n.ts`, `test/ui-lang.test.ts`). A miss loads it in one place only, silently.
 - New shipped file → add it to `scripts/deploy.py`'s `FILES` list.
 - `scripts/seed-test.json` is intentionally untracked — leave it.
 - Do not reintroduce independent stickies at `top:0` for the mobile header/tab strip (see RULES.md).

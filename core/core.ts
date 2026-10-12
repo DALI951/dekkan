@@ -315,6 +315,10 @@ function defaultCustom() {
     print: { size: '80mm', copies: 1, autoPrint: false },
     receipt: { header: '', footer: '', showCashier: true, showTaxId: false, qr: false },
     tabs: { order: CUSTOM_TABS.slice(), hidden: [] },
+    // The shop's own look: a BASE theme id carrying its own overrides
+    // ({} = untouched preset). Overrides on top of a base mean a shop that tweaks
+    // two colors still inherits every future fix to that base.
+    theme: { id: 'souk', tokens: {} },
     // '' = follow the interface language. Wave 6 separates UI language from the
     // language printed on a document (FR interface + AR receipt is normal here).
     docLanguage: ''
@@ -327,7 +331,7 @@ function defaultCustom() {
 function customProblems(c) {
   const out = [];
   if (!c || typeof c !== 'object' || Array.isArray(c)) return ['custom must be an object'];
-  const SECTIONS = ['brand', 'money', 'date', 'print', 'receipt', 'tabs'];
+  const SECTIONS = ['brand', 'money', 'date', 'print', 'receipt', 'tabs', 'theme'];
   Object.keys(c).forEach(k => {
     if (k !== 'docLanguage' && SECTIONS.indexOf(k) === -1) out.push('unknown section "' + k + '"');
   });
@@ -397,6 +401,28 @@ function customProblems(c) {
   }
 
   if (typeof c.docLanguage !== 'string' || c.docLanguage.length > 8) out.push('docLanguage must be a short language id ("" = follow the app)');
+
+  // theme: a base theme id + the shop's own color overrides. Core validates the
+  // SHAPE (presentation validity — is this really a CSS color? — is the UI's job
+  // in ui/themes.ts, which falls back to the base color for a value it cannot
+  // read). What core refuses here is junk that could not be a theme at all.
+  const th = c.theme;
+  if (!th || typeof th !== 'object' || Array.isArray(th)) out.push('theme must be an object');
+  else {
+    const extraKeys = Object.keys(th).filter(k => k !== 'id' && k !== 'tokens');
+    if (extraKeys.length) out.push('theme has an unknown setting: ' + extraKeys[0]);
+    if (typeof th.id !== 'string' || !/^[a-z0-9-]{2,24}$/.test(th.id)) out.push('theme.id must be a short slug (a-z, 0-9, -)');
+    if (!th.tokens || typeof th.tokens !== 'object' || Array.isArray(th.tokens)) out.push('theme.tokens must be an object');
+    else {
+      const keys = Object.keys(th.tokens);
+      if (keys.length > 80) out.push('theme.tokens has too many entries (' + keys.length + ')');
+      for (const k of keys) {
+        if (k.indexOf('--') !== 0) { out.push('theme token "' + k + '" must start with -- (it is a CSS custom property)'); break; }
+        const v = th.tokens[k];
+        if (typeof v !== 'string' || !v.trim() || v.length > 64) { out.push('theme.tokens.' + k + ' must be a non-empty string (max 64)'); break; }
+      }
+    }
+  }
   return out;
 }
 
@@ -407,7 +433,7 @@ function customProblems(c) {
 function ensureCustomState(state) {
   const def = defaultCustom();
   const raw = (state.custom && typeof state.custom === 'object' && !Array.isArray(state.custom)) ? state.custom : {};
-  const c: any = { brand: {}, money: {}, date: {}, print: {}, receipt: {}, tabs: {}, docLanguage: def.docLanguage };
+  const c: any = { brand: {}, money: {}, date: {}, print: {}, receipt: {}, tabs: {}, theme: {}, docLanguage: def.docLanguage };
 
   CUSTOM_BRAND_KEYS.forEach(k => { c.brand[k] = (raw.brand && typeof raw.brand[k] === 'string') ? raw.brand[k] : def.brand[k]; });
   Object.keys(def.money).forEach(k => { c.money[k] = (raw.money && raw.money[k] !== undefined) ? raw.money[k] : def.money[k]; });
@@ -438,6 +464,18 @@ function ensureCustomState(state) {
   c.tabs.hidden = hidden.filter(id => c.tabs.order.indexOf(id) !== -1);
   if (typeof raw.docLanguage === 'string' && raw.docLanguage.length <= 8) c.docLanguage = raw.docLanguage;
 
+  // theme: keep the base id + every readable override, drop the rest (a broken
+  // single color must not cost the shop the eleven colors it did set)
+  const rt = (raw.theme && typeof raw.theme === 'object' && !Array.isArray(raw.theme)) ? raw.theme : {};
+  c.theme = { id: def.theme.id, tokens: {} };
+  if (typeof rt.id === 'string' && /^[a-z0-9-]{2,24}$/.test(rt.id)) c.theme.id = rt.id;
+  if (rt.tokens && typeof rt.tokens === 'object' && !Array.isArray(rt.tokens)) {
+    Object.keys(rt.tokens).forEach(k => {
+      const v = rt.tokens[k];
+      if (k.indexOf('--') === 0 && typeof v === 'string' && v.trim() && v.length <= 64) c.theme.tokens[k] = v;
+    });
+  }
+
   // anything the strict path would refuse goes back to its default (one pass, so
   // a repaired state is a fixed point: repairing it again changes nothing)
   customProblems(c).forEach(msg => {
@@ -449,6 +487,7 @@ function ensureCustomState(state) {
     else if (/^brand\./.test(key)) c.brand[key.slice(6)] = def.brand[key.slice(6)];
     else if (/^tabs\.order/.test(msg)) c.tabs.order = def.tabs.order.slice();
     else if (/^tabs\.hidden/.test(msg)) c.tabs.hidden = [];
+    else if (/^theme/.test(msg)) c.theme = { id: def.theme.id, tokens: {} };
     else if (/^docLanguage/.test(msg)) c.docLanguage = def.docLanguage;
   });
   state.custom = c;

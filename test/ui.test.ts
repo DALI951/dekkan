@@ -51,8 +51,18 @@ function el(id) {
 // a third `env` can replace fetch/confirm (the cloud: 404 "no state" by default; confirm: yes by default)
 function boot(seed, pre, env) {
   const els = {};
+  // the root style is recorded, not thrown away: the theme engine paints the
+  // shop's colours onto documentElement (ui/themes.ts), and a harness that cannot
+  // be painted cannot tell a themed screen from an unthemed one
+  const rootStyle = {};
   const doc = {
-    documentElement: { style: {}, lang: '', dir: '' },
+    documentElement: {
+      style: {
+        setProperty(k, v) { rootStyle[k] = String(v); },
+        getPropertyValue(k) { return rootStyle[k] === undefined ? '' : rootStyle[k]; }
+      },
+      lang: '', dir: ''
+    },
     _h: {},
     getElementById(id) { return (els[id] = els[id] || el(id)); },
     querySelectorAll() { return []; },
@@ -139,7 +149,7 @@ function boot(seed, pre, env) {
     saved().day.entries.forEach(e => { t += e.amount; });
     return Math.round(t * 1000) / 1000;
   };
-  return { $, click, goto, saved, cashNow, pid: s.products[0].id, T: sandbox.T, doc, store, sandbox, settle: () => new Promise(r => setTimeout(r, 15)) };
+  return { $, click, goto, saved, cashNow, pid: s.products[0].id, T: sandbox.T, doc, store, sandbox, rootStyle, settle: () => new Promise(r => setTimeout(r, 15)) };
 }
 
 test('the amount due is on screen, follows the basket, and moves while typing', () => {
@@ -987,4 +997,61 @@ test('a stale draft (deleted product / over-stock qty) is pruned on restore', ()
   assert.ok(d.basket[0].qty <= 10, 'and never more than the shelf holds');
   assert.strictEqual(d.freeItems.length, 1, 'the nameless free line is dropped');
   assert.doesNotThrow(() => ui.goto('#/sell'), 'the page still renders');
+});
+
+test('the shop\'s declared theme paints — the browser cache never overrules the state', () => {
+  const core = require(path.join(ROOT, 'core', 'dekkan-core.ts'));
+  // the state says "mint with a red accent"; the device cache still says royal/green
+  const ui = boot(
+    (c, s) => c.setCustom(s, { theme: { id: 'mint', tokens: { '--acc': '#ff0000' } } }),
+    (store) => {
+      store['dekkan.theme'] = 'royal';
+      store['dekkan.themetokens'] = JSON.stringify({ '--acc': '#00ff00' });
+    }
+  );
+  const TH = ui.sandbox.DEK.Themes;
+  assert.strictEqual(ui.rootStyle['--bg'], TH.get('mint').tokens['--bg'], 'the state\'s base theme painted');
+  assert.strictEqual(ui.rootStyle['--acc'], '#ff0000', 'with the state\'s own colour, not the stale cached one');
+  assert.strictEqual(TH.currentId(), 'mint', 'and the screen agrees on which theme is on');
+});
+
+test('the editor screen builds every token row (the vm harness can catch a broken render)', () => {
+  const ui = boot();
+  ui.goto('#/settings');
+  const C = ui.sandbox.DEK.app;
+  ui.sandbox.DEK.actions.themeOpen(C);
+  const html = ui.$('themeGroups').innerHTML;
+  assert.strictEqual((html.match(/data-tok="/g) || []).length, 42, 'one control per token');
+  assert.ok(html.indexOf('data-tok="--acc"') !== -1, 'including the accent');
+  assert.ok(html.indexOf('data-tok="--shadow"') !== -1, 'and the whole-shadow token');
+  assert.strictEqual((html.match(/class="themeRow"/g) || []).length, 42, 'each is a row a shopkeeper can tap');
+  assert.strictEqual((ui.$('themeBase').innerHTML.match(/data-base="/g) || []).length, 3, 'and every preset is offered as a starting point');
+  assert.strictEqual(ui.sandbox.DEK.Themes.currentId(), 'souk', 'opening the editor changes nothing yet');
+  ui.sandbox.DEK.actions.themeClose(C);
+  assert.strictEqual(ui.sandbox.DEK.Themes.currentId(), 'souk', 'and closing it changes nothing either');
+});
+
+test('a device-only theme choice is ADOPTED into the shop\'s data, not silently wiped', () => {
+  // a device that picked Indigo Night (+ a colour tweak) before custom.theme existed:
+  // the state is pristine, the cache is not — the shop's look must survive the upgrade
+  const ui = boot(undefined, (store) => {
+    store['dekkan.theme'] = 'royal';
+    store['dekkan.themetokens'] = JSON.stringify({ '--acc': '#ff0000' });
+  });
+  const TH = ui.sandbox.DEK.Themes;
+  assert.strictEqual(ui.rootStyle['--bg'], TH.get('royal').tokens['--bg'], 'the old choice still paints');
+  assert.strictEqual(ui.rootStyle['--acc'], '#ff0000', 'with its tweak');
+  assert.strictEqual(ui.saved().custom.theme.id, 'royal', 'and it became the shop\'s own theme');
+  assert.strictEqual(ui.saved().custom.theme.tokens['--acc'], '#ff0000', 'tweak included');
+});
+
+test('a save from before custom themes opens on the default theme, with no error', () => {
+  const ui = boot(undefined, (store) => {
+    const s = JSON.parse(store['dekkan.v1']);
+    delete s.custom;                      // an app from before wave 1
+    store['dekkan.v1'] = JSON.stringify(s);
+  });
+  const TH = ui.sandbox.DEK.Themes;
+  assert.strictEqual(TH.currentId(), TH.DEFAULT, 'an old save paints the default theme');
+  assert.strictEqual(ui.rootStyle['--bg'], TH.get(TH.DEFAULT).tokens['--bg'], 'and the screen is themed, not blank');
 });

@@ -529,6 +529,175 @@
     withPin(C, T.t('pin.confirm'), apply);
   }
 
+  // ---------- wave 2: the shop's own colours ----------
+  // NOTHING here paints a colour: ui/themes.ts validates and paints, and the state
+  // keeps the choice. These functions only carry the shopkeeper's intent from the
+  // screen to state.custom.theme and back — which is why a new token needs no code.
+  function themeEffective(TH, id, overrides) {
+    const t = Object.assign({}, TH.get(id).tokens);
+    Object.keys(overrides || {}).forEach(function (k) { if (t[k] !== undefined) t[k] = overrides[k]; });
+    return t;
+  }
+  // what the state actually needs to keep: only what DIFFERS from the base preset,
+  // so a shop that tweaks two colours still inherits every future fix to its base
+  function themeDiff(TH, id, tokens) {
+    const base = TH.get(id) ? TH.get(id).tokens : {};
+    const out = {};
+    Object.keys(tokens || {}).forEach(function (k) { if (base[k] !== tokens[k]) out[k] = tokens[k]; });
+    return out;
+  }
+  function themeOpen(C) {
+    const P = DEK.pages;
+    const { $ } = C;
+    const TH = C.themes();
+    const id = TH.currentId();
+    C.themeDraft = { id: id, tokens: themeEffective(TH, id, TH.overrides()) };
+    $('themeJson').classList.add('hidden');
+    $('themeEditor').classList.remove('hidden');
+    P.renderThemeEditor(C);
+    P.themeMsg(C, '', '');
+  }
+  function themeClose(C) {
+    const P = DEK.pages;
+    const { $ } = C;
+    C.themes().revert();      // a preview is not a choice: put the shop's own colours back
+    C.themeDraft = null;
+    $('themeEditor').classList.add('hidden');
+    P.renderThemes(C);
+  }
+  function themeInput(C, tok, val) {
+    if (!C.themeDraft || !tok) return;
+    C.themeDraft.tokens[tok] = val;
+    C.themes().preview(C.themeDraft.tokens);   // live, unsaved; unreadable values just do not paint
+  }
+  function themeBasePick(C, id) {
+    const P = DEK.pages;
+    const TH = C.themes();
+    if (!TH.get(id) || !C.themeDraft) return;
+    // starting from another preset = that preset's own colours (tweaks on the old
+    // base belonged to that base); Save is what keeps anything
+    C.themeDraft = { id: id, tokens: Object.assign({}, TH.get(id).tokens) };
+    P.renderThemeEditor(C);
+    TH.preview(C.themeDraft.tokens);
+  }
+  function themeSave(C) {
+    const P = DEK.pages;
+    const { $, D, T, save, toast } = C;
+    const TH = C.themes();
+    if (!C.themeDraft) return;
+    const diff = themeDiff(TH, C.themeDraft.id, C.themeDraft.tokens);
+    const split = TH.checkTokens(diff);
+    if (split.ignored.length) {   // a typo is refused, by name, instead of silently dropped
+      P.themeMsg(C, T.t('theme.badColor') + split.ignored.join(', '), 'bad');
+      return;
+    }
+    try {
+      C.state = D.setCustom(C.state, { theme: { id: C.themeDraft.id, tokens: split.good } });
+    } catch (e) {
+      P.themeMsg(C, String(e && e.message ? e.message : e), 'bad');
+      return;
+    }
+    save();
+    TH.applyTheme(C.state.custom.theme);
+    $('themeEditor').classList.add('hidden');
+    C.themeDraft = null;
+    P.renderThemes(C);
+    toast(T.t('theme.saved'));
+  }
+  function themeReset(C) {
+    const P = DEK.pages;
+    const { $, D, T, save, toast } = C;
+    const TH = C.themes();
+    const id = TH.currentId();
+    C.state = D.setCustom(C.state, { theme: { id: id, tokens: {} } });
+    save();
+    TH.applyTheme(C.state.custom.theme);
+    if (C.themeDraft && $('themeEditor') && !$('themeEditor').classList.contains('hidden')) {
+      C.themeDraft = { id: id, tokens: Object.assign({}, TH.get(id).tokens) };
+      P.renderThemeEditor(C);
+    }
+    P.renderThemes(C);
+    toast(T.t('theme.resetDone'));
+  }
+  function themeExport(C) {
+    const P = DEK.pages;
+    const { $, T } = C;
+    const TH = C.themes();
+    const draft = C.themeDraft || { id: TH.currentId(), tokens: TH.overrides() };
+    $('themeJson').classList.remove('hidden');
+    $('themeJsonText').value = TH.exportTheme(draft);
+    P.themeMsg(C, T.t('theme.exported'), 'ok');
+  }
+  function themeApplyJson(C) {
+    const P = DEK.pages;
+    const { $, D, T, save, toast } = C;
+    const TH = C.themes();
+    const res = TH.importTheme($('themeJsonText').value);
+    if (!res.ok) {   // the refusal names the problem — pasted text is untrusted
+      P.themeMsg(C, T.t('theme.badJson') + res.problems.join(' · '), 'bad');
+      return;
+    }
+    const diff = themeDiff(TH, res.theme.id, res.theme.tokens);
+    try {
+      C.state = D.setCustom(C.state, { theme: { id: res.theme.id, tokens: diff } });
+    } catch (e) {
+      P.themeMsg(C, String(e && e.message ? e.message : e), 'bad');
+      return;
+    }
+    save();
+    TH.applyTheme(C.state.custom.theme);
+    C.themeDraft = { id: res.theme.id, tokens: themeEffective(TH, res.theme.id, diff) };
+    if ($('themeEditor') && !$('themeEditor').classList.contains('hidden')) P.renderThemeEditor(C);
+    P.renderThemes(C);
+    P.themeMsg(C, T.t('theme.applied'), 'ok');
+    toast(T.t('theme.applied'));
+  }
+  function themeCopy(C) {
+    const { $, T, toast } = C;
+    const el = $('themeJsonText');
+    if (!el) return;
+    if (!el.value) themeExport(C);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText($('themeJsonText').value).then(function () { toast(T.t('theme.copied')); },
+        function () { $('themeJsonText').select(); toast(T.t('theme.copied')); });
+    } else { $('themeJsonText').select(); toast(T.t('theme.copied')); }
+  }
+  function themeDownload(C) {
+    const { $ } = C;
+    if (!$('themeJsonText').value) themeExport(C);
+    const blob = new Blob([$('themeJsonText').value], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'dekkan-theme.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+  function themeFile(C, file) {
+    const { $ } = C;
+    const reader = new FileReader();
+    reader.onload = function () {
+      $('themeJson').classList.remove('hidden');
+      $('themeJsonText').value = String(reader.result || '');
+      themeApplyJson(C);
+    };
+    reader.readAsText(file);
+  }
+
+  // setting a colour from the picker also writes the text field (the truth), then
+  // the same live preview runs — one path in, whether he types or taps a swatch
+  function themeSyncPick(C, txtEl) {
+    const P = DEK.pages;
+    if (!txtEl || !txtEl.closest) return;
+    const row = txtEl.closest('.themeRow');
+    const pick = row ? row.querySelector('input[type=color]') : null;
+    if (!pick) return;
+    const hex = P.hex6(txtEl.value);
+    if (hex) { pick.value = hex; pick.disabled = false; } else { pick.disabled = true; }
+  }
+
   // ---------- events (bound once) ----------
   function onClick(C, ev) {
     const { basket, $, T, D, render, run, save, toast } = C;
@@ -665,6 +834,9 @@ $('pName').value = p.name; $('pBuy').value = p.buy; $('pSell').value = p.sell;
     undoLastSale: undoLastSale,
     exportBackup: exportBackup, importBackup: importBackup, onImportFile: onImportFile, resetAll: resetAll, onClick: onClick,
     newEmployee: newEmployee, cancelEmployee: cancelEmployee, saveEmployee: saveEmployee,
-    fireEmployee: fireEmployee, withPin: withPin, pinSet: pinSet, pinClear: pinClear
+    fireEmployee: fireEmployee, withPin: withPin, pinSet: pinSet, pinClear: pinClear,
+    themeOpen: themeOpen, themeClose: themeClose, themeInput: themeInput, themeBasePick: themeBasePick,
+    themeSave: themeSave, themeReset: themeReset, themeExport: themeExport, themeApplyJson: themeApplyJson,
+    themeCopy: themeCopy, themeDownload: themeDownload, themeFile: themeFile, themeSyncPick: themeSyncPick
   };
 });

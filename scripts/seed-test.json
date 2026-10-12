@@ -1,0 +1,486 @@
+{
+  "version": 4,
+  "shop": {
+    "name": "Cafe Dali",
+    "currency": "TND"
+  },
+  "settings": {
+    "allowDiscount": true,
+    "allowRefund": true
+  },
+  "customers": [
+    {
+      "id": "mv2wxgde-b9phq7",
+      "name": "Ali",
+      "phone": null,
+      "createdAt": "2026-10-10T21:35:03.458Z",
+      "lastSeenAt": "2026-10-10T21:35:03.458Z"
+    },
+    {
+      "id": "mv2wxgde-dddxj5",
+      "name": "Mahmoud",
+      "phone": null,
+      "createdAt": "2026-10-10T21:35:03.458Z",
+      "lastSeenAt": "2026-10-10T21:35:03.458Z"
+    }
+  ],
+  "cashiers": [],
+  "categories": {
+    "in": [
+      {
+        "id": "mv2wxgdc-cy1s48",
+        "name": "إيراد آخر"
+      }
+    ],
+    "out": [
+      {
+        "id": "mv2wxgdc-w7s0i2",
+        "name": "كهرباء"
+      },
+      {
+        "id": "mv2wxgdc-usho7b",
+        "name": "صيانة"
+      }
+    ]
+  },
+  "products": [
+    {
+      "id": "mv2wxgdc-3nk2pw",
+      "name": "Coca 33cl",
+      "buy": 0.8,
+      "sell": 1.5,
+      "stock": 53,
+      "lowAt": 12
+    },
+    {
+      "id": "mv2wxgdc-zsa0gx",
+      "name": "Fanta 33cl",
+      "buy": 0.7,
+      "sell": 1.2,
+      "stock": 30,
+      "lowAt": 10
+    },
+    {
+      "id": "mv2wxgdc-wm0k5a",
+      "name": "Eau 1L",
+      "buy": 0.5,
+      "sell": 1,
+      "stock": 59,
+      "lowAt": 15
+    },
+    {
+      "id": "mv2wxgdc-ty22c1",
+      "name": "Eau 50cl",
+      "buy": 0.4,
+      "sell": 0.8,
+      "stock": 8,
+      "lowAt": 12
+    },
+    {
+      "id": "mv2wxgdc-u1qf4r",
+      "name": "Chips",
+      "buy": 0.9,
+      "sell": 1.8,
+      "stock": 22,
+      "lowAt": 8
+    }
+  ],
+  "debts": [
+    {
+      "id": "mv2wxgde-ypkds5",
+      "name": "Mahmoud",
+      "phone": null,
+      "total": 6.6,
+      "paid": 5,
+      "payments": [
+        {
+          "amount": 10.2,
+          "at": "2026-10-10T21:35:03.458Z",
+          "kind": "debt",
+          "note": "Coca 33clx2, Chipsx4"
+        },
+        {
+          "amount": -5,
+          "at": "2026-10-10T21:35:03.458Z",
+          "kind": "pay",
+          "note": null
+        }
+      ],
+      "createdAt": "2026-10-10T21:35:03.458Z",
+      "settled": false
+    }
+  ],
+  "movements": [
+    {
+      "id": "mv2wxgdc-vagbe5",
+      "at": "2026-10-10T21:35:03.456Z",
+      "productId": "mv2wxgdc-3nk2pw",
+      "qty": 48,
+      "kind": "opening",
+      "ref": null,
+      "note": null
+    },
+    {
+      "id": "mv2wxgdc-ss8pd4",
+      "at": "2026-10-10T21:35:03.456Z",
+      "productId": "mv2wxgdc-zsa0gx",
+      "qty": 36,
+      "kind": "opening",
+      "ref": null,
+      "note": null
+    },
+    {
+      "id": "mv2wxgdc-85uurj",
+      "at": "2026-10-10T21:35:03.456Z",
+      "productId": "mv2wxgdc-wm0k5a",
+      "qty": 60,
+      "kind": "opening",
+      "ref": null,
+      "note": null
+    },
+    {
+      "id": "mv2wxgdc-rajc16",
+      "at": "2026-10-10T21:35:03.456Z",
+      "productId": "mv2wxgdc-ty22c1",
+      "qty": 8,
+      "kind": "opening",
+      "ref": null,
+      "note": null
+    },
+    {
+      "id": "mv2wxgdc-5hsqwd",
+      "at": "2026-10-10T21:35:03.456Z",
+      "productId": "mv2wxgdc-u1qf4r",
+      "qty": 24,
+      "kind": "opening",
+      "ref": null,
+      "note": null
+    },
+    {
+      "id": "mv2wxgdd-50mjov",
+      "at": "2026-10-10T21:35:03.457Z",
+      "productId": "mv2wxgdc-3nk2pw",
+      "qty": -3,
+      "kind": "sale",
+      "ref": "mv2wxgdd-fqud8b",
+      "note": null
+    },
+    {
+      "id": "mv2wxgde-9bci9m",
+      "at": "2026-10-10T21:35:03.458Z",
+      "productId": "mv2wxgdc-3nk2pw",
+      "qty": -2,
+      "kind": "sale",
+      "ref": "mv2wxgdd-mwyyjn",
+      "note": "Mahmoud"
+    },
+    {
+      "id": "mv2wxgde-8avwpb",
+      "at": "2026-10-10T21:35:03.458Z",
+      "productId": "mv2wxgdc-u1qf4r",
+      "qty": -4,
+      "kind": "sale",
+      "ref": "mv2wxgdd-mwyyjn",
+      "note": "Mahmoud"
+    },
+    {
+      "id": "mv2wxgde-veywjs",
+      "at": "2026-10-10T21:35:03.458Z",
+      "productId": "mv2wxgdc-wm0k5a",
+      "qty": -1,
+      "kind": "sale",
+      "ref": "mv2wxgde-ajmwor",
+      "note": "Ali"
+    },
+    {
+      "id": "mv2wxgde-7b8lpe",
+      "at": "2026-10-10T21:35:03.458Z",
+      "productId": "mv2wxgdc-zsa0gx",
+      "qty": -6,
+      "kind": "sale",
+      "ref": "mv2wxgde-ajmwor",
+      "note": "Ali"
+    },
+    {
+      "id": "mv2wxgdf-hf2jmo",
+      "at": "2026-10-10T21:35:03.459Z",
+      "productId": "mv2wxgdc-3nk2pw",
+      "qty": 12,
+      "kind": "buy",
+      "ref": "mv2wxgdf-blkzse",
+      "note": "Coca 33cl x12"
+    },
+    {
+      "id": "mv2wxgdf-dl0241",
+      "at": "2026-10-10T21:35:03.459Z",
+      "productId": "mv2wxgdc-u1qf4r",
+      "qty": 2,
+      "kind": "refund",
+      "ref": "mv2wxgdf-hgrl0r",
+      "note": null
+    },
+    {
+      "id": "mv2wxgdg-zdwr06",
+      "at": "2026-10-10T21:35:03.460Z",
+      "productId": "mv2wxgdc-3nk2pw",
+      "qty": -2,
+      "kind": "sale",
+      "ref": "mv2wxgdg-76fjar",
+      "note": null
+    }
+  ],
+  "employees": [
+    {
+      "id": "mv2wxgdc-lq4fe5",
+      "name": "Sami",
+      "type": "Casier",
+      "salary": 450,
+      "phone": "22 111 222",
+      "note": "Matin",
+      "hiredAt": "2026-10-10",
+      "active": true
+    }
+  ],
+  "days": [
+    {
+      "date": "2026-10-10",
+      "openedAt": "2026-10-10T21:35:03.455Z",
+      "closedAt": "2026-10-10T21:35:03.460Z",
+      "startCash": 150,
+      "endCash": 145.1,
+      "soldCost": 10.5,
+      "entries": [
+        {
+          "id": "mv2wxgdd-fqud8b",
+          "kind": "sale",
+          "amount": 4.5,
+          "at": "2026-10-10T21:35:03.457Z",
+          "ref": "Coca 33clx3",
+          "note": null,
+          "bill": {
+            "lines": [
+              {
+                "id": "mv2wxgdc-3nk2pw",
+                "name": "Coca 33cl",
+                "qty": 3,
+                "price": 1.5,
+                "total": 4.5
+              }
+            ],
+            "discount": 0,
+            "net": 4.5,
+            "paid": 4.5,
+            "rest": 0,
+            "change": 0
+          }
+        },
+        {
+          "id": "mv2wxgdd-mwyyjn",
+          "kind": "sale",
+          "amount": 0,
+          "at": "2026-10-10T21:35:03.457Z",
+          "ref": "Coca 33clx2, Chipsx4",
+          "note": "Mahmoud",
+          "bill": {
+            "lines": [
+              {
+                "id": "mv2wxgdc-3nk2pw",
+                "name": "Coca 33cl",
+                "qty": 2,
+                "price": 1.5,
+                "total": 3
+              },
+              {
+                "id": "mv2wxgdc-u1qf4r",
+                "name": "Chips",
+                "qty": 4,
+                "price": 1.8,
+                "total": 7.2
+              }
+            ],
+            "discount": 0,
+            "net": 10.2,
+            "paid": null,
+            "rest": 10.2,
+            "change": 0
+          }
+        },
+        {
+          "id": "mv2wxgde-gjua1r",
+          "kind": "debt-pay",
+          "amount": 5,
+          "at": "2026-10-10T21:35:03.458Z",
+          "ref": "Mahmoud",
+          "note": "debt payment",
+          "bill": null
+        },
+        {
+          "id": "mv2wxgde-ajmwor",
+          "kind": "sale",
+          "amount": 8.2,
+          "at": "2026-10-10T21:35:03.458Z",
+          "ref": "Eau 1Lx1, Fanta 33clx6",
+          "note": "Ali",
+          "bill": {
+            "lines": [
+              {
+                "id": "mv2wxgdc-wm0k5a",
+                "name": "Eau 1L",
+                "qty": 1,
+                "price": 1,
+                "total": 1
+              },
+              {
+                "id": "mv2wxgdc-zsa0gx",
+                "name": "Fanta 33cl",
+                "qty": 6,
+                "price": 1.2,
+                "total": 7.2
+              }
+            ],
+            "discount": 0,
+            "net": 8.2,
+            "paid": 10,
+            "rest": 0,
+            "change": 1.8
+          }
+        },
+        {
+          "id": "mv2wxgdf-blkzse",
+          "kind": "buy",
+          "amount": -9.6,
+          "at": "2026-10-10T21:35:03.459Z",
+          "ref": "mv2wxgdc-3nk2pw",
+          "note": "Coca 33cl x12",
+          "bill": null
+        },
+        {
+          "id": "mv2wxgdf-hgrl0r",
+          "kind": "refund",
+          "amount": 0,
+          "at": "2026-10-10T21:35:03.459Z",
+          "ref": "Chipsx2",
+          "note": "credit refund: Mahmoud",
+          "bill": null,
+          "saleNo": null
+        },
+        {
+          "id": "mv2wxgdf-rtk6ok",
+          "kind": "expense",
+          "amount": -20,
+          "at": "2026-10-10T21:35:03.459Z",
+          "ref": null,
+          "note": "فاتورة الكهرباء",
+          "bill": null,
+          "cat": "كهرباء"
+        },
+        {
+          "id": "mv2wxgdf-s1r6pq",
+          "kind": "income",
+          "amount": 5,
+          "at": "2026-10-10T21:35:03.459Z",
+          "ref": null,
+          "note": "ملقاة",
+          "bill": null,
+          "cat": "إيراد آخر"
+        },
+        {
+          "id": "mv2wxgdg-b8c4yy",
+          "kind": "sale",
+          "amount": 2,
+          "at": "2026-10-10T21:35:03.460Z",
+          "ref": "قهوةx2",
+          "note": null,
+          "bill": {
+            "lines": [
+              {
+                "name": "قهوة",
+                "qty": 2,
+                "price": 1,
+                "total": 2
+              }
+            ],
+            "discount": 0,
+            "net": 2,
+            "paid": null,
+            "rest": 0,
+            "change": 0
+          }
+        }
+      ],
+      "checks": []
+    }
+  ],
+  "day": {
+    "date": "2026-10-10",
+    "openedAt": "2026-10-10T21:35:03.460Z",
+    "startCash": 145.1,
+    "soldCost": 1.6,
+    "entries": [
+      {
+        "id": "mv2wxgdg-76fjar",
+        "kind": "sale",
+        "amount": 3,
+        "at": "2026-10-10T21:35:03.460Z",
+        "ref": "Coca 33clx2",
+        "note": null,
+        "bill": {
+          "lines": [
+            {
+              "id": "mv2wxgdc-3nk2pw",
+              "name": "Coca 33cl",
+              "qty": 2,
+              "price": 1.5,
+              "total": 3
+            }
+          ],
+          "discount": 0,
+          "net": 3,
+          "paid": 3,
+          "rest": 0,
+          "change": 0
+        }
+      },
+      {
+        "id": "mv2wxgdg-ispt10",
+        "kind": "sale",
+        "amount": 0.7,
+        "at": "2026-10-10T21:35:03.460Z",
+        "ref": "شايx1",
+        "note": null,
+        "bill": {
+          "lines": [
+            {
+              "name": "شاي",
+              "qty": 1,
+              "price": 0.7,
+              "total": 0.7
+            }
+          ],
+          "discount": 0,
+          "net": 0.7,
+          "paid": null,
+          "rest": 0,
+          "change": 0
+        }
+      },
+      {
+        "id": "mv2wxgdg-inxfkw",
+        "kind": "income",
+        "amount": 2,
+        "at": "2026-10-10T21:35:03.460Z",
+        "ref": null,
+        "note": "نقدية اكسترا",
+        "bill": null,
+        "cat": null
+      }
+    ],
+    "checks": [],
+    "soldByProduct": {
+      "mv2wxgdc-3nk2pw": 2
+    },
+    "soldFree": {
+      "شاي": 1
+    }
+  }
+}

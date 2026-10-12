@@ -668,8 +668,72 @@
         + '<span class="dots">' + th.preview.map(function (c) {
           return '<i style="background:' + c + '"></i>';
         }).join('') + '</span>'
-        + '<b>' + T.t(th.nameKey) + '</b></button>';
+        + '<b>' + T.t(th.nameKey)
+        + (th.id === cur && TH.isCustomized() ? '<span class="themeBadge">' + T.t('theme.customized') + '</span>' : '')
+        + '</b></button>';
     }).join('');
+  }
+
+  // ----- THE COLOUR EDITOR (wave 2) -----
+  // The SAME 42 tokens the app already paints, grouped the way a shopkeeper
+  // thinks about them. Each row is a text field (the truth: it can hold rgba()
+  // or a whole shadow) + a picker that drives it when the value is a plain hex.
+  // The list is DATA: a group here, a token there, and the screen follows.
+  const THEME_GROUPS = [
+    { key: 'theme.grp.bg', toks: ['--bg', '--bg2', '--glowa', '--glowb'] },
+    { key: 'theme.grp.surface', toks: ['--panel', '--panel2', '--panel3'] },
+    { key: 'theme.grp.line', toks: ['--line', '--line2'] },
+    { key: 'theme.grp.text', toks: ['--txt', '--mut', '--dim', '--ink'] },
+    { key: 'theme.grp.acc', toks: ['--acc', '--acc2', '--accdark', '--accbg', '--accborder', '--accover', '--accglow'] },
+    { key: 'theme.grp.status', toks: ['--ok', '--okbg', '--okhi', '--danger', '--dangerbg', '--dangerhi'] },
+    { key: 'theme.grp.coin', toks: ['--coin1', '--coin2', '--coin3', '--coinedge', '--coinring', '--coinshadow'] },
+    { key: 'theme.grp.ctrl', toks: ['--pri1', '--pri2', '--priedge', '--inbg', '--inbgfocus', '--switchknob', '--switchfill', '--scrail', '--scrthumb', '--shadow'] }
+  ];
+
+  // "#abc" -> "#aabbcc"; anything a colour picker cannot hold -> null (the picker
+  // is then disabled and the text field is the only way in — on purpose)
+  function hex6(v) {
+    const m = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.exec(String(v == null ? '' : v).trim());
+    if (!m) return null;
+    let d = m[1];
+    if (d.length === 3) d = d.charAt(0) + d.charAt(0) + d.charAt(1) + d.charAt(1) + d.charAt(2) + d.charAt(2);
+    return '#' + d.toLowerCase();
+  }
+
+  function renderThemeEditor(C) {
+    const { $, T, fmt } = C;
+    const { esc } = fmt;
+    const TH = themes();
+    const box = $('themeGroups');
+    if (!TH || !box || !C.themeDraft) return;
+    const toks = C.themeDraft.tokens || {};
+    const base = $('themeBase');
+    if (base) {
+      base.innerHTML = TH.all().map(function (th) {
+        return '<button type="button" class="segbtn' + (th.id === C.themeDraft.id ? ' active' : '') + '"'
+          + ' data-base="' + th.id + '">' + T.t(th.nameKey) + '</button>';
+      }).join('');
+    }
+    box.innerHTML = THEME_GROUPS.map(function (g) {
+      return '<div class="themeGrp"><b>' + T.t(g.key) + '</b>'
+        + g.toks.map(function (tok) {
+          const v = toks[tok] === undefined ? '' : toks[tok];
+          const c = hex6(v);
+          return '<span class="themeRow">'
+            + '<input type="color" data-pick="' + tok + '" value="' + (c || '#000000') + '"' + (c ? '' : ' disabled') + '>'
+            + '<input type="text" data-tok="' + tok + '" value="' + esc(v) + '" spellcheck="false" dir="ltr">'
+            + '<code class="themeTok">' + tok + '</code></span>';
+        }).join('') + '</div>';
+    }).join('');
+    T.apply(); // the group labels are [data-i18n], generated just now
+  }
+
+  // the little line under the JSON box: a refusal is shown, never swallowed
+  function themeMsg(C, text, kind) {
+    const el = C.$('themeMsg');
+    if (!el) return;
+    el.textContent = text || '';
+    el.className = 'themeMsg' + (kind ? ' ' + kind : '');
   }
 
   // ----- LANGUAGES (text lives in ui/lang.ts, the registry in ui/langs.ts) -----
@@ -850,6 +914,7 @@
     renderReport: renderReport, openTicket: openTicket, openMetric: openMetric, openStockCard: openStockCard,
     renderCashBox: renderCashBox, catOptions: catOptions, catChips: catChips,
     renderSettings: renderSettings, renderThemes: renderThemes, renderLanguages: renderLanguages, updateStorage: updateStorage,
+    renderThemeEditor: renderThemeEditor, themeMsg: themeMsg, hex6: hex6, THEME_GROUPS: THEME_GROUPS,
     showReceipt: showReceipt, hideReceipt: hideReceipt, revealProductForm: revealProductForm,
     renderEmployees: renderEmployees, renderMonthly: renderMonthly,
     openPin: openPin, closePin: closePin, pinKey: pinKey

@@ -62,7 +62,8 @@ const CUSTOM_SECTIONS = {
   date: ['format', 'time', 'timezone'],
   print: ['size', 'copies', 'autoPrint'],
   receipt: ['header', 'footer', 'showCashier', 'showTaxId', 'qr'],
-  tabs: ['order', 'hidden']
+  tabs: ['order', 'hidden'],
+  theme: ['id', 'tokens']
 };
 
 function setCustom(state, patch) {

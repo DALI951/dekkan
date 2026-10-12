@@ -382,6 +382,34 @@
       <div class="card">
         <h3 data-i18n="settings.theme">شكل الدكان</h3>
         <div class="themes" id="themeGrid"></div>
+        <div class="row wrap gr themeBar">
+          <button type="button" class="btn ghost" id="btnThemeEdit" data-i18n="theme.edit">خصّص الألوان</button>
+          <button type="button" class="btn ghost" id="btnThemeReset" data-i18n="theme.reset">رجّع الألوان</button>
+          <button type="button" class="btn ghost" id="btnThemeShare" data-i18n="theme.share">تصدير / استيراد</button>
+        </div>
+        <div class="themeEditor hidden" id="themeEditor">
+          <p class="muted small" data-i18n="theme.editHint">بدّل أي لون وشوف التبديل ديراكت في الصفحة. ما يتسجّلش كان كي تضغط حفظ الألوان.</p>
+          <p class="sect" data-i18n="theme.fromBase">ابدأ من</p>
+          <div class="seg" id="themeBase"></div>
+          <div class="themeGroups" id="themeGroups"></div>
+          <div class="row end gr">
+            <button type="button" class="btn ghost" id="btnThemeCancel" data-i18n="common.cancel">إلغاء</button>
+            <button type="button" class="btn primary" id="btnThemeSave" data-i18n="theme.save">حفظ الألوان</button>
+          </div>
+        </div>
+        <p class="themeMsg" id="themeMsg"></p>
+        <div class="themeJson hidden" id="themeJson">
+          <p class="muted small" data-i18n="theme.jsonHint">انسخ هالـ JSON وعطيه لصاحبك، ولا لصق JSON متاع مظهر هنا وطبّق.</p>
+          <textarea id="themeJsonText" spellcheck="false" dir="ltr" placeholder='{"id":"souk","tokens":{"--acc":"#ffcc55"}}'></textarea>
+          <div class="row wrap gr">
+            <button type="button" class="btn ghost" id="btnThemeExport" data-i18n="theme.export">صدّر</button>
+            <button type="button" class="btn ghost" id="btnThemeCopy" data-i18n="theme.copy">انسخ</button>
+            <button type="button" class="btn ghost" id="btnThemeDownload" data-i18n="theme.download">نزّل ملف</button>
+            <label class="btn ghost" for="themeFile" data-i18n="theme.loadFile">افتح ملف</label>
+            <input type="file" id="themeFile" class="hidden" accept=".json,application/json">
+            <button type="button" class="btn primary" id="btnThemeApply" data-i18n="theme.apply">طبّق</button>
+          </div>
+        </div>
       </div>
 
       <p class="sect" data-i18n="settings.sect.lang">اللغة</p>

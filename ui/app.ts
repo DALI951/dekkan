@@ -139,6 +139,24 @@
     return { date: D.todayStr(), openedAt: Date.now(), startCash: 0, soldCost: 0, entries: [], checks: [], soldByProduct: {}, soldFree: {} };
   }
   C.state = load();
+  // The shop's own look: the STATE is authoritative (it travels in the backup),
+  // localStorage is only the no-flash cache the head script reads. So whatever the
+  // head painted is re-checked here against what the shop actually declared.
+  const TH0 = themes();
+  if (TH0 && C.state.custom && C.state.custom.theme) {
+    const declared = C.state.custom.theme;
+    // a choice that only ever lived in THIS browser (picked before custom.theme
+    // existed) is adopted into the shop's data instead of resetting his look
+    const deviceOnly = declared.id === TH0.DEFAULT && Object.keys(declared.tokens || {}).length === 0;
+    const cached = TH0.cachedTheme();
+    if (deviceOnly && cached.id && cached.id !== declared.id) {
+      TH0.applyTheme(cached);
+      C.state = D.setCustom(C.state, { theme: { id: cached.id, tokens: cached.tokens } });
+      save();        // the shop's look is now the shop's DATA, not this phone's
+    } else {
+      TH0.applyTheme(declared);
+    }
+  }
   // restore a draft the shopkeeper left behind (a refresh/tab-switch mid-order).
   // Anything stale is pruned here: a deleted product, an over-shelf qty, a blank
   // free line — the order must never come back broken or able to oversell.
@@ -346,6 +364,45 @@
   });
   window.addEventListener('dekkan:lang', render);
   document.addEventListener('dekkan:theme', function () { P.renderThemes(C); });
+
+  // ---- the shop's own colours (wave 2) ----
+  // Generated rows + generated preset buttons: delegated listeners, no branch per
+  // colour, so a token added to a group appears with a working control.
+  $('btnThemeEdit').addEventListener('click', function () { A.themeOpen(C); });
+  $('btnThemeCancel').addEventListener('click', function () { A.themeClose(C); });
+  $('btnThemeSave').addEventListener('click', function () { A.themeSave(C); });
+  $('btnThemeReset').addEventListener('click', function () { A.themeReset(C); });
+  $('btnThemeShare').addEventListener('click', function () {
+    var box = $('themeJson');
+    if (box.classList.contains('hidden')) A.themeExport(C); else box.classList.add('hidden');
+  });
+  $('btnThemeExport').addEventListener('click', function () { A.themeExport(C); });
+  $('btnThemeApply').addEventListener('click', function () { A.themeApplyJson(C); });
+  $('btnThemeCopy').addEventListener('click', function () { A.themeCopy(C); });
+  $('btnThemeDownload').addEventListener('click', function () { A.themeDownload(C); });
+  $('themeFile').addEventListener('change', function () {
+    if (themeFile.files && themeFile.files[0]) A.themeFile(C, themeFile.files[0]);
+    themeFile.value = '';   // re-picking the same file must work again
+  });
+  $('themeGroups').addEventListener('input', function (e) {
+    var t = e.target;
+    if (!t || !t.getAttribute) return;
+    var pick = t.getAttribute('data-pick');
+    if (pick) {
+      var prow = t.closest ? t.closest('.themeRow') : null;
+      var ptxt = prow ? prow.querySelector('[data-tok]') : null;
+      if (ptxt) { ptxt.value = t.value; A.themeInput(C, pick, t.value); }
+      return;
+    }
+    var tok = t.getAttribute('data-tok');
+    if (!tok) return;
+    A.themeInput(C, tok, t.value);
+    A.themeSyncPick(C, t);
+  });
+  $('themeBase').addEventListener('click', function (e) {
+    var b = e.target && e.target.closest ? e.target.closest('[data-base]') : null;
+    if (b) A.themeBasePick(C, b.getAttribute('data-base'));
+  });
 
   // navigation (sidebar + bottom bar)
   const tabs = document.querySelectorAll('.tab, .navitem');

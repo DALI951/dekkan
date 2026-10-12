@@ -43,6 +43,29 @@ test('the chosen theme applies from the first paint and survives a reload', asyn
   await page.reload();
   expect(await bg()).toBe('#06140f');
   await expect(page.locator('#themeGrid')).toContainText('Midnight Mint'); // …and it's marked in the UI
+
+  // …and the choice is now the SHOP's own (it travels in the backup), not just this
+  // browser's: a device that picked a theme before custom.theme existed is migrated.
+  const saved = await page.evaluate(() => {
+    try { return JSON.parse(localStorage.getItem('dekkan.v1') || '{}').custom.theme; } catch (e) { return null; }
+  });
+  expect(saved.id).toBe('mint');
+});
+
+test('a stale device cache cannot overrule what the SHOP declared', async ({ page }) => {
+  await open(page, '#/settings');
+  // the shopkeeper picks Indigo Night through the screen (this writes the shop's data)
+  await page.locator('#btnThemeEdit').click();
+  await page.locator('#themeBase [data-base="royal"]').click();
+  await page.locator('#btnThemeSave').click();
+  // …then an old cache line from another build survives in this browser
+  await page.evaluate(() => localStorage.setItem('dekkan.theme', 'mint'));
+
+  await page.reload();
+  const bg = await page.evaluate(() =>
+    getComputedStyle(document.documentElement).getPropertyValue('--bg').trim());
+  expect(bg).toBe('#0a0e1c');                                            // the shop's Indigo Night
+  await expect(page.locator('#themeGrid .theme-sw.active')).toContainText('Indigo Night');
 });
 
 test('default theme is Gold Souk on a truly fresh profile', async ({ page }) => {

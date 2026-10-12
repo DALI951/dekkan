@@ -9,7 +9,8 @@
   else root.DEK = Object.assign(root.DEK || {}, factory());
 })(typeof self !== 'undefined' ? self : this, function () {
 
-  var STORE_KEY = 'dekkan.theme';
+  var STORE_KEY = 'dekkan.theme';       // the chosen BASE theme id (no-flash cache)
+  var TOKENS_KEY = 'dekkan.themetokens'; // its overrides, so the head script can paint the shop's own colors
   var DEFAULT = 'souk';
 
   // every theme MUST define exactly these tokens — checked by test/themes.test.js
@@ -106,51 +107,193 @@
   };
 
   var currentId = DEFAULT;
+  var currentOverrides = {};   // the shop's own colors ON TOP of the base theme
 
-  function apply(id) {
-    var t = THEMES[id];
-    if (!t) return false;
+  // ---------- what a color value is allowed to be (same rule as test/themes.test.ts) ----------
+  var CSS_COLOR = /^(#[0-9a-fA-F]{3,8}|rgba?\([^)]*\)|hsla?\([^)]*\)|transparent|currentColor)$/;
+  var SHADOW_COLOR = /(rgba?\(|#[0-9a-fA-F]{3,8})/;   // --shadow is a whole shadow string, not a color
+
+  function isColor(name, v) {
+    if (typeof v !== 'string' || !v.trim()) return false;
+    return /shadow$/.test(name) ? SHADOW_COLOR.test(v) : CSS_COLOR.test(v);
+  }
+
+  function paint(tokens) {
+    if (typeof document === 'undefined' || !document.documentElement) return;
+    var keys = Object.keys(tokens);
+    for (var i = 0; i < keys.length; i++) {
+      document.documentElement.style.setProperty(keys[i], tokens[keys[i]]);
+    }
+  }
+
+  // every theme that enters the app — a preset, a template, a JSON import — must
+  // pass this. The SAME rule test/themes.test.ts enforces at build time, now
+  // enforced at runtime for colors that arrive from a shopkeeper's clipboard.
+  function problems(theme) {
+    var out = [];
+    if (!theme || typeof theme !== 'object' || Array.isArray(theme)) return ['theme must be an object'];
+    if (typeof theme.id !== 'string' || !/^[a-z0-9-]{2,24}$/.test(theme.id)) out.push('theme.id must be a short slug (a-z, 0-9, -)');
+    if (typeof theme.nameKey !== 'string' || !theme.nameKey.trim()) out.push('theme.nameKey is required (a theme needs a name)');
+    if (!Array.isArray(theme.preview) || theme.preview.length !== 3 ||
+      !theme.preview.every(function (c) { return /^#[0-9a-fA-F]{6}$/.test(c); })) {
+      out.push('theme.preview must be exactly 3 hex colors');
+    }
+    var toks = theme.tokens;
+    if (!toks || typeof toks !== 'object' || Array.isArray(toks)) { out.push('theme.tokens must be an object'); return out; }
+    var missing = BASE.filter(function (k) { return toks[k] === undefined; });
+    if (missing.length) out.push('missing token(s): ' + missing.slice(0, 4).join(', '));
+    var extra = Object.keys(toks).filter(function (k) { return BASE.indexOf(k) === -1; });
+    if (extra.length) out.push('unknown token(s): ' + extra.slice(0, 4).join(', '));
+    Object.keys(toks).forEach(function (k) {
+      if (!isColor(k, toks[k])) out.push('token ' + k + ' is not a CSS color: ' + String(toks[k]).slice(0, 24));
+    });
+    return out;
+  }
+
+  function add(theme) {
+    var p = problems(theme);
+    if (p.length) throw new Error('theme refused: ' + p[0]);
+    if (THEMES[theme.id]) throw new Error('theme already registered: ' + theme.id);
+    THEMES[theme.id] = theme;
+    return theme;
+  }
+
+  // Split a token bag into the values that can be painted and the ones that
+  // cannot be read. ONE place decides what a usable override is, so the screen
+  // (which names the bad ones) and the engine (which ignores them) never disagree.
+  function checkTokens(tokens) {
+    var good = {}, ignored = [];
+    var raw = (tokens && typeof tokens === 'object' && !Array.isArray(tokens)) ? tokens : {};
+    Object.keys(raw).forEach(function (k) {
+      if (BASE.indexOf(k) === -1 || !isColor(k, raw[k])) { ignored.push(k); return; }
+      good[k] = raw[k];
+    });
+    return { good: good, ignored: ignored };
+  }
+
+  function remember(id, overrides) {
+    if (typeof localStorage === 'undefined') return;
+    try {
+      localStorage.setItem(STORE_KEY, id);
+      localStorage.setItem(TOKENS_KEY, JSON.stringify(overrides || {}));
+    } catch (e) { /* private mode: the theme still applies for this session */ }
+  }
+
+  // What THIS browser last painted (the head script's copy, possibly from a build
+  // that predates custom.theme). Read-only: the state stays the authority, and the
+  // boot adopts a device-only choice instead of resetting the shop's look.
+  function cachedTheme() {
+    var id = null, toks = null;
+    if (typeof localStorage !== 'undefined') {
+      try { id = localStorage.getItem(STORE_KEY); toks = localStorage.getItem(TOKENS_KEY); } catch (e) {}
+    }
+    var overrides = {};
+    if (toks) {
+      try {
+        var parsed = JSON.parse(toks);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) overrides = parsed;
+      } catch (e) { overrides = {}; }
+    }
+    return { id: THEMES[id] ? id : null, tokens: overrides };
+  }
+
+  // Read back what the shop declared: base theme + its own colors.
+  // An override that cannot be read is IGNORED and REPORTED — a phone must never
+  // open into an unreadable screen because of one bad value.
+  function applyTheme(theme) {
+    var wanted = (theme && typeof theme === 'object' && !Array.isArray(theme)) ? theme : {};
+    var id = THEMES[wanted.id] ? wanted.id : DEFAULT;
+    paint(THEMES[id].tokens);            // the base first...
     currentId = id;
-    if (typeof document !== 'undefined' && document.documentElement) {
-      var keys = Object.keys(t.tokens);
-      for (var i = 0; i < keys.length; i++) {
-        document.documentElement.style.setProperty(keys[i], t.tokens[keys[i]]);
-      }
+
+    var raw = (wanted.tokens && typeof wanted.tokens === 'object' && !Array.isArray(wanted.tokens)) ? wanted.tokens : {};
+    var split = checkTokens(raw);
+    paint(split.good);                    // ...then the shop's own colors
+    currentOverrides = split.good;
+    remember(id, split.good);
+    return { id: id, overrides: Object.keys(split.good).length, ignored: split.ignored };
+  }
+
+  function set(id) {
+    if (!THEMES[id]) return false;
+    applyTheme({ id: id, tokens: {} });   // picking a preset drops the shop's tweaks (they can re-tweak)
+    if (typeof document !== 'undefined' && typeof CustomEvent !== 'undefined') {
+      document.dispatchEvent(new CustomEvent('dekkan:theme', { detail: { id: id } }));
     }
     return true;
   }
 
-  function persist(id) {
-    if (typeof localStorage !== 'undefined') {
-      try { localStorage.setItem(STORE_KEY, id); } catch (e) { /* private mode */ }
-    }
+  function restore() {
+    var saved = cachedTheme();
+    applyTheme({ id: saved.id, tokens: saved.tokens });
+    return currentId;
   }
+
+  // ---------- the editor's live preview (no save until the shopkeeper says so) ----------
+  function preview(tokens) {
+    var good = checkTokens(tokens).good;
+    paint(good);
+    return Object.keys(good).length;
+  }
+
+  function revert() {
+    applyTheme({ id: currentId, tokens: currentOverrides });
+    return currentId;
+  }
+
+  // ---------- export / import: a theme is a file a shopkeeper can share ----------
+  function exportTheme(theme) {
+    var wanted = (theme && typeof theme === 'object' && !Array.isArray(theme)) ? theme : { id: currentId, tokens: currentOverrides };
+    var id = THEMES[wanted.id] ? wanted.id : currentId;
+    var tokens = {};
+    BASE.forEach(function (k) { tokens[k] = THEMES[id].tokens[k]; });   // stand-alone: the WHOLE set
+    var ov = (wanted.tokens && typeof wanted.tokens === 'object' && !Array.isArray(wanted.tokens)) ? wanted.tokens : {};
+    Object.keys(ov).forEach(function (k) { if (BASE.indexOf(k) !== -1 && isColor(k, ov[k])) tokens[k] = ov[k]; });
+    return JSON.stringify({ name: 'Dekkan ' + id, id: id, tokens: tokens }, null, 2);
+  }
+
+  // Untrusted text in, either a usable override set or the reasons it was refused.
+  // NEVER applies anything by itself: the caller decides (the screen shows the reasons).
+  function importTheme(text) {
+    var raw;
+    try { raw = JSON.parse(String(text)); } catch (e) { return { ok: false, problems: ['that is not valid JSON'] }; }
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return { ok: false, problems: ['a theme must be a JSON object'] };
+    if (!raw.id || !THEMES[String(raw.id)]) return { ok: false, problems: ['unknown base theme: ' + String(raw.id)] };
+    if (!raw.tokens || typeof raw.tokens !== 'object' || Array.isArray(raw.tokens)) return { ok: false, problems: ['theme.tokens must be an object'] };
+    var bad = [];
+    Object.keys(raw.tokens).forEach(function (k) {
+      if (BASE.indexOf(k) === -1) bad.push('unknown token ' + k);
+      else if (!isColor(k, raw.tokens[k])) bad.push('token ' + k + ' is not a CSS color: ' + String(raw.tokens[k]).slice(0, 24));
+    });
+    if (bad.length) return { ok: false, problems: bad };
+    return { ok: true, theme: { id: String(raw.id), tokens: Object.assign({}, raw.tokens) }, name: typeof raw.name === 'string' ? raw.name : '' };
+  }
+
 
   var Themes = {
     DEFAULT: DEFAULT,
+    BASE: BASE,
     baseTokens: function () { return BASE.slice(); },
+    problems: problems,
+    add: add,
+    checkTokens: checkTokens,
     all: function () {
       return Object.keys(THEMES).map(function (id) { return THEMES[id]; });
     },
     get: function (id) { return THEMES[id] || null; },
     current: function () { return THEMES[currentId]; },
-    set: function (id) {
-      if (!THEMES[id]) return false;
-      apply(id);
-      persist(id);
-      if (typeof document !== 'undefined' && typeof CustomEvent !== 'undefined') {
-        document.dispatchEvent(new CustomEvent('dekkan:theme', { detail: { id: id } }));
-      }
-      return true;
-    },
-    restore: function () {
-      var saved = null;
-      if (typeof localStorage !== 'undefined') {
-        try { saved = localStorage.getItem(STORE_KEY); } catch (e) {}
-      }
-      apply(THEMES[saved] ? saved : DEFAULT);
-      return currentId;
-    }
+    currentId: function () { return currentId; },
+    // the shop's OWN colors (never the base's) — what the editor loads
+    overrides: function () { return Object.assign({}, currentOverrides); },
+    isCustomized: function () { return Object.keys(currentOverrides).length > 0; },
+    set: set,
+    applyTheme: applyTheme,
+    restore: restore,
+    cachedTheme: cachedTheme,
+    preview: preview,
+    revert: revert,
+    exportTheme: exportTheme,
+    importTheme: importTheme
   };
 
   return { THEMES: THEMES, Themes: Themes, BASE: BASE };

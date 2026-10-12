@@ -3,92 +3,101 @@
 > State of the work for whoever picks this up next (other device, other chat, future you).
 > Rewrite it, don't append. The body may be `Nothing pending.` — the file always exists.
 
-Last updated: 2026-10-12 (part 2) — by Big Pickle (DESKTOP-OJME2E2)
+Last updated: 2026-10-12 (part 3) — by Big Pickle (DESKTOP-OJME2E2)
 
-## Done (this session)
-- **Refunds-off switch now really turns the feature off** (`01e8b35`, pushed): turning off
-  Settings > "Refunds allowed" takes the Refund button off the Sell page **and** off every
-  ticket. Before: the core refused ("refunds are turned off") but the buttons stayed on
-  screen and looked dead — Dali's report: *"when i check off returning i still can click it
-  like it does nothing but the button is still there"*. Also: `toggleRefundMode` /
-  `doRefund` / `receiptRefund` now refuse with a **translated** toast (`toast.refundsOff`,
-  AR + EN) instead of a raw English string. New RED-first tests: `test/ui.test.ts`
-  (harness `classList` upgraded from no-op to a real set — a no-op list cannot tell a
-  hidden button from a dead one) + `e2e/refund-toggle.spec.ts` (PC + Phone journey).
-- **RULES.md restored** (this commit): `aa0f676` accidentally overwrote the real contract
-  with the empty seed template (the message even claimed a rule that got wiped with it).
-  Recovered the full contract from `9699780`, re-landed it, and re-added the lost
-  "never park keeper artifacts in `test-results/`" rule + today's refunds decision.
-- Project commands landed: `.opencode/commands/battery.md` + `ship.md` (`64c70a5`).
-- **UI/UX sweep CLOSED** (`64b2a00`, pushed) — measured the real DOM on all 9 pages
-  (PC 1280 + Pixel 5), fixed two real layout bugs the whole battery was blind to + two
-  polish items: desktop no longer paints the phone bar (was overlapping the sidebar
-  brand and pushing every page 67px down); phone bar + tab strip are ONE `.mhead`
-  sticky unit (strip no longer rides over the bar); phone stock rows stack and shrink;
-  sidebar tagline wraps. 3 DOM-measurement regressions added, each verified to FAIL on
-  the pre-fix CSS.
-- Measured clean: no sideways scroll, zero page errors, every card fits (the till glow
-  clipped by `.till{overflow:hidden}` is decorative, not a bug). Screenshots for Dali's
-  eyeball: `C:\Users\Dali\Documents\dekkan-ux-screens\` (outside the repo on purpose).
-- Earlier the same day: M04 reason codes (`a4fd3c5`) and the encrypted MySQL dump (`9955aeb`).
+## Done (this session, newest first)
 
-## Done (2026-10-12, part 2)
-- **Language engine** (`4d27ce0`): `ui/langs.ts` is the theme engine applied to words — a language
-  is `{id, name, native, dir, keys}` registered through `DEK.Langs`; `add()` refuses a malformed or
-  duplicate language loudly, `t()` resolves current → base → key, `dir()` lives on the object (no
-  `=== 'ar'` checks anywhere), `parity(id)` compares a language with the base, `resolve()` honours a
-  saved choice and falls back on garbage, and the engine writes `dekkan.langdir` so the pre-paint
-  snippet needs no language list. `ui/lang.ts` keeps its `T` facade (AR/EN key tables byte-identical),
-  so no page changed. The Settings language list is GENERATED from the registry (`#langSeg`, ids
-  `lang<Id>` so `#langAr`/`#langEn` still exist for e2e). `check-i18n` now enforces parity for EVERY
-  registered language. Loader lists all updated (index.html, ui.test.ts boot list, ui-lang.test.ts,
-  check-i18n sandbox, sw SHELL v42→v43, deploy.py FILES).
-- **Wave 1 — `state.custom` foundation** (`e4f809e`): the customization shape as DATA (brand, money
-  format, dates, print, receipt wording, tab order/hidden, docLanguage) with `defaultCustom()`,
-  `customProblems()`, `ensureCustomState()` (repair on boot + import, never throws) and strict
-  `setCustom()` (throws + writes nothing). `stateProblems()` reports `custom: …`. 14 RED-first tests
-  in `test/custom.test.ts`. **Invisible on purpose** — waves 2–6 read this shape.
-- Battery at this HEAD: `npm run check` exit 0 → **318 unit** · **65 sim** · **i18n en=351 ar=351** ·
-  **137 e2e** (PC + Phone). index.html still CRLF (bare LF = 0).
+- **Wave 4 (part A) — the shop's own LISTS** (`c2b8fa3`, pushed): `state.custom.lists =
+  {units, suppliers, refundReasons}`. Core owns the rules (`CUSTOM_LISTS`: units keep 1..24
+  items, suppliers 0..50, refund reasons 0..12; an item is 1..24 chars for units, 1..60 for
+  the others) and `listProblems()` refuses **BY NAME** (`lists.units` …). `ensureCustomState()`
+  repairs a list it cannot read (trim, de-duplicate, drop junk, defaults for a list it cannot
+  salvage) and stays a fixed point. `Settings > "Shop lists"` = one row per list (chips + one
+  input + one message under that row; a refusal names the list and writes nothing). A product
+  now REMEMBERS its unit (`addProduct`/`setProduct` validate it) and the unit rides the sale
+  line so the ticket prints **"×1 kg"** instead of "×1". The lists reach the forms that use
+  them: the product form's unit picker + native `<datalist>` hints for **suppliers** (buy form)
+  and **refund reasons** (both refund fields) — the same pattern as the customer/cashier names.
+  13 new i18n keys per language. Tests: `test/custom-lists.test.ts` (16, RED-first) +
+  `e2e/lists.spec.ts` (18 = 9 journeys × PC + Phone). The e2e caught a real bug the unit tests
+  could not: `P.listAdd is not a function` (the helper lives in `actions`, not `pages`).
+- **Deployed: `dekkan.web.app` is LIVE** (Firebase hosting, project `dekkan`) — the long-standing
+  404 is closed, verified serving the current build (the new lists card is on it). GitHub Pages
+  redeploys itself from `main` on every push (`.github/workflows/pages.yml` → build + deploy).
+- **Dali's comment rule applied to the WHOLE codebase** (`0dea5f0`, pushed): **no comments
+  inside a function body** in any file, old code included; comments live above the function or at
+  the top of the file. Applied mechanically with an auditable tool (temp `comment-sweep.js`): a
+  character scan that tracks strings / template literals / regex literals (so a `//` in a URL or
+  a `\//` escape is never a comment), comment lines grouped into contiguous blocks, each block
+  attributed to the innermost function body, a "why" block HOISTED above its function as one
+  `/* … */` paragraph, pure narration dropped (git history keeps it), trailing comments cut while
+  the code stayed, eslint/istanbul/@ts-* directives never moved, and every touched file
+  renormalized to its committed line endings. 49 files, 340 comment lines, 91 blocks. A
+  `git diff -U0` AUDIT refuses any changed line that is not a comment — it caught two real bugs in
+  the tool itself (a regex escape eaten as a comment; trailing comments deleting the code before them).
+- **Wave 3 (A+B) — the shop's own PAPER** (`1b8cc0e`, pushed): money format (symbol / position /
+  decimals / thousands / digits; `''` symbol = follow the interface language), 6 whitelisted date
+  formats (`CUSTOM_DATE_FORMATS` in core, mirrored in `ui/fmt.ts` with a drift-guard test), the
+  brand block (logo, shop, tagline, address, phone, tax id), header/footer wording, paper size
+  58/80/A4 (a JS-managed `<style id="paperStyle">` — `@page` cannot be class-scoped), copies,
+  auto-print, and a printed language that can differ from the screen's. Screen = ONE table
+  (`DOC_FIELDS`, 19 fields) + live sample + a message line that NAMES a refusal. `receipt.showCashier`
+  DROPPED (nothing in the UI knows who rang it — a switch that prints nothing is a lie);
+  `receipt.qr` stays validated data (no fake QR). `test/money-format.test.ts` (13) +
+  `e2e/documents.spec.ts` (20).
+- **Wave 2 — the shop's own COLOURS** (`f5d23c1`, pushed): `ui/themes.ts` engine (a theme =
+  `{id, tokens}` OVERRIDES on a base; state is authoritative, localStorage only the no-flash
+  cache; an unreadable override is ignored on load but refused by name on write; imported JSON is
+  untrusted text; Save writes only the tokens that DIFFER from the preset, Export writes all 42;
+  a device-cache-only choice is adopted into state on boot). Settings theme editor + JSON panel,
+  26 i18n keys, `test/theme-custom.test.ts` (15) + 4 vm-harness tests + `e2e/theme-editor.spec.ts` (20).
+- **Language engine** (`4d27ce0`) and **wave 1 `state.custom`** (`e4f809e`): see `docs/customize-plan.md`
+  and the `RULES.md` Decisions list. The engine writes `dekkan.langdir`; wave 1 shipped invisibly on purpose.
 
 ## In progress
-- **2026-10-12 verification pass + customization plan (`docs/customize-plan.md`).** Dali asked
-  "list everything left and how customizable can this get — maximum". The repo is green
-  (`f63cd9b`, gate exit 0) and **no P0 engineering remains**; the pass found the open items are
-  ops + polish + one missing language, not core work. Verified live (no code changed):
-  **GitHub Pages = current** (`.mhead` + `#btnGoogle` + sw v42), **modali = STALE** (sw v39, no
-  `.mhead`, no `#btnGoogle` — missing the 2026-10-10/11 trust pack, login wall and layout fixes),
-  **`dekkan.web.app` = 404 "Site Not Found"** (never deployed). `A_VERSION` still `0.19.0`.
-  The plan doc holds Part A (everything open, grouped) and Part B (6 customization layers, what
-  must never be customizable, the honest "how far" numbers, and a 6-wave build order).
-  **Awaiting Dali's pick of the next wave** — nothing else is in flight.
+- **Nothing.** Wave 4 part A is closed, committed and pushed. Battery at this HEAD: `npm run check`
+  exit 0 → **369 unit** · **65 sim** · **i18n en=439 ar=439** (parity enforced) · tsc clean; the new
+  `e2e/lists.spec.ts` 18/18. A full-suite re-run was in flight at the time of writing (previous
+  HEAD was 179 passed / 3 skipped).
 
 ## Next step
-1. **Dali tests wave 1 + the language engine himself**, then picks wave 2 (theme editor + theme
-   JSON import/export) or names another wave. One wave in flight at a time (RULES.md).
-2. He also still owes an answer on the `UNSURE` below (`api/schema-p0.sql` on the host?) and on
-   the two stale/dead hosts in "Blocked".
+1. **Dali tests wave 4 himself** (Settings → قوائم الدكان: add a unit "carton", create a product
+   with kg, sell it, look at the ticket) and then picks the next wave.
+2. Wave order left (`docs/customize-plan.md` B.4): **4 part B** = custom FIELDS (extra labelled
+   fields on a product/client/employee, one flagged to print on the receipt) · **5** = tabs order /
+   landing page / density via a page registry (the third engine of the same shape) · **6** = wire
+   `ui/langs-fr.ts` into every loader list + top up the FR delta + templates. One wave in flight (RULES.md).
+3. Wave 3 part C is deliberately DEFERRED: the PHP mirror of the custom-shape checks in
+   `api/state.php`. It cannot be tested here (`php` is not installed) and the values are cosmetic —
+   the app already repairs what it cannot read, so shipping untested PHP that could 409 a valid
+   push is the worse trade. Do it where a PHP runtime exists.
 
 ## Blocked / needs Dali (his hands — the dev box cannot do these)
-- **modali is serving a STALE build** (sw v39, no `.mhead`, no `#btnGoogle`) — needs
-  `$env:DEKKAN_SFTP_PASS=…; python scripts/deploy.py` from the repo root, or it stays behind.
-- **`dekkan.web.app` returns 404** — deploy it or drop `firebase.json`/`.firebaserc`.
+- **modali is STALE** (sw v39, no `.mhead`, no `#btnGoogle`): `$env:DEKKAN_SFTP_PASS='…'; python
+  scripts/deploy.py` from `C:\Users\Dali\Projects\dekkan`. The password is not on this box and must
+  never be committed. (`dekkan.web.app` + GitHub Pages are both current now.)
 - Run the `api/schema-p0.sql` ALTER on the live host (php is not installed here).
-- Set `backupKey` + `backupRunKey` in the host's `api/config.php` and add the cron/CLI
-  call to `api/backup.php?run=…`; then do one real restore drill from a produced dump.
+- Set `backupKey` + `backupRunKey` in the host's `api/config.php`, add the cron/CLI call to
+  `api/backup.php?run=…`, then do one real restore drill from a produced dump.
 - Create the Google OAuth client id and put it in `js/config.js` + `api/config.php`.
+- `ui/app.ts` `A_VERSION` still reads `0.19.0` while the About card shows `0.4.0` — pick one number.
 
 ## Environment notes
-- Machine: `DESKTOP-OJME2E2` (Win 10, PowerShell 5.1 — **not bash**), Node v26.5.0, npm 11.17.0. `php` absent.
+- Machine `DESKTOP-OJME2E2` (Win 10, PowerShell 5.1 — **not bash**), Node v26.5.0, npm 11.17.0. `php` absent.
 - Repo root `C:\Users\Dali\Projects\dekkan` — branch `main` — remote `https://github.com/DALI951/dekkan` (PUBLIC).
-- Battery at this HEAD: `npm run check` exit 0 · **318 unit** · **65 sim** · **i18n en=351 ar=351** · **137 e2e** (PC+Phone).
 - `npm run build` is required before e2e (the browser loads the emitted `.js`; those files are gitignored).
-- Dev server still up: `node scripts/serve.js 4173` → http://127.0.0.1:4173 (local mode seeded).
+- Deploy: GitHub Pages = automatic on push. Firebase = `firebase deploy --only hosting` (project `dekkan`,
+  authenticated on this box; the local `.firebase/` cache is now gitignored).
 
 ## Watch out
-- `index.html` is **CRLF** — re-normalize after any edit and verify zero bare LF.
-- **A new loaded file must join EVERY loader list** (RULES.md): `index.html`, `test/ui.test.ts`, `sw.ts` SHELL (+ `SW_VERSION`), `scripts/deploy.py` FILES, and the vm sandboxes that load that layer (`scripts/check-i18n.ts`, `test/ui-lang.test.ts`). A miss loads it in one place only, silently.
-- New shipped file → add it to `scripts/deploy.py`'s `FILES` list.
+- `index.html` / `css/style.css` / `ui/lang.ts` are **CRLF**; `RULES.md` and the `.ts` sources are **LF**.
+  Whichever you edit, re-normalize to what the committed blob has and verify (a file-surgery script in node,
+  never `Get-Content`/`Set-Content`, never the `edit` tool on a whole file).
+- **A new loaded file must join EVERY loader list** (RULES.md): `index.html`, `test/ui.test.ts`, `sw.ts`
+  SHELL (+ `SW_VERSION`), `scripts/deploy.py` FILES, and the vm sandboxes that load that layer.
+- A new screen ALSO needs an e2e spec: the vm harness cannot run generated DOM, and that is how
+  `P is not defined`, `fmt is not defined`, `Langs.list()`, and now `P.listAdd` were caught.
+- Deploying to Firebase uploads the repo root (`"public": "."`) minus `firebase.json`'s ignore list — remember
+  the built `.js` are gitignored but must exist on disk at deploy time.
 - `scripts/seed-test.json` is intentionally untracked — leave it.
-- Do not reintroduce independent stickies at `top:0` for the mobile header/tab strip (see RULES.md).
 - `RULES.md` is a real contract — never re-seed it from the template over the real content.

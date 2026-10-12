@@ -57,8 +57,7 @@ Last updated: 2026-10-12 (part 3) — by Big Pickle (DESKTOP-OJME2E2)
 ## In progress
 - **Nothing.** Wave 4 part A is closed, committed and pushed. Battery at this HEAD: `npm run check`
   exit 0 → **369 unit** · **65 sim** · **i18n en=439 ar=439** (parity enforced) · tsc clean; the new
-  `e2e/lists.spec.ts` 18/18. A full-suite re-run was in flight at the time of writing (previous
-  HEAD was 179 passed / 3 skipped).
+  `e2e/lists.spec.ts` 18/18. Full e2e suite re-run at this HEAD: **197 passed / 3 skipped (8.1m)**.
 
 ## Next step
 1. **Dali tests wave 4 himself** (Settings → قوائم الدكان: add a unit "carton", create a product

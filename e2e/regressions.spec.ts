@@ -7,8 +7,8 @@
 const { test, expect } = require('@playwright/test');
 const { open, seedPrefs } = require('./helpers');
 
+/* a test that skipped itself (wrong viewport) never opened the app at all */
 test.afterEach(async ({ page }) => {
-  // a test that skipped itself (wrong viewport) never opened the app at all
   expect(page.__errors || []).toEqual([]);
 });
 
@@ -44,8 +44,6 @@ test('the chosen theme applies from the first paint and survives a reload', asyn
   expect(await bg()).toBe('#06140f');
   await expect(page.locator('#themeGrid')).toContainText('Midnight Mint'); // …and it's marked in the UI
 
-  // …and the choice is now the SHOP's own (it travels in the backup), not just this
-  // browser's: a device that picked a theme before custom.theme existed is migrated.
   const saved = await page.evaluate(() => {
     try { return JSON.parse(localStorage.getItem('dekkan.v1') || '{}').custom.theme; } catch (e) { return null; }
   });
@@ -54,11 +52,9 @@ test('the chosen theme applies from the first paint and survives a reload', asyn
 
 test('a stale device cache cannot overrule what the SHOP declared', async ({ page }) => {
   await open(page, '#/settings');
-  // the shopkeeper picks Indigo Night through the screen (this writes the shop's data)
   await page.locator('#btnThemeEdit').click();
   await page.locator('#themeBase [data-base="royal"]').click();
   await page.locator('#btnThemeSave').click();
-  // …then an old cache line from another build survives in this browser
   await page.evaluate(() => localStorage.setItem('dekkan.theme', 'mint'));
 
   await page.reload();
@@ -92,7 +88,6 @@ test('desktop shows the sidebar and NEVER the phone bar / tab strip', async ({ p
   expect(await shown('.sidebar'), 'the sidebar rail is the desktop nav').toBe(true);
   expect(await shown('.topbar'), 'the mobile bar must not paint on desktop').toBe(false);
   expect(await shown('.topnav'), 'the mobile tab strip must not paint on desktop').toBe(false);
-  // the page starts right under the top edge, not 67px down under a phantom bar
   const top = await page.locator('#view .page.show').evaluate((el) => el.getBoundingClientRect().top);
   expect(top).toBeLessThan(60);
 });
@@ -100,8 +95,6 @@ test('desktop shows the sidebar and NEVER the phone bar / tab strip', async ({ p
 test('phone: the tab strip docks UNDER the bar when the page is scrolled', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'Phone', 'phone-only assertion');
   await open(page, '#/stock');
-  // a tall spacer after everything guarantees the document really scrolls,
-  // whatever the seeded shop happens to contain — otherwise this test is vacuous
   await page.evaluate(() => {
     const d = document.createElement('div');
     d.style.cssText = 'height:2000px';
@@ -133,6 +126,7 @@ test('phone: a stock row fits inside its card (name readable, no button hanging 
 
   const bad = await page.evaluate(() => {
     const out = [];
+    /* the product name is the reason the row exists — it must stay readable */
     document.querySelectorAll('#stockList .stock-card').forEach((card) => {
       const c = card.getBoundingClientRect();
       if (card.scrollWidth > card.clientWidth + 1) out.push('row overflows its card');
@@ -140,7 +134,6 @@ test('phone: a stock row fits inside its card (name readable, no button hanging 
         const r = b.getBoundingClientRect();
         if (r.left < c.left - 0.5 || r.right > c.right + 0.5) out.push('button ' + b.textContent + ' hangs outside the card');
       });
-      // the product name is the reason the row exists — it must stay readable
       const name = card.querySelector('.s-name');
       if (name && name.getBoundingClientRect().width < 60) out.push('name crushed to ' + Math.round(name.getBoundingClientRect().width) + 'px');
     });

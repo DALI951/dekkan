@@ -42,7 +42,6 @@ test('cashbox: category names are trimmed and must not be empty', () => {
 test('cashbox: duplicate category names are refused per side', () => {
   let s = D.addCategory(shop(), { name: 'كراء', side: 'out' });
   assert.throws(() => D.addCategory(s, { name: 'كراء', side: 'out' }), /exists/);
-  // the same name on the OTHER side is a different pool — allowed
   s = D.addCategory(s, { name: 'كراء', side: 'in' });
   assert.strictEqual(s.categories.in.length, 1);
   assert.strictEqual(s.categories.out.length, 1);

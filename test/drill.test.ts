@@ -39,54 +39,51 @@ function realShop() {
 // Exactly the bytes the Settings "export backup" button writes to disk.
 function exportBytes(s) { return JSON.stringify(s, null, 2); }
 
+/* 1) the till — money is derived, so it must land on the same fils
+
+   3) the month — history came back whole, not just today
+
+   4) the stock ledger — counters must equal the movement ledger */
 test('DATA-001: a real exported backup restores and EVERY total reconciles', () => {
   const live = realShop();
   const restored = D.restoreState(JSON.parse(exportBytes(live)));
 
-  // the shop itself is intact, byte for byte
   assert.deepStrictEqual(restored, live, 'the restored shop is identical to the exported one');
 
-  // the integrity gate agrees the restored shop is internally consistent
   assert.deepStrictEqual(D.stateProblems(restored), [], 'no integrity problems after restore');
 
-  // 1) the till — money is derived, so it must land on the same fils
   assert.strictEqual(D.cash(restored), D.cash(live), 'till reconciles');
 
-  // 2) tonight's report — same cash, same movements, in the same order
   const a = D.dayReport(live), b = D.dayReport(restored);
   assert.strictEqual(b.cash, a.cash, 'day-report cash reconciles');
   assert.deepStrictEqual(b.entries.map(e => e.amount), a.entries.map(e => e.amount), 'every movement reconciles');
 
-  // 3) the month — history came back whole, not just today
   const ym = D.todayStr().slice(0, 7);
   assert.deepStrictEqual(D.monthlyReport(restored, ym), D.monthlyReport(live, ym), 'the month reconciles');
 
-  // 4) the stock ledger — counters must equal the movement ledger
   assert.deepStrictEqual(restored.products.map(p => p.stock), live.products.map(p => p.stock), 'stock counts reconcile');
 
-  // 5) people — the customers and the debts survived
   assert.deepStrictEqual(D.customerNames(restored), D.customerNames(live), 'customers reconcile');
   assert.deepStrictEqual(restored.debts, live.debts, 'debts reconcile');
 });
 
+/* ...and yet it is NOT recoverable: the gate refuses it.
+
+   and junk that never was a shop is refused before anything is touched */
 test('DATA-001: a file that PARSES but is corrupt is refused — parsing is not recovering', () => {
   const live = realShop();
 
-  // "upload success": the JSON is fine, the shop name and ids are intact...
   const tampered = JSON.parse(exportBytes(live));
   const sale = tampered.day.entries.find(e => e.kind === 'sale');
   sale.amount = 999; // ...but the money no longer matches the bill
   assert.doesNotThrow(() => JSON.parse(JSON.stringify(tampered)), 'it still parses: an upload would report success');
 
-  // ...and yet it is NOT recoverable: the gate refuses it.
   assert.throws(() => D.restoreState(tampered), /integrity|backup/, 'a corrupt backup is refused, not restored');
 
-  // a half-merged backup (duplicate entry id) is caught too
   const dup = JSON.parse(exportBytes(live));
   dup.day.entries.push(JSON.parse(JSON.stringify(dup.day.entries[0])));
   assert.throws(() => D.restoreState(dup), /integrity|backup/);
 
-  // and junk that never was a shop is refused before anything is touched
   for (const junk of [null, 42, 'hello', [], '<html>500</html>']) {
     assert.throws(() => D.restoreState(junk), /backup/);
   }

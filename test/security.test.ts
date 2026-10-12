@@ -21,23 +21,20 @@ test('SEC-001: a cashier cannot change or wipe the PIN — the owner can', () =>
   const changed = D.setPin(pinState(), '9999');
   const wiped = pinState(); delete wiped.settings.pinHash;
 
-  // cashier: anything that touches the lock is denied
   assert.equal(D.canApply('cashier', base, changed).ok, false, 'cashier may not change the pin');
   assert.equal(D.canApply('cashier', base, wiped).ok, false, 'cashier may not wipe the pin');
-  // owner: the same actions are fine
   assert.equal(D.canApply('owner', base, changed).ok, true, 'owner changes the pin');
   assert.equal(D.canApply('owner', base, wiped).ok, true, 'owner may wipe the pin (their choice)');
-  // a cashier acting on a state WITHOUT the lock field is still denied if the change introduces it
   const gainsPin = D.setPin(pinState(), '4242');
   const clean = pinState(); delete clean.settings.pinHash; delete clean.settings.pinSalt;
   assert.equal(D.canApply('cashier', clean, gainsPin).ok, false, 'cashier may not ADD a pin either');
 });
 
+/* the sale day runs ON THE SAME shop (same lock, same salt) — only business moves */
 test('SEC-001: a cashier keeps the day-to-day powers — prices, sales, expenses', () => {
   const base = pinState();
   const repriced = D.setProduct(base, base.products[0].id, { sell: 1.6 });
   assert.equal(D.canApply('cashier', base, repriced).ok, true, 'cashier can change prices');
-  // the sale day runs ON THE SAME shop (same lock, same salt) — only business moves
   let s = D.sellAll(base, { items: [{ id: base.products[0].id, qty: 1 }], paid: 1.5 });
   s = D.expense(s, { amount: 2, note: 'water' });
   assert.equal(D.canApply('cashier', base, s).ok, true, 'cashier can ring sales and expenses');

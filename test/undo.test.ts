@@ -103,7 +103,6 @@ test('undo trips the day rollover guard: only TODAYS last sale', () => {
   let s = shopWith([COLA]);
   const pid = s.products[0].id;
   s = D.sellAll(s, { items: [{ id: pid, qty: 1 }] });   // today: sale of 1.5
-  // simulate the shop being opened "tomorrow": the sale now belongs to a CLOSED day
   s.day.date = '2000-01-01'; // fake an old open day (rollover closes it on next action)
   s = D.rollover(s);
   assert.strictEqual(s.days.length, 1, 'yesterday was closed into history');

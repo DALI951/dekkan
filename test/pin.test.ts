@@ -48,6 +48,7 @@ test('PIN rules: 4-6 digits only, and it can be changed', () => {
   assert.strictEqual(D.checkPin(s, '12345'), false);
 });
 
+/* and exports never show the digits */
 test('a backed-up shop keeps its PIN (hash travels with settings)', () => {
   let s = D.createShop({ name: 'Test' });
   s = D.setPin(s, '4321');
@@ -55,6 +56,5 @@ test('a backed-up shop keeps its PIN (hash travels with settings)', () => {
   assert.strictEqual(D.hasPin(restored), true);
   assert.strictEqual(D.checkPin(restored, '4321'), true);
   assert.strictEqual(D.checkPin(restored, '1234'), false);
-  // and exports never show the digits
   assert.ok(!JSON.stringify(restored.settings).includes('4321'));
 });

@@ -18,10 +18,10 @@ const { fakeFirebase } = require('./fake-firebase.ts');
 
 const ROOT = path.join(__dirname, '..');
 
+/* a REAL class list: half of what the shopkeeper sees is a class (`.hidden`,
+   `.on`) and a stub that always answers "no" cannot tell a hidden button from
+   a dead one (that is exactly how the refunds-off button hid from us). */
 function el(id) {
-  // a REAL class list: half of what the shopkeeper sees is a class (`.hidden`,
-  // `.on`) and a stub that always answers "no" cannot tell a hidden button from
-  // a dead one (that is exactly how the refunds-off button hid from us).
   const cls = new Set();
   const e = {
     id, value: '', textContent: '', innerHTML: '', className: '', checked: false,
@@ -49,11 +49,14 @@ function el(id) {
 // optional seed(s): mutate the state (with real core calls) BEFORE the page boots;
 // a second callback can pre-fill localStorage (e.g. a persisted language) before the scripts load;
 // a third `env` can replace fetch/confirm (the cloud: 404 "no state" by default; confirm: yes by default)
+/* the root style is recorded, not thrown away: the theme engine paints the
+   shop's colours onto documentElement (ui/themes.ts), and a harness that cannot
+   be painted cannot tell a themed screen from an unthemed one
+
+   `pre` runs LAST: filling localStorage is the whole point (an old state on the
+   device, a saved session) and it must win over the freshly built shop */
 function boot(seed, pre, env) {
   const els = {};
-  // the root style is recorded, not thrown away: the theme engine paints the
-  // shop's colours onto documentElement (ui/themes.ts), and a harness that cannot
-  // be painted cannot tell a themed screen from an unthemed one
   const rootStyle = {};
   const doc = {
     documentElement: {
@@ -79,7 +82,6 @@ function boot(seed, pre, env) {
       storage: { estimate: () => ({ then() { return this; }, catch() { return this; } }) }
     },
     location: { hash: '' },
-    // no server in the harness: every cloud call answers 404 "no state"
     fetch: (env && env.fetch) || (() => Promise.resolve({ ok: false, status: 404, json: () => Promise.resolve({ error: 'no_state' }) })),
     confirm: (env && env.confirm) || (() => true),
     alert: () => {},
@@ -99,8 +101,6 @@ function boot(seed, pre, env) {
     (sandbox._h[t] = sandbox._h[t] || []).push(fn);
   };
   sandbox.window.dispatchEvent = function () {};
-  // env.fb = a fake Firebase (test/fake-firebase.js) standing in for the SDK:
-  //   { user: {uid,email,displayName}, docs: {'shops/u7': '<json string>'}, allowGoogle, failGet, ... }
   if (env && env.fb) sandbox.DEKKAN_FIREBASE = fakeFirebase(env.fb);
   vm.createContext(sandbox);
 
@@ -109,14 +109,7 @@ function boot(seed, pre, env) {
   s = core.addProduct(s, { name: 'Coca', buy: 0.8, sell: 1.5, stock: 10, lowAt: 3 });
   if (seed) s = seed(core, s);
   store['dekkan.v1'] = JSON.stringify(s);
-  // This suite drives the ARABIC UI it was written for — pin the language here
-  // so the assertions below stay about behaviour, not about which language a
-  // fresh browser happens to default to. (The fresh-browser default — English —
-  // is covered by test/ui-lang.test.ts and the e2e LANG specs.) A test that
-  // wants another language overrides it in `pre`.
   if (!('dekkan.lang' in store)) store['dekkan.lang'] = 'ar';
-  // `pre` runs LAST: filling localStorage is the whole point (an old state on the
-  // device, a saved session) and it must win over the freshly built shop
   if (pre) pre(store);
 
   ['core/dekkan-core.ts', 'core/core.ts', 'core/products.ts', 'core/debts.ts',
@@ -126,12 +119,12 @@ function boot(seed, pre, env) {
   });
 
   const $ = id => doc.getElementById(id);
+  /* HONEST tiles for real: a report metric box carries `data-metric` (never
+     `data-id`) — that is exactly what the page really renders (js/app.js
+     builds '<button data-action="metric-open" data-metric="sales">').
+     Pretending data-metric is data-id is what hid the metric panal bug
+     («لا حركة اليوم» even after a real sale) for a week. */
   const click = (action, id, i) => {
-    // HONEST tiles for real: a report metric box carries `data-metric` (never
-    // `data-id`) — that is exactly what the page really renders (js/app.js
-    // builds '<button data-action="metric-open" data-metric="sales">').
-    // Pretending data-metric is data-id is what hid the metric panal bug
-    // («لا حركة اليوم» even after a real sale) for a week.
     const tile = el('t');
     tile.getAttribute = k => (k === 'data-action' ? action
       : k === 'data-metric' ? (action === 'metric-open' ? id : null)
@@ -206,7 +199,6 @@ test('checkout: a part payment puts the rest on the customer', () => {
   assert.strictEqual(debts[0].total, 0.5, 'the 0.500 rest is on Samir');
   assert.ok(ui.$('toast').textContent.indexOf('Samir') !== -1, 'the toast says who owes');
   assert.ok(ui.$('rClient').textContent.indexOf('Samir #1') !== -1, 'the receipt shows the customer and their #1');
-  // the stub DOM writes receipt lines/totals via innerHTML, so read innerHTML here
   assert.ok(ui.$('rTotals').innerHTML.indexOf('0.500') !== -1, 'the paper spells out the rest');
   assert.match(ui.$('basketTotal').textContent, /^0\.000/, 'the basket resets');
 });
@@ -514,7 +506,6 @@ test('stock: the + never takes the basket over what is in stock', () => {
     return s;
   });
   const b = ui.saved().products.find(p => p.name === 'Biscuit');
-  // fill the basket up to the limit, then try to go beyond
   for (let i = 0; i < 4; i++) ui.click('basket-plus', b.id);
   assert.ok(ui.$('basketList').innerHTML.indexOf('x4') !== -1, 'basket holds 4');
 
@@ -563,16 +554,15 @@ test('receipt refund: free lines are cleared without stock, the sale stays filed
   assert.ok(s.day.entries.some(e => e.kind === 'sale'), 'the original sale stays filed');
 });
 
+/* a plain sale still works — only the refund path is closed */
 test('refunds OFF in settings: the refund buttons leave the screen (never a dead button)', () => {
   const ui = boot((core, s) => core.setSettings(s, { allowRefund: false }));
-  // the sell page: the button is GONE while the shop has refunds turned off
   assert.ok(ui.$('btnRefundMode').classList.contains('hidden'),
     'the Refund button is off the screen when refunds are turned off');
   ui.$('btnRefundMode').fire('click');
   assert.ok(ui.$('refundPanel').classList.contains('hidden'), 'and the panel can never open');
   assert.ok(ui.$('toast').textContent.length > 0, 'he is told WHY (not a silent button)');
 
-  // a plain sale still works — only the refund path is closed
   ui.click('sell-add', ui.pid);              // Coca x1 -> 1.500
   ui.$('paidCash').value = '1.5';
   ui.$('paidCash').fire('input');
@@ -918,7 +908,6 @@ test('a shop saved by an older version still opens, sells and reports — no whi
       shop: { name: 'Old Shop', startCash: 50 },
       products: [{ id: 'p1', name: 'Coca', buy: 0.8, sell: 1.5, stock: 10, lowAt: 3 }],
       day: { date: new Date().toISOString().slice(0, 10), startCash: 50, entries: [] },
-      // no settings, no debts, no categories, no customers, no employees, no days
     });
   });
   for (const page of ['#/sell', '#/report', '#/debts', '#/stock', '#/cashbox', '#/settings']) {
@@ -937,6 +926,8 @@ test('a shop saved by an older version still opens, sells and reports — no whi
 
 // ---------- P0-8: the half-built order survives a refresh (draft persistence) ----------
 
+/* "refresh": a new page boots over the SAME persisted shop (ids are random per
+   boot, so a real refresh must carry dekkan.v1 forward) plus the draft key */
 test('a half-built order survives a refresh, and the draft never enters the state', () => {
   const ui = boot();
   ui.click('sell-add', ui.pid);              // Coca x1
@@ -946,7 +937,6 @@ test('a half-built order survives a refresh, and the draft never enters the stat
   ui.$('btnAddFree').fire('click');          // + free Cafe 2.000 -> 5.000
   assert.strictEqual(ui.$('basketTotal').textContent, '5.000 د.ت', 'the running total');
 
-  // SALE-002: the draft is kept in its OWN key — the shop state has no basket
   const drafted = ui.store['dekkan.draft'];
   assert.ok(drafted, 'a draft was written');
   const d = JSON.parse(drafted);
@@ -955,8 +945,6 @@ test('a half-built order survives a refresh, and the draft never enters the stat
   assert.ok(!('basket' in ui.saved()) && !('draft' in ui.saved()),
     'the state blob itself carries no draft — stock/cash/report are untouched');
 
-  // "refresh": a new page boots over the SAME persisted shop (ids are random per
-  // boot, so a real refresh must carry dekkan.v1 forward) plus the draft key
   const ui2 = boot(undefined, s => { s['dekkan.v1'] = JSON.stringify(ui.saved()); s['dekkan.draft'] = drafted; });
   assert.strictEqual(ui2.$('basketTotal').textContent, '5.000 د.ت', 'the order is still there after reload');
 });
@@ -980,9 +968,9 @@ test('cancelling the order clears the draft too', () => {
   assert.strictEqual(ui.store['dekkan.draft'], undefined, 'cancel threw the draft away');
 });
 
+/* a draft from another tab mentioning a product that no longer exists, and a
+   qty beyond what is on the shelf — restoring it must not crash or oversell */
 test('a stale draft (deleted product / over-stock qty) is pruned on restore', () => {
-  // a draft from another tab mentioning a product that no longer exists, and a
-  // qty beyond what is on the shelf — restoring it must not crash or oversell
   const ui = boot(undefined, s => {
     const pid = JSON.parse(s['dekkan.v1']).products[0].id;
     s['dekkan.draft'] = JSON.stringify({
@@ -990,8 +978,6 @@ test('a stale draft (deleted product / over-stock qty) is pruned on restore', ()
       freeItems: [{ name: '', price: 1, qty: 1 }, { name: 'Cafe', price: 2, qty: 1 }]
     });
   });
-  // the ghost is dropped; the real product's qty is clamped to the 10 on the shelf;
-  // the nameless free line is dropped, the real one kept
   const d = JSON.parse(ui.store['dekkan.draft'] || '{"basket":[],"freeItems":[]}');
   assert.strictEqual(d.basket.length, 1, 'only the real product survives');
   assert.ok(d.basket[0].qty <= 10, 'and never more than the shelf holds');
@@ -1001,7 +987,6 @@ test('a stale draft (deleted product / over-stock qty) is pruned on restore', ()
 
 test('the shop\'s declared theme paints — the browser cache never overrules the state', () => {
   const core = require(path.join(ROOT, 'core', 'dekkan-core.ts'));
-  // the state says "mint with a red accent"; the device cache still says royal/green
   const ui = boot(
     (c, s) => c.setCustom(s, { theme: { id: 'mint', tokens: { '--acc': '#ff0000' } } }),
     (store) => {
@@ -1031,9 +1016,9 @@ test('the editor screen builds every token row (the vm harness can catch a broke
   assert.strictEqual(ui.sandbox.DEK.Themes.currentId(), 'souk', 'and closing it changes nothing either');
 });
 
+/* a device that picked Indigo Night (+ a colour tweak) before custom.theme existed:
+   the state is pristine, the cache is not — the shop's look must survive the upgrade */
 test('a device-only theme choice is ADOPTED into the shop\'s data, not silently wiped', () => {
-  // a device that picked Indigo Night (+ a colour tweak) before custom.theme existed:
-  // the state is pristine, the cache is not — the shop's look must survive the upgrade
   const ui = boot(undefined, (store) => {
     store['dekkan.theme'] = 'royal';
     store['dekkan.themetokens'] = JSON.stringify({ '--acc': '#ff0000' });

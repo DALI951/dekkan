@@ -21,7 +21,6 @@ test('the stock card tells the shelf story: opening, sale, on-hand', async ({ pa
   await page.locator('#btnSaveProduct').click();
   await expect(page.locator('#stockList')).toContainText('Coca');
 
-  // sell 3 (one tap + two "+") so the shelf actually moves
   await gotoTab(page, '#/sell');
   await page.locator('[data-action="sell-add"]').first().click();
   await page.locator('[data-action="basket-plus"]').first().click();
@@ -31,11 +30,9 @@ test('the stock card tells the shelf story: opening, sale, on-hand', async ({ pa
   await expect(page.locator('#receipt')).not.toHaveClass(/hidden/);
   await closeReceipt(page);
 
-  // the badge shows 7 on the shelf
   await gotoTab(page, '#/stock');
   await expect(page.locator('#stockList .s-stock')).toContainText('7');
 
-  // tap "Card" -> the panel opens with opening 10, the -3 sale, and on-hand 7
   await page.locator('[data-action="stock-card"]').first().click();
   await expect(page.locator('#metricPanel')).not.toHaveClass(/hidden/);
   await expect(page.locator('#metricTitle')).toContainText('Coca');
@@ -44,11 +41,13 @@ test('the stock card tells the shelf story: opening, sale, on-hand', async ({ pa
   await expect(body).toContainText('-3'); // the sale movement
   await expect(body).toContainText('7');  // running balance / on-hand
 
-  // the panel closes like every other panel
   await page.locator('#btnMetricClose').click();
   await expect(page.locator('#metricPanel')).toHaveClass(/hidden/);
 });
 
+/* count it wrong on purpose, with no reason picked
+
+   say why — the shelf moves and the story is on the card */
 test('M04: a manual count change must say WHY — refused without a reason, kept on the card with one', async ({ page }) => {
   await open(page, '#/stock');
   await page.locator('#btnAddProduct').click();
@@ -59,14 +58,12 @@ test('M04: a manual count change must say WHY — refused without a reason, kept
   await page.locator('#btnSaveProduct').click();
   await expect(page.locator('#stockList')).toContainText('Coca');
 
-  // count it wrong on purpose, with no reason picked
   await page.locator('[data-action="stock-edit"]').first().click();
   await page.locator('#pStock').fill('4');
   await page.locator('#btnSaveProduct').click();
   expect(await toastText(page)).toBe('Say why the count changed');
   await expect(page.locator('#stockList .s-stock')).toContainText('10'); // nothing moved
 
-  // say why — the shelf moves and the story is on the card
   await page.locator('#pReason').selectOption('damage');
   await page.locator('#btnSaveProduct').click();
   await expect(page.locator('#stockList .s-stock')).toContainText('4');

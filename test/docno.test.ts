@@ -35,7 +35,6 @@ test('DOC-001: rapid consecutive posts never produce a duplicate document number
   for (let i = 1; i < refunds.length; i++) assert.ok(refunds[i] > refunds[i - 1], 'refund sequence is strictly increasing');
   for (let i = 1; i < buys.length; i++) assert.ok(buys[i] > buys[i - 1], 'buy sequence is strictly increasing');
 
-  // per-kind counters are SEPARATE: a refund number is not a facture number
   assert.ok(refunds.some(function (n) { return factures.indexOf(n) === -1; }) || refunds[0] !== factures[0]);
 });
 
@@ -47,7 +46,6 @@ test('DOC-002: prefixes are configurable and the daily client # is untouched by 
   s = D.sellAll(s, { items: [{ id, qty: 1 }] });
   assert.equal(D.clientNoOf(s, lastEntry(s).id), 2, 'client # comes from the daily counter');
 
-  // the shop reconfigures the facture prefix mid-day
   s.settings.docPrefix.sale = 'FC';
   s = D.sellAll(s, { items: [{ id, qty: 1 }] });
   const third = lastEntry(s).doc.no;

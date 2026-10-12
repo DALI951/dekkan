@@ -62,7 +62,6 @@ function addProduct(state, p) {
     sku: sku
   };
   state.products.push(item);
-  // the first shelf movement is the opening count (source-linked ledger)
   if (item.stock !== 0) stockMove(state, item.id, item.stock, 'opening', null, null);
   return state;
 }
@@ -74,6 +73,10 @@ function getProduct(state, id) {
 }
 
 
+/* M04: a real stock edit is an ADJUSTMENT and it must say WHY (a closed code).
+   Optional free text rides along as stockNote. Neither ever lands on the product.
+
+   a direct stock edit is an ADJUSTMENT, never a silent overwrite (the workbook rule) */
 function setProduct(state, id, patch) {
   state = rollover(clone(state));
   const p = getProduct(state, id);
@@ -90,14 +93,11 @@ function setProduct(state, id, patch) {
   if ('sku' in patch) patch.sku = normalizeSku(patch.sku);
   if ('sku' in patch) assertSkuFree(state, patch.sku, p.id);
   const oldStock = p.stock;
-  // M04: a real stock edit is an ADJUSTMENT and it must say WHY (a closed code).
-  // Optional free text rides along as stockNote. Neither ever lands on the product.
   if ('stock' in patch && patch.stock !== oldStock) assertStockReason(patch.stockReason);
   for (const k in patch) {
     if (k === 'stockReason' || k === 'stockNote') continue;
     p[k] = patch[k];
   }
-  // a direct stock edit is an ADJUSTMENT, never a silent overwrite (the workbook rule)
   if ('stock' in patch && p.stock !== oldStock) {
     stockMove(state, p.id, p.stock - oldStock, 'adjust', null, patch.stockNote || null, patch.stockReason);
   }
@@ -152,12 +152,9 @@ function buyStock(state, productId, qty, unitBuy, supplier) {
   const floorQty = Math.floor(qty);
   p.stock += floorQty;
   var extra; extra = { qty: floorQty, unitBuy: u };
-  // PUR-001: the buy can name its supplier (string name or {name, contact});
-  // recorded on the entry so history per supplier survives day rollover.
   var sup = supplierOf(supplier);
   if (sup) extra.supplier = sup;
   pushEntry(state, 'buy', -total, productId, p.name + ' x' + floorQty, extra);
-  // the restock is a shelf movement, linked to the buy entry it belongs to
   stockMove(state, p.id, floorQty, 'buy', state.day.entries[state.day.entries.length - 1].id, p.name + ' x' + floorQty);
   return state;
 }

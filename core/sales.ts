@@ -33,7 +33,6 @@ function sellAll(state, opts) {
     revenue += unit * it.qty;
     cost += p.buy * it.qty;
     p.stock -= Math.floor(it.qty);
-    // the per-day refund budget: how many of THIS product left the shelf today
     const sp = (state.day.soldByProduct = state.day.soldByProduct || {});
     sp[p.id] = (sp[p.id] || 0) + Math.floor(it.qty);
     refs.push(p.name + 'x' + Math.floor(it.qty));
@@ -52,7 +51,6 @@ function sellAll(state, opts) {
   const net = money(revenue - discountOff(state, revenue, opts.discount));
   const disc = money(revenue - net);
 
-  // the printable bill, built BEFORE the payment settles (everything the receipt shows)
   const lines = [];
   for (const it of items) {
     const unit = money(it.price != null ? it.price : getProduct(state, it.id).sell);
@@ -175,13 +173,15 @@ function canUndoSale(state) {
   return entries[entries.length - 1].kind === 'sale';
 }
 
+/* we only ever pop a 'debt' add: if the remaining payments are all
+   adds of earlier sales, total stays correct; a paid-down debt with
+   no adds left at 0 <= handled by settled below */
 function undoLastSale(state) {
   state = rollover(clone(state));
   if (!canUndoSale(state)) throw new Error('nothing to undo');
   const entries = state.day.entries;
   const sale = entries[entries.length - 1];
 
-  // stock back + per-day sold budgets back + sold cost back
   const lines = (sale.bill && sale.bill.lines) || [];
   for (const ln of lines) {
     if (ln.id) {
@@ -205,20 +205,15 @@ function undoLastSale(state) {
     }
   }
 
-  // debt created/added by this sale comes back off the notebook
   const name = String(sale.note || '').trim();
   if (name) {
     const d = getDebtByName(state, name);
     if (d && d.payments.length) {
-      // find THIS sale's debt add (the payment whose amount matches and sits at the tail)
       const lastPay = d.payments[d.payments.length - 1];
       if (lastPay && lastPay.kind === 'debt') {
         d.total = money(d.total - lastPay.amount);
         d.payments.pop();
         if (d.total <= 0) {
-          // we only ever pop a 'debt' add: if the remaining payments are all
-          // adds of earlier sales, total stays correct; a paid-down debt with
-          // no adds left at 0 <= handled by settled below
           d.paid = 0; // the added amount was never paid in this reversal frame
           d.total = 0;
           if (d.payments.length === 0) {
@@ -247,7 +242,7 @@ function billOf(lines, discount, net, paidVal, cashIn) {
     paid: paidVal === null ? null : money(paidVal),
     rest: money(Math.max(0, net - cashIn)),
     change: money(Math.max(0, (paidVal === null ? 0 : paidVal) - net)), // cashIn is clamped; change is paid BEYOND the net
-    tax: null // TAX-002: the rate snapshot, stamped by the seller at post time
+    tax: null
   };
 }
 

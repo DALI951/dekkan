@@ -36,14 +36,13 @@
   // free lines, and keep the paper trail. The entry id comes from the ticket
   // that opened this receipt (openTicket sets receiptEntryId). Money OUT — so
   // it waits for the owner lock first.
+  /* P0-9: a refund must say WHY. First tap reveals the reason field and asks
+     for it; the refund only runs once a reason is typed (then the PIN gate). */
   function receiptRefund(C) {
     const { state, receiptEntryId, $, T, D, fmt, save, render, toast } = C;
     const { n3 } = fmt;
     const hideReceipt = DEK.pages.hideReceipt;
-    // refunds turned off in Settings: no button, and no way to sneak past it
     if (state.settings.allowRefund === false) return toast(T.t('toast.refundsOff'), true);
-    // P0-9: a refund must say WHY. First tap reveals the reason field and asks
-    // for it; the refund only runs once a reason is typed (then the PIN gate).
     const reason = ($('receiptRefundReason').value || '').trim();
     if (!reason) {
       $('receiptRefundRow').classList.remove('hidden');
@@ -51,25 +50,28 @@
       if (rf && rf.focus) rf.focus();
       return toast(T.t('toast.refundReason'), true);
     }
+    /* A refund must undo EXACTLY what the sale did to the money:
+         - paid in full, walk-in  → the same amount back out of the drawer
+         - paid NOTHING + a name   → the debt goes down, the drawer never moves
+         - paid PART + a name      → what was handed over comes back out AND the
+           unpaid part is written off (the old code did only the second half of
+           this: the FULL bill left the till and the debt stayed open).
+         - a DISCOUNTED sale       → only what was really paid comes back. The
+           line total is not the money: refunding a 100%-off sale used to take
+           the full shelf price out of the drawer (found in the browser, 26-09).
+
+       a mixed bill (stock + free) is refunded in two calls, so the cash and the
+       credit are SPLIT by value — otherwise each call would take the whole
+       refund out of the drawer, twice. */
     const doRefund = function () {
       if (!receiptEntryId) return toast(T.t('toast.refundPick'), true);
       const entry = (state.day.entries || []).find(function (e) { return e.id === receiptEntryId; });
       if (!entry || !entry.bill) return toast(T.t('toast.couldntSave'), true);
-      // A refund must undo EXACTLY what the sale did to the money:
-      //   - paid in full, walk-in  → the same amount back out of the drawer
-      //   - paid NOTHING + a name   → the debt goes down, the drawer never moves
-      //   - paid PART + a name      → what was handed over comes back out AND the
-      //     unpaid part is written off (the old code did only the second half of
-      //     this: the FULL bill left the till and the debt stayed open).
-      //   - a DISCOUNTED sale       → only what was really paid comes back. The
-      //     line total is not the money: refunding a 100%-off sale used to take
-      //     the full shelf price out of the drawer (found in the browser, 26-09).
       const bill = entry.bill;
       const onCredit = bill.rest > 0 && !!entry.note;
       const creditTo = onCredit ? String(entry.note) : null;
-      // what physically entered the drawer for this sale
       const cashIn = bill.paid === null
-        ? (entry.note ? 0 : n3(bill.net))        // a named sale that paid nothing: all credit
+        ? (entry.note ? 0 : n3(bill.net))
         : n3(Math.min(bill.paid, bill.net));      // a part payment: only what was handed over
       const items = [], freeNames = [];
       let freeQty = 0, freePrice = 0, itemsValue = 0;
@@ -77,9 +79,6 @@
         if (l.id != null) { items.push({ id: l.id, qty: l.qty, price: l.price }); itemsValue += l.total || 0; }
         else { freeNames.push(l.name); freeQty += l.qty || 1; freePrice += l.total || l.price || 0; }
       });
-      // a mixed bill (stock + free) is refunded in two calls, so the cash and the
-      // credit are SPLIT by value — otherwise each call would take the whole
-      // refund out of the drawer, twice.
       const share = function (value) {
         const whole = itemsValue + n3(freePrice);
         return whole > 0 ? n3(cashIn * n3(value) / whole) : 0;
@@ -110,6 +109,11 @@
     hideReceipt(C); render(); toast(T.t('toast.saleCancelled'));
   }
 
+  /* the whole bill: stock + free, one discount — the SAME numbers the screen
+     is showing right now (one function, one answer; the discount is capped here)
+
+     whoever leaves ANY rest unpaid must give a name — that includes paying
+     nothing at all (full credit with an empty money field) */
   function doSell(C) {
     const { state, basket, freeItems, $, T, D, fmt, save, render, toast } = C;
     const { n3, money } = fmt;
@@ -124,13 +128,9 @@
     const paid = paidRaw === '' ? null : parseFloat(paidRaw);
     if (paid !== null && (!Number.isFinite(paid) || paid < 0)) return toast(T.t('toast.paidBad'), true);
 
-    // the whole bill: stock + free, one discount — the SAME numbers the screen
-    // is showing right now (one function, one answer; the discount is capped here)
     const q = DEK.pages.quote(C);
     const disc = q.disc, net = q.net;
 
-    // whoever leaves ANY rest unpaid must give a name — that includes paying
-    // nothing at all (full credit with an empty money field)
     const due = Math.max(0, net - (paid === null ? 0 : paid));
     if (due > 0 && !customer) {
       const nm = $('creditName');
@@ -138,7 +138,6 @@
       return toast(T.t('toast.restName'), true);
     }
 
-    // the lines of the receipt, from what's in the basket right now
     const lines = [];
     basket.forEach(function (b) {
       const p = D.getProduct(state, b.id);
@@ -146,7 +145,6 @@
     });
     freeItems.forEach(function (f) { lines.push({ name: f.name, qty: f.qty, price: f.price, total: n3(f.price * f.qty) }); });
 
-    // the number this client takes — captured BEFORE the sale records it
     const clientNo = D.nextClientNo(state);
 
     try {
@@ -163,7 +161,6 @@
       C.state = D.sellAll(state, opts);
       save();
 
-      // remember which entry the receipt just showed, so its refund button works
       const es = C.state.day.entries || [];
       C.receiptEntryId = es.length ? es[es.length - 1].id : null;
 
@@ -186,12 +183,12 @@
     } catch (e) { toast(e.message, true); }
   }
 
+  /* blank price = freebie (0); anything typed must be a real number >= 0 */
   function addFree(C) {
     const { $, T, freeItems, render, toast } = C;
     const name = $('freeName').value.trim();
     const priceRaw = $('freePrice').value;
     const qtyRaw = $('freeQty').value;
-    // blank price = freebie (0); anything typed must be a real number >= 0
     const price = priceRaw === '' ? 0 : parseFloat(priceRaw);
     const qty = qtyRaw === '' ? 1 : parseFloat(qtyRaw);
     if (!name) return toast(T.t('toast.freeName'), true);
@@ -202,10 +199,10 @@
     render();
   }
 
+  /* the button is off the screen while refunds are turned off, but a stale tap
+     (an old tab, a restored session) must never LOOK like it worked. */
   function toggleRefundMode(C) {
     const { state, T, render, toast } = C;
-    // the button is off the screen while refunds are turned off, but a stale tap
-    // (an old tab, a restored session) must never LOOK like it worked.
     if (state.settings.allowRefund === false) return toast(T.t('toast.refundsOff'), true);
     C.refundMode = !C.refundMode;
     C.refundProductId = null;
@@ -242,6 +239,10 @@
     C.editProductId = null;
     $('productForm').classList.add('hidden');
   }
+  /* a shelf cannot hold minus colas: typed a minus by accident, say so here
+
+     M04: a manual count change is an ADJUSTMENT — it must say why (a code from the closed list).
+     Only when the count really moves: fixing a price on the same shelf explains nothing. */
   function saveProduct(C) {
     const { state, editProductId, $, T, D, save, render, toast } = C;
     const name = $('pName').value.trim();
@@ -254,14 +255,11 @@
     try {
       if (!name) throw new Error(T.t('toast.prodName'));
       if (!(sell >= 0)) throw new Error(T.t('toast.prodPrice'));
-      // a shelf cannot hold minus colas: typed a minus by accident, say so here
       if (stock < 0) throw new Error(T.t('toast.stockBad'));
       if (lowAt < 0) throw new Error(T.t('toast.stockBad'));
       if (editProductId === 'new') {
         C.state = D.addProduct(state, { name: name, buy: buy, sell: sell, stock: stock, lowAt: lowAt, sku: sku });
       } else {
-        // M04: a manual count change is an ADJUSTMENT — it must say why (a code from the closed list).
-        // Only when the count really moves: fixing a price on the same shelf explains nothing.
         const was = D.getProduct(state, editProductId);
         const moved = !!(was && stock !== was.stock);
         if (moved && D.STOCK_REASONS.indexOf(reason) === -1) throw new Error(T.t('toast.stockReason'));
@@ -270,7 +268,6 @@
         try {
           C.state = D.setProduct(state, editProductId, patch);
         } catch (e) {
-          // the product died under us (another tab / a fresh clone): don't fail the save
           if (e.message === 'toast.prodNotFound') {
             C.state = D.addProduct(state, { name: name, buy: buy, sell: sell, stock: stock, lowAt: lowAt, sku: sku });
           } else throw e;
@@ -350,12 +347,12 @@
     const { $ } = C;
     C.payDebtId = null; $('payForm').classList.add('hidden');
   }
+  /* the only honest cap: you can never take more than the open balance */
   function doPay(C) {
     const { state, payDebtId, $, T, D, fmt, run, toast } = C;
     const { n3, money } = fmt;
     const amount = parseFloat($('payAmount').value) || 0;
     if (amount <= 0) return toast(T.t('toast.amount'), true);
-    // the only honest cap: you can never take more than the open balance
     const debt = state.debts.find(function (d) { return d.id === payDebtId; });
     const remaining = debt ? n3(debt.total - debt.paid) : 0;
     if (amount > remaining) return toast(T.t('toast.payOver') + money(remaining), true);
@@ -393,13 +390,13 @@
     else { $('cbOutAmt').value = ''; $('cbOutPurpose').value = ''; }
   }
 
+  /* A drawer count belongs to the day that is OPEN. Browsing a closed day and
+     counting used to file the count on TODAY while the panel showed that old
+     day's expected number — a silent lie in the one screen that guards the cash. */
   function doCheckCash(C) {
     const { $, T, D, run, toast } = C;
     const counted = parseFloat($('countedCash').value);
     if (!(counted >= 0)) return toast(T.t('toast.checkAmt'), true);
-    // A drawer count belongs to the day that is OPEN. Browsing a closed day and
-    // counting used to file the count on TODAY while the panel showed that old
-    // day's expected number — a silent lie in the one screen that guards the cash.
     const browsed = (C.reportDate || '').trim();
     if (browsed && browsed !== D.todayStr()) return toast(T.t('report.checkPastDay'), true);
     $('countedCash').value = '';
@@ -423,9 +420,9 @@
     const { $, D, run } = C;
     run(function (s) { return D.setSettings(s, { allowRefund: $('cfgRefund').checked }); });
   }
+  /* money bookkeeping is done — only the owner may shut the day */
   function closeDay(C) {
     const { $, T, D, run } = C;
-    // money bookkeeping is done — only the owner may shut the day
     withPin(C, T.t('pin.day'), function () {
       run(function (s) { return D.closeDay(s); }, T.t('toast.dayClosed'));
       $('countedCash').value = '';
@@ -459,6 +456,7 @@
   function onImportFile(C, file) {
     const { T, D, save, render, toast } = C;
     const reader = new FileReader();
+    /* replacing the whole shop deserves the owner lock too */
     reader.onload = function () {
       let parsed;
       try {
@@ -474,7 +472,6 @@
         return;
       }
       if (!confirm(T.t('toast.importConfirm'))) return;
-      // replacing the whole shop deserves the owner lock too
       withPin(C, T.t('pin.import'), function () {
         C.state = parsed;
         C.basket = [];
@@ -519,7 +516,6 @@
         save(); render(); toast(T.t('pin.saved'));
       } catch (e) { toast(e.message, true); }
     };
-    // changing an armed PIN still needs the current one first
     withPin(C, T.t('pin.confirm'), apply);
   }
   function pinClear(C) {
@@ -577,8 +573,6 @@
     const P = DEK.pages;
     const TH = C.themes();
     if (!TH.get(id) || !C.themeDraft) return;
-    // starting from another preset = that preset's own colours (tweaks on the old
-    // base belonged to that base); Save is what keeps anything
     C.themeDraft = { id: id, tokens: Object.assign({}, TH.get(id).tokens) };
     P.renderThemeEditor(C);
     TH.preview(C.themeDraft.tokens);
@@ -836,7 +830,6 @@ $('pName').value = p.name; $('pBuy').value = p.buy; $('pSell').value = p.sell;
     if (act === 'metric-open') P.openMetric(C, el.getAttribute('data-metric') || id);
     if (act === 'stock-card') P.openStockCard(C, id);
     if (act === 'restock-need') {
-      // fill the shelf back to double its alert line right from the list
       const qty = parseInt(el.getAttribute('data-qty'), 10) || 10;
       const p = D.getProduct(C.state, id);
       if (p) {

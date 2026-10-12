@@ -81,7 +81,6 @@ test('employees: fireEmployee marks the hire ended with a date', () => {
 });
 
 test('employees: salariesFor sums the payroll of one month', () => {
-  // YYYY-MM-DD strings compare lexically; all hires pick edges inside 2026-05
   const s = {
     employees: [
       { id: 'a', name: 'A', type: 'x', salary: 300, active: true, hiredAt: '2026-05-02' },

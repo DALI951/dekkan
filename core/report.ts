@@ -11,6 +11,8 @@
 
 // ---------- the daily REPORT (how the money moved today) ----------
 
+/* who rang what today: { who, count, total } per cashier, richest first.
+   only sales carry a cashier — debts/refunds/expenses are shop moves. */
 function _dayReport(state, day, cashNow) {
   let sales = 0, debtPays = 0, refunds = 0, buys = 0, expenses = 0, incomes = 0, checkCount = 0;
   for (const e of day.entries) {
@@ -43,8 +45,6 @@ function _dayReport(state, day, cashNow) {
     shop: state.shop,
     currency: state.shop.currency,
 
-    // the cashbox story: started here, ended here, and every single move between
-    // (sale moves carry their client number of the day: #1, #2, ...)
     startCash: day.startCash,
     cash: money(cashNow),
     entries: (function () {
@@ -59,8 +59,6 @@ function _dayReport(state, day, cashNow) {
 
     totals: { sales: sales, debtPays: debtPays, refunds: refunds, buys: buys, expenses: expenses, incomes: incomes, checks: checkCount },
 
-    // who rang what today: { who, count, total } per cashier, richest first.
-    // only sales carry a cashier — debts/refunds/expenses are shop moves.
     byCashier: (function () {
       const by = {};
       day.entries.forEach(function (e) {
@@ -74,7 +72,6 @@ function _dayReport(state, day, cashNow) {
         .sort(function (a, b) { return b.total - a.total; });
     })(),
 
-    // the money lines
     grossSales: gross,
     netSales: net,
     daySales: gross,            // v1-compatible name
@@ -84,14 +81,11 @@ function _dayReport(state, day, cashNow) {
     dayIncomes: incomes,
     costOfSold: costOfSold,
 
-    // the shelf
     inventoryValue: money(inventory),
     lowStock: lowStock,
 
-    // the notebook
     debts: { total: money(debtsOwed(state)), count: state.debts.filter(function (x) { return !x.settled; }).length },
 
-    // THE profit line: money in - everything money went to
     dayProfit: money(net - costOfSold - buys - expenses)
   };
 }
@@ -182,7 +176,6 @@ function monthlyReport(state, ym) {
       else if (e.kind === 'refund') r.refunds += abs;
       else if (e.kind === 'buy') r.buys += abs;
       else if (e.kind === 'expense') r.expenses += abs;
-      // every move walks into its day row too
       const key = locDay(e.at);
       const row = days[key] = days[key] || { date: key, in: 0, out: 0 };
       if (out) row.out += abs; else row.in += abs;

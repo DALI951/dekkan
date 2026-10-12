@@ -51,7 +51,6 @@ test('restoreState: repairs legacy v2 backups (no customers registry)', () => {
   assert.deepStrictEqual(repaired.customers, []);
   assert.deepStrictEqual(repaired.categories, { in: [], out: [] });
   assert.deepStrictEqual(repaired.employees, []);
-  // products + money survived the repair untouched
   assert.strictEqual(repaired.products.length, 1);
   assert.strictEqual(D.cash(repaired), 53);
 });

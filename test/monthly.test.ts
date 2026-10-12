@@ -57,11 +57,11 @@ test('monthly: wins, losses and profit follow the money moves', () => {
       ent('debt-pay', 10),    // +10
       ent('income', 5),       // +5
       ent('refund', -6),      // -6
-      ent('expense', -4)      // -4
+      ent('expense', -4)
     ],
     oldEntries: [
       ent('buy', -12),        // -12
-      ent('sale', 25)         // +25
+      ent('sale', 25)
     ]
   }), MAY);
   assert.strictEqual(r.sales, 65);

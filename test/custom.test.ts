@@ -103,9 +103,9 @@ test('setCustom REFUSES nonsense — and a refusal changes nothing', () => {
     [{ money: { decimls: 3 } }, 'a typo inside a known section (typo guard)'],
     [{ docLanguage: 42 }, 'a language id is text']
   ];
+  /* /^custom/i: the core names the block, and a "setCustom is not a function"
+     TypeError must NOT be able to pass this test for the wrong reason. */
   bad.forEach(([patch, why]) => {
-    // /^custom/i: the core names the block, and a "setCustom is not a function"
-    // TypeError must NOT be able to pass this test for the wrong reason.
     assert.throws(() => D.setCustom(s, patch), /custom:/i, why + ' must be refused');
   });
   assert.strictEqual(JSON.stringify(s), snapshot, 'nothing was written by any refused call');

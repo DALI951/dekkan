@@ -175,13 +175,13 @@
   }
 
   // store the whole state blob verbatim
+  /* SAL-004/TEN-002 (server-stops-trusting-the-client): the LAST gate before
+     upload — a blob that fails its own integrity checks never leaves the
+     device (and the own-server API would reject it with 409 anyway). */
   function pushState(state) {
     if (!FB) { syncErr = offline() ? 'offline' : null; return Promise.resolve(false); }
     var u = currentFireUser();
     if (!u) { syncErr = null; return Promise.resolve(false); }
-    // SAL-004/TEN-002 (server-stops-trusting-the-client): the LAST gate before
-    // upload — a blob that fails its own integrity checks never leaves the
-    // device (and the own-server API would reject it with 409 anyway).
     try {
       var D = (typeof DEK !== 'undefined' && DEK && DEK.core) ? DEK.core : null;
       var problems = (D && D.stateProblems) ? D.stateProblems(state) : [];

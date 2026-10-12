@@ -85,8 +85,8 @@ function setCustom(state, patch) {
     if (section === 'docLanguage') { next.custom.docLanguage = patch.docLanguage; return; }
     const sub = patch[section];
     if (!next.custom[section] || typeof next.custom[section] !== 'object') next.custom[section] = {};
+    /* lists (tab order / hidden pages) are REPLACED, never merged element-wise */
     Object.keys(sub).forEach(k => {
-      // lists (tab order / hidden pages) are REPLACED, never merged element-wise
       next.custom[section][k] = Array.isArray(sub[k]) ? sub[k].slice() : sub[k];
     });
   });

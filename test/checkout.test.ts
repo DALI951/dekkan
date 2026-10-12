@@ -35,7 +35,6 @@ test('a fresh shop: registry empty, day starts at #1', () => {
 
 test('a checkout is ONE numbered sale — mixed baskets are not split', () => {
   let s = shop();
-  // 2 colas (3.00) + 1 cafe (2.00) = one 5.00 bill, one customer
   s = D.sellAll(s, { items: [{ id: s.products[0].id, qty: 2 }], free: [{ name: 'Cafe', price: 2, qty: 1 }] });
   assert.strictEqual(salesOf(s).length, 1, '5.00 bill = one entry, not two');
   assert.strictEqual(D.cash(s), 55, 'cash = 50 + 5');
@@ -152,7 +151,6 @@ test('sell / sellFree still stand alone and feed the same counter', () => {
 
 test('sellAll discount cuts the WHOLE bill — stock and free together', () => {
   let s = shop();
-  // 2 colas (3.00) + 1 cafe (2.00) = 5.00; 10% -> 4.50
   s = D.sellAll(s, { items: [{ id: s.products[0].id, qty: 2 }], free: [{ name: 'Cafe', price: 2, qty: 1 }], discount: { percent: 10 } });
   assert.strictEqual(D.cash(s), 54.5, '10% off the whole 5.00 bill');
   s = D.sellAll(s, { free: [{ name: 'Cafe', price: 2, qty: 1 }], discount: { amount: 0.5 } });
@@ -214,12 +212,12 @@ test('a part-paid sale refunds in two halves: cash back out, credit written off'
   assert.strictEqual(s.products[0].stock, 10, 'the goods are back on the shelf');
 });
 
+/* 1.500 back but the drawer holds 0.000 — the till must not go negative */
 test('refunding more cash than the drawer holds is still refused', () => {
   let s = D.createShop({ name: 'Empty', startCash: 0 });
   s = D.addProduct(s, { name: 'Coca', buy: 0.8, sell: 1.5, stock: 10, lowAt: 3 });
   s = D.sellAll(s, { items: [{ id: s.products[0].id, qty: 1 }], creditTo: 'Samir' });  // all on credit
   const before = JSON.stringify(s);
-  // 1.500 back but the drawer holds 0.000 — the till must not go negative
   assert.throws(function () {
     D.refund(s, { items: [{ id: s.products[0].id, qty: 1 }], creditTo: 'Samir', cash: 1.5, reason: 'test' });
   }, /drawer|cash/i);

@@ -14,8 +14,6 @@ const { test, expect } = require('@playwright/test');
 const { open, gotoTab, seedPrefs } = require('./helpers');
 
 test.beforeEach(async ({ context }) => {
-  // the specs assert Arabic UI strings, so pin the language the way a returning
-  // shopkeeper's browser already would (the app's fresh default is English now)
   await seedPrefs('dekkan.lang', 'ar', context);
 });
 
@@ -59,11 +57,11 @@ async function sellOneReceipt(page) {
 
 // --- the screen -------------------------------------------------------------
 
+/* a few of each kind, so the screen cannot silently lose a whole group */
 test('the Documents screen offers every choice the shop has, one control each', async ({ page }) => {
   await openDocuments(page);
   const controls = page.locator('#docGroups [data-doc]');
   await expect(controls).toHaveCount(19);
-  // a few of each kind, so the screen cannot silently lose a whole group
   await expect(field(page, 'brand.tagline')).toBeVisible();
   await expect(field(page, 'brand.address')).toBeVisible();
   await expect(field(page, 'brand.phone')).toBeVisible();

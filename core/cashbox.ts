@@ -11,10 +11,10 @@
 
 // Shop expenses (rent, electricity, coffee for the owner...). Cash out.
 //   note = WHY (the purpose); category = a reusable purpose-category name.
+/* you cannot take money out that the till does not physically hold */
 function expense(state, opts) {
   state = rollover(clone(state));
   if (!opts || !Number.isFinite(opts.amount) || opts.amount <= 0) throw new Error('expense amount must be positive');
-  // you cannot take money out that the till does not physically hold
   const now = cash(state);
   if (money(opts.amount) > now) throw new Error('not enough cash in the till (' + money(now) + ')');
   pushEntry(state, 'expense', -money(opts.amount), null, opts.note || null, { cat: opts.category || null });

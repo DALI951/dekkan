@@ -47,7 +47,6 @@ test('the editor shows every colour the app uses, grouped, one row per token', a
   await expect(tok(page, '--acc')).toBeVisible();
   await expect(tok(page, '--shadow')).toBeVisible();       // a whole shadow string, not a colour
   await expect(page.locator('#themeGroups .themeGrp')).toHaveCount(8);
-  // "start from" offers every registered theme — the registry, not a hardcoded list
   await expect(page.locator('#themeBase [data-base]')).toHaveCount(3);
 });
 

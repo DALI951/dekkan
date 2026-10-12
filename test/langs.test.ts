@@ -95,8 +95,6 @@ test('parity: EVERY language has exactly the base key set, no missing / extra / 
   const reports = Langs.parityAll();
   assert.strictEqual(reports.length, Langs.all().length, 'parity must cover every language');
   reports.forEach(function (r) {
-    // note: length/join, not deepStrictEqual — the arrays come from the vm realm
-    // and their prototype differs from this realm's Array (a false negative).
     assert.ok(r.missing.length === 0, r.id + ' is missing keys: ' + r.missing.slice(0, 5).join(', '));
     assert.ok(r.extra.length === 0, r.id + ' has keys the base lacks: ' + r.extra.slice(0, 5).join(', '));
     assert.ok(r.empty.length === 0, r.id + ' has empty values: ' + r.empty.slice(0, 5).join(', '));
@@ -111,7 +109,6 @@ test('the base language is bigger than a toy (the real app dictionary)', () => {
 
 test('one object = one language: a third language registered on the fly speaks, and the others do not change', () => {
   const FR = { id: 'fr-test', name: 'French', native: 'Français', dir: 'ltr', keys: {} };
-  // parity is a contract, not a suggestion: give it the full base key set
   Object.keys(LANGS.en.keys).forEach(function (k) { FR.keys[k] = 'fr:' + k; });
   FR.keys['tab.stock'] = 'Stock FR';
   Langs.add(FR);

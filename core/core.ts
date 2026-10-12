@@ -31,6 +31,18 @@ function money(n) {
 
 // ---------- state ----------
 
+/* Tax profiles (workbook CFG-005 / TAX-001..003): optional, configurable,
+   with effective dates + ONE rounding policy. The default below is the
+   Tunisian standard — it lives HERE in config, never in posting code.
+
+   The shop's OWN look, wording and formats (docs/customize-plan.md). DATA,
+   never a code branch: waves 2–6 (theme editor, brand + documents, lists,
+   tabs/density, French) only READ this. See defaultCustom/customProblems.
+
+   GLOBAL per-kind document counters (never reset at midnight — only the
+   client # resets daily). Single writer per account => unique by construction.
+
+   the STOCK LEDGER (see stockMove): every shelf change, append-only + source-linked */
 function createShop(opts) {
   opts = opts || {};
   const start = money(opts.startCash || 0);
@@ -38,39 +50,22 @@ function createShop(opts) {
   return {
     version: 4,
     shop: { name: opts.name || 'My Shop', currency: opts.currency || 'TND' },
-    // Options the shopkeeper can turn on/off. The UI shows/hides them.
     settings: {
       allowDiscount: opts.allowDiscount !== undefined ? !!opts.allowDiscount : true,
       allowRefund: opts.allowRefund !== undefined ? !!opts.allowRefund : true,
-      // Document-number prefixes (DOC-001/002, CFG-006): per document kind,
-      // configurable — the DEFAULTS live here in config.
       docPrefix: { sale: 'F', refund: 'R', buy: 'A' },
-      // Tax profiles (workbook CFG-005 / TAX-001..003): optional, configurable,
-      // with effective dates + ONE rounding policy. The default below is the
-      // Tunisian standard — it lives HERE in config, never in posting code.
       tax: opts.tax || defaultTaxConfig()
     },
-    // The shop's OWN look, wording and formats (docs/customize-plan.md). DATA,
-    // never a code branch: waves 2–6 (theme editor, brand + documents, lists,
-    // tabs/density, French) only READ this. See defaultCustom/customProblems.
     custom: opts.custom || defaultCustom(),
-    // GLOBAL per-kind document counters (never reset at midnight — only the
-    // client # resets daily). Single writer per account => unique by construction.
     seq: { sale: 0, refund: 0, buy: 0 },
-    // every customer name ever used (sales + notebook) — the counter's memory
     customers: [],
-    // every cashier name ever used, most recent first (who rang each sale)
     cashiers: [],
-    // cash-box categories: sources for money IN, purposes for money OUT
     categories: { in: [], out: [] },
     products: [],
     debts: [],
-    // the STOCK LEDGER (see stockMove): every shelf change, append-only + source-linked
     movements: [],
     employees: [],
     days: [],
-    // the OPEN day: entries (money moves) + checks (drawer counts) + soldCost (for profit)
-    // + soldByProduct/soldFree (the per-day refund budgets, by product id / free-item name)
     day: { date: todayStr(), openedAt: now, startCash: start, soldCost: 0, entries: [], checks: [], soldByProduct: {}, soldFree: {} }
   };
 }
@@ -89,12 +84,9 @@ function pushEntry(state, kind, amount, ref, note, extra) {
   const entry = {
     id: uid(), kind, amount: money(amount), at: new Date().toISOString(), ref: ref || null, note: note || null,
     bill: null,
-    doc: null // DOC-001: set below for sale/refund/buy entries
+    doc: null
   };
   if (extra) for (const k in extra) entry[k] = extra[k];
-  // DOC number (DOC-001): factures/refunds/buys carry a per-kind GLOBAL
-  // sequence + configurable prefix. Allocated HERE — the one chokepoint every
-  // entry flows through — so no poster can forget or duplicate it.
   if (kind === 'sale' || kind === 'refund' || kind === 'buy') {
     state.seq = state.seq || { sale: 0, refund: 0, buy: 0 };
     const prefix = (state.settings && state.settings.docPrefix && state.settings.docPrefix[kind]) ||
@@ -186,6 +178,14 @@ function clone(state) {
 // The SAME migration pass that app.js.load() runs on boot, so a backup from
 // an older version still lands as a working state. Throws on anything that
 // is not a shop backup — the UI must NOT touch the live state in that case.
+/* A backup from before the customization block (or from a build that never had
+   it) must still come back as a WORKING shop: repair, don't reject.
+
+   DATA-001 ("upload success != recoverability"): a file that PARSES is not
+   proof of a shop that can come back. Run the SAME integrity gate the server
+   runs on push (stateProblems) BEFORE this state can replace the live shop —
+   a structurally-broken backup is refused, never allowed to become the only
+   copy. stateProblems is hoisted, so calling it here is safe. */
 function restoreState(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('not a shop backup');
   const s = clone(raw);
@@ -202,14 +202,7 @@ function restoreState(raw) {
   ensureTaxState(s);
   ensureDocState(s);
   ensureMovements(s);
-  // A backup from before the customization block (or from a build that never had
-  // it) must still come back as a WORKING shop: repair, don't reject.
   ensureCustomState(s);
-  // DATA-001 ("upload success != recoverability"): a file that PARSES is not
-  // proof of a shop that can come back. Run the SAME integrity gate the server
-  // runs on push (stateProblems) BEFORE this state can replace the live shop —
-  // a structurally-broken backup is refused, never allowed to become the only
-  // copy. stateProblems is hoisted, so calling it here is safe.
   const problems = stateProblems(s);
   if (problems.length) throw new Error('backup fails integrity: ' + problems[0]);
   return s;
@@ -242,7 +235,6 @@ function taxProfileFor(state, date) {
     if (!best || String(p.from || '') > String(best.from || '')) best = p;
   }
   if (best) return best;
-  // nothing is active on that date (all future-dated): the earliest configured one
   let fallback = profiles[0];
   for (const p of profiles) {
     if (String(p.from || '') < String(fallback.from || '')) fallback = p;
@@ -313,20 +305,12 @@ const CUSTOM_DATE_FORMATS = ['YYYY-MM-DD', 'YYYY/MM/DD', 'DD/MM/YYYY', 'MM/DD/YY
 function defaultCustom() {
   return {
     brand: { tagline: '', address: '', phone: '', taxId: '', logoUrl: '' },
-    // '' symbol = print the currency WORD of the language in use (AR د.ت / EN TND);
-    // '' thousands = no grouping. Both defaults reproduce, byte for byte, what the
-    // app printed before a shop could choose (wave 3 decision in RULES.md).
     money: { code: 'TND', symbol: '', position: 'after', decimals: 3, thousands: '', digits: 'latin' },
     date: { format: 'YYYY-MM-DD', time: '24h', timezone: '' },
     print: { size: '80mm', copies: 1, autoPrint: false },
     receipt: { header: '', footer: '', showCashier: true, showTaxId: false, qr: false },
     tabs: { order: CUSTOM_TABS.slice(), hidden: [] },
-    // The shop's own look: a BASE theme id carrying its own overrides
-    // ({} = untouched preset). Overrides on top of a base mean a shop that tweaks
-    // two colors still inherits every future fix to that base.
     theme: { id: 'souk', tokens: {} },
-    // '' = follow the interface language. Wave 6 separates UI language from the
-    // language printed on a document (FR interface + AR receipt is normal here).
     docLanguage: ''
   };
 }
@@ -334,6 +318,10 @@ function defaultCustom() {
 
 // Everything wrong with a custom block, most-wrong-first. The gate reports the
 // first problem, so a state can never be half-customized on a shopkeeper's phone.
+/* theme: a base theme id + the shop's own color overrides. Core validates the
+   SHAPE (presentation validity — is this really a CSS color? — is the UI's job
+   in ui/themes.ts, which falls back to the base color for a value it cannot
+   read). What core refuses here is junk that could not be a theme at all. */
 function customProblems(c) {
   const out = [];
   if (!c || typeof c !== 'object' || Array.isArray(c)) return ['custom must be an object'];
@@ -408,10 +396,6 @@ function customProblems(c) {
 
   if (typeof c.docLanguage !== 'string' || c.docLanguage.length > 8) out.push('docLanguage must be a short language id ("" = follow the app)');
 
-  // theme: a base theme id + the shop's own color overrides. Core validates the
-  // SHAPE (presentation validity — is this really a CSS color? — is the UI's job
-  // in ui/themes.ts, which falls back to the base color for a value it cannot
-  // read). What core refuses here is junk that could not be a theme at all.
   const th = c.theme;
   if (!th || typeof th !== 'object' || Array.isArray(th)) out.push('theme must be an object');
   else {
@@ -436,6 +420,19 @@ function customProblems(c) {
 // Repair (never throws) — the same spirit as ensureTaxState/ensureDocState:
 // an old or thin save must open as a WORKING shop, and a value the shop really
 // chose must survive. Anything unreadable falls back to the default.
+/* a valid order = known pages only, never twice. ONE unreadable entry means
+   the order came from another build — keeping the readable leftovers would
+   silently hide pages the owner never hid, so we start over from every page.
+
+   a hidden list written against an order we could not read is not trustworthy
+   either — repairing the visible pages and keeping a stale hidden list would
+   hide a page the shopkeeper never chose to hide.
+
+   theme: keep the base id + every readable override, drop the rest (a broken
+   single color must not cost the shop the eleven colors it did set)
+
+   anything the strict path would refuse goes back to its default (one pass, so
+   a repaired state is a fixed point: repairing it again changes nothing) */
 function ensureCustomState(state) {
   const def = defaultCustom();
   const raw = (state.custom && typeof state.custom === 'object' && !Array.isArray(state.custom)) ? state.custom : {};
@@ -451,9 +448,6 @@ function ensureCustomState(state) {
   c.tabs.order = def.tabs.order.slice();
   let orderReset = true;
   if (order && order.length) {
-    // a valid order = known pages only, never twice. ONE unreadable entry means
-    // the order came from another build — keeping the readable leftovers would
-    // silently hide pages the owner never hid, so we start over from every page.
     const seen = {};
     const clean = order.filter(id => {
       if (CUSTOM_TABS.indexOf(id) === -1 || seen[id]) return false;
@@ -463,15 +457,10 @@ function ensureCustomState(state) {
     if (clean.length === order.length && clean.length) { c.tabs.order = clean; orderReset = false; }
   }
   const hidden = (raw.tabs && Array.isArray(raw.tabs.hidden)) ? raw.tabs.hidden : [];
-  // a hidden list written against an order we could not read is not trustworthy
-  // either — repairing the visible pages and keeping a stale hidden list would
-  // hide a page the shopkeeper never chose to hide.
   if (orderReset) hidden.length = 0;
   c.tabs.hidden = hidden.filter(id => c.tabs.order.indexOf(id) !== -1);
   if (typeof raw.docLanguage === 'string' && raw.docLanguage.length <= 8) c.docLanguage = raw.docLanguage;
 
-  // theme: keep the base id + every readable override, drop the rest (a broken
-  // single color must not cost the shop the eleven colors it did set)
   const rt = (raw.theme && typeof raw.theme === 'object' && !Array.isArray(raw.theme)) ? raw.theme : {};
   c.theme = { id: def.theme.id, tokens: {} };
   if (typeof rt.id === 'string' && /^[a-z0-9-]{2,24}$/.test(rt.id)) c.theme.id = rt.id;
@@ -482,8 +471,6 @@ function ensureCustomState(state) {
     });
   }
 
-  // anything the strict path would refuse goes back to its default (one pass, so
-  // a repaired state is a fixed point: repairing it again changes nothing)
   customProblems(c).forEach(msg => {
     const key = msg.split(' ')[0];
     if (/^money\./.test(key)) c.money[key.slice(6)] = def.money[key.slice(6)];
@@ -507,14 +494,18 @@ function ensureCustomState(state) {
 // well-formed, pin shape intact, version current). Used by the client as the
 // last gate before upload AND by the own-server API (api/state.php) which
 // rejects a dirty blob with 409 — nothing is ever written verbatim anymore.
+/* the customization block must be sane before this state can replace the live
+   shop: a half-readable format would print money the shopkeeper never chose.
+
+   debts: a debt can only grow by sales and shrink by payments
+
+   products: stock counters must reconcile with the movement ledger */
 function stateProblems(state) {
   if (!state || typeof state !== 'object') return ['state is not an object'];
   const out = [];
   if (state.version !== 4) out.push('state.version must be 4 (found ' + String(state.version) + ')');
   if (!state.shop || typeof state.shop !== 'object' || typeof state.shop.name !== 'string') out.push('shop.name missing');
   if (!state.settings || typeof state.settings !== 'object') out.push('settings missing');
-  // the customization block must be sane before this state can replace the live
-  // shop: a half-readable format would print money the shopkeeper never chose.
   customProblems(state.custom).forEach(msg => out.push('custom: ' + msg));
   if (!Array.isArray(state.products)) out.push('products must be an array');
   if (!Array.isArray(state.movements)) out.push('movements must be an array');
@@ -525,7 +516,6 @@ function stateProblems(state) {
   const pinHash = state.settings && state.settings.pinHash;
   if (pinHash != null && typeof pinHash !== 'string') out.push('pinHash must be a string, not ' + typeof pinHash);
 
-  // entries: known kinds, finite amounts, unique ids, bills reconcile
   const KINDS = { sale: 1, refund: 1, expense: 1, income: 1, check: 1, buy: 1, 'debt-pay': 1 };
   const seen = {};
   const entries = (state.day && Array.isArray(state.day.entries)) ? state.day.entries : [];
@@ -543,7 +533,6 @@ function stateProblems(state) {
     }
   }
 
-  // debts: a debt can only grow by sales and shrink by payments
   for (const d of state.debts) {
     if (!d || typeof d !== 'object') { out.push('debts holds a non-object'); continue; }
     if (typeof d.total !== 'number' || !Number.isFinite(d.total) || d.total < 0) out.push('debt total invalid: ' + String(d && d.name));
@@ -551,7 +540,6 @@ function stateProblems(state) {
     if (d.paid > d.total + 0.001) out.push('debt paid exceeds total: ' + String(d && d.name));
   }
 
-  // products: stock counters must reconcile with the movement ledger
   const byId = {};
   for (const m of state.movements) {
     if (!m || typeof m.productId !== 'string' || typeof m.qty !== 'number' || !Number.isFinite(m.qty)) {

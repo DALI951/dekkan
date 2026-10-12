@@ -55,10 +55,10 @@ self.addEventListener('activate', function (e) {
   );
 });
 
+/* network-first for everything same-origin: online => always the newest code
+   (no more getting stuck on a stale cached shell), offline => last cached copy. */
 self.addEventListener('fetch', function (e) {
   if (e.request.method !== 'GET') return;
-  // network-first for everything same-origin: online => always the newest code
-  // (no more getting stuck on a stale cached shell), offline => last cached copy.
   e.respondWith(
     fetch(e.request).then(function (res) {
       if (res.ok && e.request.url.startsWith(self.location.origin)) {
@@ -67,13 +67,13 @@ self.addEventListener('fetch', function (e) {
       }
       return res;
     }).catch(function () {
+      /* Never hand our HTML shell to a CROSS-ORIGIN request: the Firebase SDK
+         loads an auth iframe from *.firebaseapp.com, and returning index.html
+         there makes the browser parse HTML as JS ("Unexpected token '<'").
+         A network error is the honest answer. Same-origin navigations still
+         fall back to the cached shell so the app opens offline. */
       return caches.match(e.request).then(function (hit) {
         if (hit) return hit;
-        // Never hand our HTML shell to a CROSS-ORIGIN request: the Firebase SDK
-        // loads an auth iframe from *.firebaseapp.com, and returning index.html
-        // there makes the browser parse HTML as JS ("Unexpected token '<'").
-        // A network error is the honest answer. Same-origin navigations still
-        // fall back to the cached shell so the app opens offline.
         var sameOrigin = e.request.url.indexOf(self.location.origin) === 0;
         if (sameOrigin && e.request.mode === 'navigate') return caches.match('./');
         return Response.error();

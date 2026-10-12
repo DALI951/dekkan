@@ -20,13 +20,13 @@ test('sales feed the same per-day refund budget per product', () => {
   assert.strictEqual(s.day.soldByProduct[id], 5, 'two sales pile up the budget');
 });
 
+/* partial refunds consume the budget: 3 -> refund 2 -> only 1 left */
 test('refund is capped at what was actually sold today', () => {
   let s = shop();
   s = D.addProduct(s, { name: 'Soda', buy: 0.5, sell: 1.5, stock: 10, lowAt: 2 });
   const id = s.products[0].id;
   s = D.sellAll(s, { items: [{ id, qty: 3 }] }); // only 3 left the shelf
   assert.throws(() => D.refund(s, { items: [{ id, qty: 4 }], reason: 'test' }), /sold today/);
-  // partial refunds consume the budget: 3 -> refund 2 -> only 1 left
   s = D.refund(s, { items: [{ id, qty: 2 }], reason: 'test' });
   assert.throws(() => D.refund(s, { items: [{ id, qty: 2 }], reason: 'test' }), /sold today/);
   s = D.refund(s, { items: [{ id, qty: 1 }], reason: 'test' }); // exactly the remaining budget
@@ -34,13 +34,13 @@ test('refund is capped at what was actually sold today', () => {
   assert.strictEqual(s.products[0].stock, 10, 'stock fully restored');
 });
 
+/* the honest way back: creditTo undoes the receivable instead of cash */
 test('a cash refund cannot take more out than the till physically holds', () => {
   let s = D.createShop({ name: 'Test', startCash: 0 });
   s = D.addProduct(s, { name: 'Soda', buy: 0.5, sell: 1.5, stock: 10, lowAt: 2 });
   const id = s.products[0].id;
   s = D.sellAll(s, { items: [{ id, qty: 1 }], customer: 'Ali' }); // full credit: no cash moved
   assert.throws(() => D.refund(s, { items: [{ id, qty: 1 }], reason: 'test' }), /not enough cash/);
-  // the honest way back: creditTo undoes the receivable instead of cash
   s = D.refund(s, { items: [{ id, qty: 1 }], creditTo: 'Ali', reason: 'test' });
   const d = s.debts.find(x => x.name === 'Ali');
   assert.strictEqual(d && d.total, 0, 'the debt went back to zero');

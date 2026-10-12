@@ -18,7 +18,6 @@ test('a healthy shop has no problems', () => {
   s = D.expense(s, { amount: 1, note: 'x' });
   s = D.refund(s, { items: [{ id: s.products[0].id, qty: 1 }], reason: 'r' });
   assert.deepStrictEqual(D.stateProblems(s), []);
-  // and it stays healthy through a day rollover
   s = D.closeDay(s);
   assert.deepStrictEqual(D.stateProblems(s), []);
 });

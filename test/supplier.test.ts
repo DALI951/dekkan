@@ -18,7 +18,6 @@ test('PUR-001a: a buy records its supplier (name + contact) on the entry', () =>
   const e = lastEntry(s);
   assert.equal(e.kind, 'buy');
   assert.deepStrictEqual(e.supplier, { name: 'Boissons TN', contact: '71 123 456' });
-  // backward compatible: buying without a supplier records nothing extra
   s = D.buyStock(s, s.products[0].id, 6, 0.8);
   assert.equal(lastEntry(s).supplier || null, null);
 });
@@ -33,7 +32,6 @@ test('PUR-001b: purchase history lists buys per supplier (open day + closed days
   assert.equal(today.length, 1);
   assert.equal(today[0].qty, 24);
 
-  // roll the day over: the buys move into the closed day, history follows
   s = D.closeDay(s);
   s = D.buyStock(s, id, 10, 0.8, 'Boissons TN');       // a buy on the fresh day
   const all = D.buysBySupplier(s, 'Boissons TN');

@@ -23,7 +23,6 @@ test('RET-001: a refund with no reason is refused', () => {
   const s = shop();
   assert.throws(function () { D.refund(s, { items: [{ id: id(s), qty: 1 }] }); }, /refundReason/);
   assert.throws(function () { D.refund(s, { items: [{ id: id(s), qty: 1 }], reason: '   ' }); }, /refundReason/);
-  // and nothing moved: the shelf, the till and the ledger are all untouched
   assert.strictEqual(s.products[0].stock, 7);
   assert.strictEqual(refundEntries(s).length, 0);
 });
@@ -46,6 +45,7 @@ test('RET-001c: refundFree also demands a reason', () => {
   assert.strictEqual(refundEntries(s)[0].reason, 'melted');
 });
 
+/* the ledger is append-only: the refund is a NEW entry after the sale */
 test('RET-003: a refund never deletes or rewrites the sale it came from', () => {
   const s0 = shop();
   const saleBefore = JSON.parse(JSON.stringify(s0.day.entries.filter(e => e.kind === 'sale')[0]));
@@ -54,7 +54,6 @@ test('RET-003: a refund never deletes or rewrites the sale it came from', () => 
   assert.strictEqual(saleAfter.length, 1, 'the original sale is still there');
   assert.deepStrictEqual(JSON.parse(JSON.stringify(saleAfter[0])), saleBefore,
     'the sale entry is byte-for-byte unchanged — a refund only ADDS a line');
-  // the ledger is append-only: the refund is a NEW entry after the sale
   const kinds = s.day.entries.map(e => e.kind);
   assert.strictEqual(kinds.indexOf('sale') < kinds.indexOf('refund'), true);
 });
@@ -63,7 +62,6 @@ test('SALE-007: a ticket is a frozen snapshot, not a live view of today prices',
   const s1 = shop();
   const sale = s1.day.entries.filter(e => e.kind === 'sale')[0];
   const frozen = JSON.parse(JSON.stringify(sale.bill));
-  // the shop raises the price afterwards
   const s2 = D.setProduct(s1, id(s1), { sell: 9.9 });
   const sale2 = s2.day.entries.filter(e => e.kind === 'sale')[0];
   assert.deepStrictEqual(JSON.parse(JSON.stringify(sale2.bill)), frozen,

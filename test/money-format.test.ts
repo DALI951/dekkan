@@ -108,8 +108,6 @@ test('a broken custom block never blanks what the shopkeeper sees', () => {
 });
 
 test('the two copies of the date-format list can never drift apart', () => {
-  // ui/fmt.ts has no imports (it is a browser UMD), so it keeps its own copy of the
-  // legal formats. This test is the seam: change one list, change the other.
   const fmt = boot('ar');
   assert.deepStrictEqual(Array.from(fmt.DATE_FORMATS), Array.from(D.CUSTOM_DATE_FORMATS));
 });
@@ -125,6 +123,7 @@ test('the gate accepts the new "follow the language" symbol and the real separat
   assert.deepStrictEqual(D.customProblems(D.setCustom(D.createShop({}), { date: { format: 'DD/MM/YYYY', time: '12h' } }).custom), []);
 });
 
+/* the strict write path refuses it instead of writing it (the pure-state rule) */
 test('the gate still refuses a format that is not one', () => {
   const c = (patch) => {
     const custom = D.defaultCustom();
@@ -136,6 +135,5 @@ test('the gate still refuses a format that is not one', () => {
   assert.ok(c({ date: { time: '13h' } }).some((p) => /date\.time/.test(p)), 'an unknown clock');
   assert.ok(c({ money: { symbol: 'long-symbol-here' } }).some((p) => /money\.symbol/.test(p)), 'a symbol that is not a symbol');
   assert.ok(c({ money: { decimals: 4 } }).some((p) => /decimals/.test(p)), 'a third decimal is the most the core can honestly round to');
-  // the strict write path refuses it instead of writing it (the pure-state rule)
   assert.throws(() => D.setCustom(D.createShop({}), { money: { decimals: 4 } }), /custom:/);
 });

@@ -48,24 +48,22 @@ test('with a PIN armed, closing the day is refused until the code is right', asy
 
   await armPin(page, '2580');
 
-  // close-day -> keypad appears, the day is NOT closed yet
   await gotoTab(page, '#/settings');
   await page.locator('#btnCloseDay').click();
   await expect(page.locator('#pinPanel')).toBeVisible();
 
-  // wrong code -> error, still locked
   await typePin(page, '0000');
   await page.locator('#keyOk').click();
   await expect(page.locator('#pinError')).toBeVisible();
   await expect(page.locator('#pinPanel')).toBeVisible();
 
-  // right code -> the day actually closes
   await typePin(page, '2580');
   await page.locator('#keyOk').click();
   await expect(page.locator('#pinPanel')).toBeHidden();
   await expect(page.locator('#toast')).toContainText('أُغلق اليوم');
 });
 
+/* the downloaded backup carries the hash, never the plain digits */
 test('refund needs the owner code; the backup JSON never shows the digits', async ({ page }) => {
   await open(page, '#/stock');
   await addSoda(page, 10);
@@ -74,7 +72,6 @@ test('refund needs the owner code; the backup JSON never shows the digits', asyn
   await closeReceipt(page);
   await armPin(page, '4444');
 
-  // refund mode -> refund -> blocked
   await gotoTab(page, '#/sell');
   await page.locator('#btnRefundMode').click();
   await page.locator('[data-action="refund-pick"]').first().click();
@@ -86,7 +83,6 @@ test('refund needs the owner code; the backup JSON never shows the digits', asyn
   await page.locator('#keyOk').click();
   await expect(page.locator('#toast')).toContainText('تم الاسترجاع');
 
-  // the downloaded backup carries the hash, never the plain digits
   const exported = await page.evaluate(() => localStorage.getItem('dekkan.v1'));
   expect(exported).not.toContain('4444');
   expect(exported).toContain('pinHash');

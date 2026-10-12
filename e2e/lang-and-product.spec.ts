@@ -18,11 +18,11 @@ async function visibleText(page) {
   return await page.locator('body').innerText();
 }
 
+/* the navigation must be English, not Arabic */
 test('LANG-001: a fresh browser boots in English, LTR', async ({ page }) => {
   await open(page);
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   await expect(page.locator('html')).toHaveAttribute('dir', 'ltr');
-  // the navigation must be English, not Arabic
   await expect(page.locator('[data-hash="#/stock"] span').first()).toHaveText('Stock');
   await expect(page.locator('[data-hash="#/sell"] span').first()).toHaveText('Sell');
   const body = await visibleText(page);
@@ -40,13 +40,14 @@ test('LANG-002: switching to Arabic flips to RTL with readable Arabic', async ({
   const body = await visibleText(page);
   expect(body).toMatch(/[\u0600-\u06FF]/);
   expect(body).not.toMatch(MOJIBAKE);
-  // and it persists across a hard reload
   await page.reload();
   await page.waitForLoadState('domcontentloaded');
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
   await page.screenshot({ path: 'test-results/lang-003-arabic-after-reload.png', fullPage: true });
 });
 
+/* the only Arabic allowed in English mode is the label of the Arabic switch
+   itself ("العربية") — everything else must be English. */
 test('LANG-004: choosing English persists and reads readable English', async ({ page }) => {
   await open(page, '#/settings');
   await page.locator('#langAr').click();
@@ -57,8 +58,6 @@ test('LANG-004: choosing English persists and reads readable English', async ({ 
   await expect(page.locator('html')).toHaveAttribute('dir', 'ltr');
   const body = await visibleText(page);
   expect(body).not.toMatch(MOJIBAKE);
-  // the only Arabic allowed in English mode is the label of the Arabic switch
-  // itself ("العربية") — everything else must be English.
   const withoutLangButton = body.replace(/العربية/g, '').replace(/دكّان/g, '').replace(/^\s*د\s*$/gm, '');
   expect(withoutLangButton).not.toMatch(/[\u0600-\u06FF]/);
 });
@@ -90,7 +89,6 @@ test('PROD-002: an edit whose product vanished under us does not scare the user'
   await page.locator('#pStock').fill('1');
   await page.locator('#btnSaveProduct').click();
   await toastText(page);
-  // open a product form, then point it at an id that no longer exists
   await page.locator('#btnAddProduct').click();
   await page.locator('#pName').fill('Survivor');
   await page.locator('#pSell').fill('3');

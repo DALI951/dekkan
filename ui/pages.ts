@@ -16,8 +16,6 @@
 
   function render(C) {
     const { renderHeader, renderSell, renderStock, renderDebts, renderClients, renderReport, renderCashBox, renderSettings, renderEmployees, renderMonthly } = DEK.pages;
-    // the shop's own formats (wave 3): told to fmt ONCE per render, before anything
-    // prints a number — every money()/entryTime()/docDate() below then agrees.
     if (C.fmt && C.fmt._setCustom) C.fmt._setCustom(C.state.custom);
     renderHeader(C);
     renderSell(C);
@@ -65,20 +63,21 @@
   }
 
   // ----- SELL -----
+  /* Settings > "Refunds allowed": with the feature turned OFF the buttons
+     leave the screen entirely — a button that looks alive and refuses is
+     worse than no button at all (Dali, 2026-10-11). The core stays the
+     authority; this is the visible half of the same switch.
+
+     what the customer must hand over — right there, and it moves while you type */
   function renderSell(C) {
     const { state, basket, freeItems, refundMode, refundProductId, $, T, D, fmt } = C;
     const { money, n3, esc, stockLeft } = fmt;
     const P = DEK.pages;
-    // Settings > "Refunds allowed": with the feature turned OFF the buttons
-    // leave the screen entirely — a button that looks alive and refuses is
-    // worse than no button at all (Dali, 2026-10-11). The core stays the
-    // authority; this is the visible half of the same switch.
     const canRefund = state.settings.allowRefund !== false;
     $('btnRefundMode').classList.toggle('hidden', !canRefund);
     $('btnRefundMode').classList.toggle('on', refundMode && canRefund);
     $('refundPanel').classList.toggle('hidden', !refundMode || !canRefund);
 
-    // the search box filters the tiles as the shopkeeper types (name OR SKU)
     const q = (($('sellSearch') || {}).value || '').trim().toLowerCase();
     const listed = q ? (D.searchProducts ? D.searchProducts(state, q) : state.products) : state.products;
 
@@ -95,7 +94,6 @@
     });
     $('sellGrid').innerHTML = html || '<div class="empty">' + T.t('sell.none') + '</div>';
 
-    // the low-stock banner: a nudge the moment the shelves run thin
     const lowN = D.restockNeed(state);
     const banner = $('lowBanner');
     if (banner) {
@@ -139,21 +137,17 @@
     $('discountRow').classList.toggle('hidden', !state.settings.allowDiscount);
     $('basketTotal').textContent = money(net);
 
-    // what the customer must hand over — right there, and it moves while you type
     const parts = [];
     if (count > 0) parts.push(count + ' ' + T.t('sell.items'));
     if (disc > 0) parts.push(T.t('sell.discount') + ' ' + money(disc));
     $('dueBox').classList.toggle('empty', net <= 0);
     $('dueHint').textContent = net > 0 ? parts.join('  ·  ') : T.t('sell.nothingYet');
 
-    // the queue: which # the next customer takes (the # on their receipt)
     $('queueLine').textContent = T.t('sell.nextClient') + ' #' + D.nextClientNo(state);
 
-    // the counter's memory: names you can pick while typing
     $('customerList').innerHTML = D.customerNames(state).map(function (n) {
       return '<option value="' + esc(n) + '"></option>';
     }).join('');
-    // the till's memory: who's on the register today
     const cl = $('cashierList');
     if (cl) cl.innerHTML = D.cashierNames(state).map(function (n) {
       return '<option value="' + esc(n) + '"></option>';
@@ -161,7 +155,6 @@
 
     var ci = $('cashierName');
     if (ci && ci.dataset && !ci.dataset.touched) {
-      // offer the last-used cashier as the default (owner opens the till once)
       const last = D.cashierNames(state)[0];
       if (last) ci.value = last;
     }
@@ -318,10 +311,10 @@
   }
 
   // ----- REPORT -----
+  /* the fat-finger valve: only on the LIVE day, and only when the very last move is a sale */
   function renderReport(C) {
     const { state, $, T, D, fmt } = C;
     const { money, n3, fmt: f3, esc, entryTime, kindLabel } = fmt;
-    // past-day browse: a picked date shows THAT day; empty = today
     const date = (C.reportDate || '').trim();
     const r = date ? D.dayReportFor(state, date) : D.stats(state);
     if (!r) { // picked a date that has no day (junk input) — fall back to today
@@ -335,7 +328,6 @@
       C._lastReportDate = date;
     }
 
-    // the till: one big number, read from across the shop
     $('tillCard').innerHTML =
       '<div class="tilth">' + (date ? T.t('report.chip.closed') : T.t('report.chip.now')) + '</div>'
       + '<div class="tillnum">' + money(r.cash) + '</div>'
@@ -379,7 +371,6 @@
         + '<span class="growx"><span class="e-time">' + entryTime(e.at) + '</span>'
         + (e.note ? '<span class="e-note">' + esc(e.note) + '</span>' : '') + '</span>'
         + '<span class="e-amt ' + cls + '">' + amt + '</span>';
-      // a sale row IS a ticket: tap it to reopen the facture
       eh += e.kind === 'sale'
         ? '<button class="entry trow" data-action="ticket-open" data-id="' + e.id + '" data-i="' + e.no + '">'
           + guts + '</button>'
@@ -387,7 +378,6 @@
     });
     $('entriesList').innerHTML = eh || '<div class="empty">' + T.t('report.noMoves') + '</div>';
 
-    // per-cashier attribution: who rang what today
     const byC = $('byCashier');
     if (byC) {
       const rows = r.byCashier || [];
@@ -401,7 +391,6 @@
       byC.classList.toggle('hidden', !rows.length);
     }
 
-    // the fat-finger valve: only on the LIVE day, and only when the very last move is a sale
     const undoBtn = $('btnUndoSale');
     if (undoBtn) undoBtn.hidden = !!date || !D.canUndoSale(state);
   }
@@ -427,12 +416,12 @@
   }
 
   // ---------- the report metric boxes: tap one to see what the number MEANS ----------
+  /* the day you are LOOKING at is the day the panel shows. It used to always
+     read today's ledger, so browsing a closed day and tapping "sales" showed
+     today's numbers under yesterday's report. */
   function openMetric(C, m) {
     const { state, $, T, D, fmt } = C;
     const { money, esc, kindLabel } = fmt;
-    // the day you are LOOKING at is the day the panel shows. It used to always
-    // read today's ledger, so browsing a closed day and tapping "sales" showed
-    // today's numbers under yesterday's report.
     const date = (C.reportDate || '').trim();
     const browsing = !!date && date !== D.todayStr();
     const r = browsing ? (D.dayReportFor(state, date) || D.stats(state)) : D.stats(state);
@@ -482,6 +471,7 @@
 
   // ---------- the STOCK CARD: one product's whole shelf story, newest movement last ----------
   // Reuses the metric panel (its close button / backdrop / Escape are already wired).
+  /* M04: an adjustment says WHY — show the reason code beside the movement. */
   function openStockCard(C, productId) {
     const { state, $, T, D, fmt } = C;
     const { esc, entryTime } = fmt;
@@ -492,7 +482,6 @@
       refund: 'stockCard.move.refund', adjust: 'stockCard.move.adjust', undo: 'stockCard.move.undo'
     };
     const label = function (k) { return T.t(moveKey[k] || 'stockCard.move.adjust'); };
-    // M04: an adjustment says WHY — show the reason code beside the movement.
     const reasonText = function (m) { return m.reason ? T.t('stock.reason.' + m.reason) : ''; };
     let rows = '';
     card.moves.forEach(function (m) {
@@ -548,6 +537,9 @@
   }
 
   // ----- SETTINGS -----
+  /* account row — the ONE place the account lives. It opens the form; it never
+     ambushes the till. It also tells the truth about the cloud: signed out,
+     synced, still waiting, offline, or "your session expired". */
   function renderSettings(C) {
     const { state, $, T, version } = C;
     const P = DEK.pages;
@@ -560,7 +552,6 @@
     if ($('appVersion')) $('appVersion').textContent = version;
     P.renderThemes(C);
     P.updateStorage(C);
-    // owner lock: reflect current PIN state
     const has = C.D && C.D.hasPin ? C.D.hasPin(state) : false;
     const pinClear = $('btnPinClear');
     if (pinClear) pinClear.classList.toggle('hidden', !has);
@@ -571,9 +562,6 @@
         : T.t('settings.pinOff');
       pinStatus.classList.toggle('pin-status-ok', has);
     }
-    // account row — the ONE place the account lives. It opens the form; it never
-    // ambushes the till. It also tells the truth about the cloud: signed out,
-    // synced, still waiting, offline, or "your session expired".
     const acc = C.auth;
     const signed = !!(acc && acc.isLoggedIn());
     if ($('accountEmail')) $('accountEmail').textContent = signed && acc.getUser() ? acc.getUser().email : '—';
@@ -891,6 +879,7 @@
   // ----- the till: one checkout = one client = one receipt -----
   // The ticket is the shop's PAPER (wave 3): its brand, its wording, its date
   // format, and — when it asks — a language other than the screen's.
+  /* a fresh receipt starts with no refund reason typed and the row tucked away */
   function showReceipt(C, r) {
     const { state, $, fmt } = C;
     const { money, esc, entryTime, docT, docDate } = fmt;
@@ -954,10 +943,8 @@
       t += '<div class="r-row bad"><span>' + docT('sell.rest') + '</span><b>' + money(r.rest) + '</b></div>';
     }
     $('rTotals').innerHTML = t;
-    // a fresh receipt starts with no refund reason typed and the row tucked away
     if ($('receiptRefundReason')) $('receiptRefundReason').value = '';
     if ($('receiptRefundRow')) $('receiptRefundRow').classList.add('hidden');
-    // refunds turned off in Settings: the ticket offers no refund button
     if ($('btnReceiptRefund')) {
       $('btnReceiptRefund').classList.toggle('hidden', state.settings.allowRefund === false);
     }
@@ -971,6 +958,7 @@
   }
 
   // ----- STAFF (the team: hire / edit / fire) -----
+  /* the hire/edit form only exists when it is in flight (C.editEmployeeId) */
   function renderEmployees(C) {
     const { state, $, T, fmt } = C;
     const { money, esc } = fmt;
@@ -994,7 +982,6 @@
       }).join('');
     }
 
-    // the hire/edit form only exists when it is in flight (C.editEmployeeId)
     const form = $('staffForm');
     if (C.editEmployeeId) {
       form.classList.remove('hidden');

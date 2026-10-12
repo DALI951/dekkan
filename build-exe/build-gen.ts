@@ -34,7 +34,6 @@ function splitOne(srcRel, seams, partsDir) {
     const to = i + 1 < offsets.length ? offsets[i + 1] : buf.length;
     parts.push({ name: names[i], slice: buf.slice(from, to) });
   }
-  // verify reassembly === original BEFORE touching disk
   const rebuilt = Buffer.concat(parts.map(function (p) { return p.slice; }));
   if (sha(rebuilt) !== sha(buf)) throw new Error('reassembly mismatch for ' + srcRel);
   return { parts: parts, srcRel: srcRel };

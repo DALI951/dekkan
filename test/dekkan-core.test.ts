@@ -34,7 +34,6 @@ test('cash identity holds after every kind of movement', () => {
 
   const expected = 50 + 3 - 8 - 5 + 20 + 4;
   assert.equal(D.cash(s), expected);
-  // airtight: recompute from entries
   let fromEntries = s.day.startCash;
   for (const e of s.day.entries) fromEntries += e.amount;
   assert.equal(fromEntries, expected);
@@ -46,7 +45,6 @@ test('selling decreases stock, buying increases it; stock never goes negative', 
   s = D.sell(s, { items: [{ id: s.products[0].id, qty: 4 }] });
   assert.equal(D.getProduct(s, s.products[0].id).stock, 6);
   assert.throws(() => D.sell(s, { items: [{ id: s.products[0].id, qty: 7 }] }), /not enough stock/);
-  // the failed sale changed NOTHING
   assert.equal(D.getProduct(s, s.products[0].id).stock, 6);
   s = D.buyStock(s, s.products[0].id, 10, 0.8);
   assert.equal(D.getProduct(s, s.products[0].id).stock, 16);
@@ -165,7 +163,6 @@ test('closeDay: closes the day with endCash, new day starts with that cash', () 
   assert.equal(s.day.entries.length, 0);
   assert.equal(s.day.soldCost, 0);
   assert.equal(D.cash(s), 53);
-  // second sale lands in the NEW day
   s = D.sell(s, { items: [{ id: s.products[0].id, qty: 1 }] });
   assert.equal(D.cash(s), 54.5);
   assert.equal(s.days.length, 1);      // only the first day closed
@@ -275,7 +272,6 @@ test('discount respects the allowDiscount toggle', () => {
   s = D.addProduct(s, { name: 'X', sell: 1, buy: 0.5, stock: 5 });
   const id = s.products[0].id;
   assert.throws(() => D.sell(s, { items: [{ id, qty: 1 }], discount: { percent: 10 } }), /discounts are turned off/);
-  // and without a discount, selling still works
   s = D.sell(s, { items: [{ id, qty: 1 }] });
   assert.equal(D.cash(s), 1);
 });
@@ -320,7 +316,6 @@ test('dayReport lists every move: start cash, each entry, totals, profit', () =>
   assert.equal(r.netSales, 3.5);
   assert.equal(r.dayProfit, -1.3); // cost of the 1 coke that stayed sold
   assert.equal(r.lastCheck.ok, true);
-  // every amount in entries is a real, signed number (a shopkeeper can follow the story)
   const sum = r.entries.reduce((a, e) => a + e.amount, 0) + r.startCash;
   assert.equal(sum, r.cash);
 });
@@ -350,7 +345,6 @@ test('updateShop changes startCash only while the day is empty', () => {
   let s = shop(); // day 1, empty
   s = D.updateShop(s, { startCash: 30 });
   assert.equal(D.cash(s), 30);
-  // once the day has movement, startCash is locked
   s = D.sell(s, { items: [{ id: s.products[0].id, qty: 1 }] }); // coca 1.5 -> 31.5
   assert.throws(() => D.updateShop(s, { startCash: 99 }), /locked/);
   assert.equal(D.cash(s), 31.5); // unchanged by the failed attempt
@@ -368,7 +362,6 @@ test('setSettings toggles allowDiscount and allowRefund', () => {
   assert.throws(() => D.sell(s, { items: [{ id: s.products[0].id, qty: 1 }], discount: { percent: 10 } }), /discounts are turned off/);
   s = D.setSettings(s, { allowRefund: false });
   assert.throws(() => D.refund(s, { items: [{ id: s.products[0].id, qty: 1 }] }), /refunds are turned off/);
-  // back on: both work again
   s = D.setSettings(s, { allowDiscount: true, allowRefund: true });
   s = D.sell(s, { items: [{ id: s.products[0].id, qty: 1 }], discount: { percent: 10 } });
   s = D.refund(s, { items: [{ id: s.products[0].id, qty: 1 }], reason: 'test' });
@@ -379,13 +372,12 @@ test('setSettings rejects non-boolean values', () => {
   assert.throws(() => D.setSettings(shop(), { allowDiscount: 'yes' }), /boolean/);
 });
 
+/* can't delete while money is owed */
 test('removeDebt deletes only settled (fully paid) debts', () => {
   let s = shop();
   s = D.addDebt(s, { name: 'ali', amount: 5 });
-  // can't delete while money is owed
   assert.throws(() => D.removeDebt(s, s.debts[0].id), /open balance/);
   assert.equal(s.debts.length, 1);
-  // after full payment it can be deleted
   s = D.payDebt(s, s.debts[0].id, { amount: 5 });
   s = D.removeDebt(s, s.debts[0].id);
   assert.equal(s.debts.length, 0);

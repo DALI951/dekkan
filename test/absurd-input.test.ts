@@ -19,13 +19,14 @@ function shop() {
   return s;
 }
 
+/* "-5" in the free-line price box — a negative price is REFUSED, not met
+
+   and the refusal changed NOTHING: byte-identical till */
 test('a NEGATIVE free price is refused: nothing is sold, the till never drains', () => {
   let s = shop();
   const cashBefore = D.cash(s);
   const abs = Math.abs(D.cash(s));
-  // "-5" in the free-line price box — a negative price is REFUSED, not met
   assert.throws(() => D.sellFree(s, { name: 'x', price: -5, qty: 1 }), /price/);
-  // and the refusal changed NOTHING: byte-identical till
   assert.equal(D.cash(s), cashBefore, 'a refused absurd price moves NO cash');
   assert.equal(D.cash(s), Math.abs(D.cash(s)), 'cash is always non-negative (never drains)');
   assert.notEqual(D.cash(s), Number.NaN, 'the till never reads NaN');
@@ -50,12 +51,12 @@ test('NaN in the paid box is refused: no partial pay, no debt, till stays a real
   assert.equal(s.debts.length, 0, 'absurd paid created no debt');
 });
 
+/* the till is still exactly startCash: a single dinars never left for a refusal */
 test('discount percent over 100 or under 0 is refused; cash identity still holds', () => {
   let s = shop();
   assert.throws(() => D.sell(s, { items: [{ id: s.products[0].id, qty: 1 }], discount: { percent: 101 } }), /percent/);
   assert.throws(() => D.sell(s, { items: [{ id: s.products[0].id, qty: 1 }], discount: { percent: -1 } }), /percent/);
   assert.throws(() => D.sell(s, { items: [{ id: s.products[0].id, qty: 1 }], discount: { amount: -5 } }), /amount/);
-  // the till is still exactly startCash: a single dinars never left for a refusal
   assert.equal(D.cash(s), 50, 'absurd discount never touches the till');
 });
 

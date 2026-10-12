@@ -129,8 +129,6 @@
       if (typeof s.day.soldCost !== 'number' || !isFinite(s.day.soldCost)) s.day.soldCost = 0;
     }
     if (D.ensureMovements) D.ensureMovements(s);
-    // a save from before the customization block opens as a full shop, not a
-    // half-customized one (same repair the import path runs)
     if (D.ensureCustomState) D.ensureCustomState(s);
     return s;
   }
@@ -163,6 +161,7 @@
   // restore a draft the shopkeeper left behind (a refresh/tab-switch mid-order).
   // Anything stale is pruned here: a deleted product, an over-shelf qty, a blank
   // free line — the order must never come back broken or able to oversell.
+  /* re-save the pruned draft so a stale key never lingers on disk */
   function loadDraft() {
     try {
       const j = localStorage.getItem(DRAFT_KEY);
@@ -181,7 +180,6 @@
         return f && f.name && String(f.name).trim() && Number.isFinite(f.qty) && f.qty > 0;
       });
     } catch (e) { /* a broken draft is just ignored */ }
-    // re-save the pruned draft so a stale key never lingers on disk
     saveDraft();
   }
   // mirrored on every render, so the draft always matches what is on screen
@@ -204,6 +202,9 @@
   C.auth = AUTH;
 
   // ---------- the two verbs every handler ends with ----------
+  /* a core op may throw an i18n KEY (e.g. 'toast.refundReason'); translate
+     it so the shopkeeper never sees a raw key. Plain English messages pass
+     straight through (T.t returns the input unchanged when it is not a key). */
   function run(fn, okMsg) {
     try {
       C.state = fn(C.state);
@@ -211,9 +212,6 @@
       render();
       if (okMsg) toast(okMsg);
     } catch (e) {
-      // a core op may throw an i18n KEY (e.g. 'toast.refundReason'); translate
-      // it so the shopkeeper never sees a raw key. Plain English messages pass
-      // straight through (T.t returns the input unchanged when it is not a key).
       toast(T.t(e.message), true);
     }
   }

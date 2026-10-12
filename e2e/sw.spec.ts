@@ -24,11 +24,10 @@ async function withActiveSw(page) {
   await page.reload({ waitUntil: 'networkidle' });
 }
 
+/* ONLINE reload: the network must win — real app, real lang, never the poison. */
 test('online load IGNORES a poisoned stale cache (network-first beats cache)', async ({ page }) => {
   await withActiveSw(page);
 
-  // Poison the browser: a bogus old cache holding a WRONG shell + WRONG lang.js.
-  // This is exactly the stale state the old cache-first SW used to feed.
   await page.evaluate(async () => {
     const c = await caches.open('dekkan-poison');
     const html = new Response('<title>STALE SHELL</title><body>old</body>',
@@ -41,13 +40,11 @@ test('online load IGNORES a poisoned stale cache (network-first beats cache)', a
     ]);
   });
 
-  // ONLINE reload: the network must win — real app, real lang, never the poison.
   await page.reload({ waitUntil: 'networkidle' });
   await expect(page.locator('#page-sell')).toBeVisible();
   expect(await page.title()).not.toBe('STALE SHELL');
   const poisoned = await page.evaluate(() => window.POISONED === true);
   expect(poisoned).toBe(false);
-  // the real Arabic default shell is what loaded
   await expect(page.locator('#page-sell h2')).toHaveText('البيع');
 });
 
@@ -58,8 +55,6 @@ test('cached shell still serves the WHOLE app when offline', async ({ page, cont
   await context.setOffline(true);
   await page.reload({ waitUntil: 'domcontentloaded' });
 
-  // app shell renders from cache, till present (sidebar #cashNow on PC,
-  // topbar #cashNow2 on Phone), no crash
   await expect(page.locator('#page-sell')).toBeVisible();
   await expect(page.locator('#cashNow:visible, #cashNow2:visible').first()).toBeVisible();
   await page.evaluate(() => document.title); // title read works offline
@@ -79,7 +74,6 @@ test('served sw.js is the network-first version (guards against a cache-first re
 test('a deploy bump switches the cache name and drops the old caches', async ({ page }) => {
   await withActiveSw(page);
   const names = await page.evaluate(async () => (await caches.keys()).filter(k => k.startsWith('dekkan-')));
-  // exactly ONE dekkan cache (the current version), nothing stale left behind
   expect(names.length).toBe(1);
   expect(names[0]).toMatch(/^dekkan-v\d+$/);
 });

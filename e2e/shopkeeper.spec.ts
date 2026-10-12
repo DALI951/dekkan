@@ -66,7 +66,6 @@ test('credit sale without a customer name is refused', async ({ page }) => {
 });
 
 test('closing the day keeps the cash and opens a fresh till', async ({ page }) => {
-  // do setup + a real sale via UI
   await open(page, '#/stock');
   await page.locator('#btnAddProduct').click();
   await page.locator('#pName').fill('ست سمين');
@@ -83,7 +82,6 @@ test('closing the day keeps the cash and opens a fresh till', async ({ page }) =
   await gotoTab(page, '#/settings');
   await page.locator('#btnCloseDay').click();
 
-  // end-cash became the next day's start-cash, till does not vanish
   await expect(page.locator('#cashNow')).toHaveText(/2\.500/);
   await gotoTab(page, '#/report');
   await expect(page.locator('#entriesList .empty')).toBeVisible(); // fresh day, no moves

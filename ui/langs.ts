@@ -104,8 +104,6 @@
     if (typeof localStorage === 'undefined') return;
     try {
       localStorage.setItem(STORE_KEY, id);
-      // the direction is stored too, so index.html's pre-paint snippet can
-      // declare RTL without knowing which languages exist.
       localStorage.setItem(DIR_KEY, dir(id));
     } catch (e) { /* private mode: the app still works, the choice is just not kept */ }
   }

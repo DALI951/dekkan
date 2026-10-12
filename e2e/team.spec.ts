@@ -26,7 +26,6 @@ test('hire a cashier and see them in the team with their salary', async ({ page 
 });
 
 test('monthly review counts wins, losses and the salaries inside', async ({ page }) => {
-  // hire + a real sale — the review reads the same ledger the till reads
   await open(page, '#/employees');
   await page.locator('#btnAddEmployee').click();
   await page.locator('#empName').fill('Sami');
@@ -79,25 +78,20 @@ test('sell on credit, then the customer pays and the debt settles', async ({ pag
   await page.locator('#btnSaveProduct').click();
   await gotoTab(page, '#/sell');
 
-  // full credit, name typed
   await sellOne(page, undefined, 'Ali');
   await expect(page.locator('#receipt')).not.toHaveClass(/hidden/);
   await expect(page.locator('#rClient')).toContainText('Ali'); // 'Ali #1' — numbered client
   expect(await tillNow(page)).toBe(0); // credit: no cash physically received yet
   await closeReceipt(page);
 
-  // debts page: Ali owes 1.500 while the till still doesn't
   await gotoTab(page, '#/debts');
   await expect(page.locator('#debtList')).toContainText('Ali');
   await expect(page.locator('#debtList')).toContainText(/1\.500/);
 
-  // pay it back in full
   await page.locator('[data-action="debt-pay"]').first().click();
   await page.locator('#payAmount').fill('1.5');
   await page.locator('#btnDoPay').click();
 
-  // settled: no open-debt pay buttons left…
   await expect(page.locator('[data-action="debt-pay"]')).toHaveCount(0);
-  // …and NOW the 1.500 is physically in the till
   await expect(page.locator('#cashNow')).toHaveText(/1\.500/);
 });

@@ -19,6 +19,7 @@ test('TAX-001: a fresh shop carries the Tunisian default profile (in config, eff
   assert.deepStrictEqual(D.currentTax(s), { code: 'TVA', rate: 0.19 });
 });
 
+/* the owner reconfigures the rate — the posted receipt must NOT follow */
 test('TAX-002: a posted sale keeps the rate snapshot even after the profile changes', () => {
   let s = D.createShop({ name: 'T', startCash: 50 });
   s = D.addProduct(s, { name: 'Coca', buy: 0.8, sell: 1.5, stock: 10 });
@@ -26,7 +27,6 @@ test('TAX-002: a posted sale keeps the rate snapshot even after the profile chan
   const entry = s.day.entries[s.day.entries.length - 1];
   assert.deepStrictEqual(entry.bill.tax, { code: 'TVA', rate: 0.19 }, 'sale is stamped with the active profile');
 
-  // the owner reconfigures the rate — the posted receipt must NOT follow
   s.settings.tax.profiles[0].rate = 0.07;
   assert.equal(D.currentTax(s).rate, 0.07);
   assert.equal(entry.bill.tax.rate, 0.19, 'the old receipt keeps its posted rate');

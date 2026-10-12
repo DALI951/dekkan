@@ -39,7 +39,6 @@ test.describe('onslaught: money + stock honesty (the 4 holes)', () => {
     await page.locator('#freePrice').fill('-100');
     await page.locator('#btnAddFree').click();
     expect(await toastText(page)).toBe('الثمن يجب أن يكون صفرًا أو أكثر');
-    // and a blank/zero price is still the legit freebie path
     await page.locator('#freePrice').fill('0');
     await page.locator('#btnAddFree').click();
     await expect(page.locator('#basketList')).toContainText('Robo');
@@ -51,7 +50,6 @@ test.describe('onslaught: money + stock honesty (the 4 holes)', () => {
     await page.locator('#freeQty').fill('-2');
     await page.locator('#btnAddFree').click();
     expect(await toastText(page)).toBe('الكمية يجب أن تكون 1 على الأقل');
-    // blank qty still means 1, and it lands in the basket
     await page.locator('#freeQty').fill('');
     await page.locator('#freeName').fill('Coffee');
     await page.locator('#btnAddFree').click();
@@ -299,13 +297,13 @@ test.describe('onslaught: debts + staff guards', () => {
 // ============================================================ CASHBOX & SETTINGS
 test.describe('onslaught: cashbox + settings guards', () => {
 
+  /* letters are blocked by the browser because this is input[type=number]; zero is still a possible bad value. */
   test('cash IN with impossible amounts is refused and the till never moves', async ({ page }) => {
     await open(page, '#/cashbox');
     await page.locator('#cbInAmt').fill('-5');
     await page.locator('#btnCashIn').click();
     expect(await toastText(page)).toMatch(/amount|المبلغ/);
     expect(await tillNow(page)).toBe(0);
-    // letters are blocked by the browser because this is input[type=number]; zero is still a possible bad value.
     await page.locator('#cbInAmt').fill('0');
     await page.locator('#btnCashIn').click();
     expect(await toastText(page)).toMatch(/amount|المبلغ/);
@@ -343,8 +341,10 @@ test.describe('onslaught: cashbox + settings guards', () => {
     expect(data.version).toBe(4);
   });
 
+  /* 1) GARBAGE file: refused, state untouched
+
+     2) MUTILATED backup (no products): refused, state untouched */
   test('import: a valid backup restores the shop; a garbage file changes nothing', async ({ page }) => {
-    // build a shop with a product + a sale, export it as the backup
     await open(page, '#/stock');
     await addSoda(page, 7);
     await gotoTab(page, '#/sell');
@@ -360,7 +360,6 @@ test.describe('onslaught: cashbox + settings guards', () => {
     expect(stateNow.products.length).toBe(1);
     expect(stateNow.day.entries.filter(e => e.kind === 'sale').length).toBe(1);
 
-    // 1) GARBAGE file: refused, state untouched
     await page.locator('#importFile').setInputFiles({
       name: 'garbage.json', mimeType: 'application/json', buffer: Buffer.from('{broken json!!')
     });
@@ -368,7 +367,6 @@ test.describe('onslaught: cashbox + settings guards', () => {
     const afterGarbage = await page.evaluate(() => JSON.parse(localStorage.getItem('dekkan.v1')));
     expect(afterGarbage.products.length).toBe(1);
 
-    // 2) MUTILATED backup (no products): refused, state untouched
     const mutilated = JSON.parse(backup);
     delete mutilated.products;
     await page.locator('#importFile').setInputFiles({
@@ -377,7 +375,6 @@ test.describe('onslaught: cashbox + settings guards', () => {
     });
     expect(await toastText(page)).toBe('هذا الملف ليس نسخة صالحة');
 
-    // 3) REAL backup: confirm dialog -> restore -> shop matches the backup
     page.once('dialog', d => d.accept());
     await page.locator('#importFile').setInputFiles({
       name: 'real.json', mimeType: 'application/json', buffer: Buffer.from(backup)
@@ -389,6 +386,7 @@ test.describe('onslaught: cashbox + settings guards', () => {
     expect(restored.products[0].stock).toBe(6); // 7 - 1 sold = the exported numbers, not a fresh shop
   });
 
+  /* undo button is visible because the last move is a sale */
   test('undo the last sale: goods, cash and ledger all come back', async ({ page }) => {
     await open(page, '#/stock');
     await addSoda(page, 4);
@@ -399,7 +397,6 @@ test.describe('onslaught: cashbox + settings guards', () => {
     await expect(page.locator('#cashNow')).toHaveText(/1\.500/);
     await expect(page.locator('#entriesList')).toContainText('1.5'); // the sold amount row
 
-    // undo button is visible because the last move is a sale
     page.once('dialog', d => d.accept());
     await page.locator('#btnUndoSale').click();
     await expect(page.locator('#toast')).toContainText('أُلغي آخر بيع');
@@ -408,7 +405,6 @@ test.describe('onslaught: cashbox + settings guards', () => {
     await expect(page.locator('#entriesList .empty')).toBeVisible(); // no moves left
     await expect(page.locator('#btnUndoSale')).toBeHidden(); // nothing to undo anymore
 
-    // the goods came back: sell the same cola now (stock was 3 after first sale)
     await gotoTab(page, '#/stock');
     await expect(page.locator('#stockList')).toContainText('4'); // full stock restored
   });
@@ -430,6 +426,7 @@ test.describe('onslaught: cashbox + settings guards', () => {
 // ============================================================ RECEIPT REFUNDS
 test.describe('onslaught: receipt refunds (tickets)', () => {
 
+  /* restock proof: 10 left, an 11th unit cannot be added to the basket */
   test('cash receipt refund: goods restocked, till gives back, trace kept', async ({ page }) => {
     await open(page, '#/stock');
     await addSoda(page, 10);
@@ -443,7 +440,6 @@ test.describe('onslaught: receipt refunds (tickets)', () => {
     await expect(page.locator('#receipt')).toHaveClass(/hidden/); // it closes itself
     expect(await tillNow(page)).toBe(0); // the 1.500 went back
 
-    // restock proof: 10 left, an 11th unit cannot be added to the basket
     await gotoTab(page, '#/sell');
     for (let i = 0; i < 10; i++) await page.locator('[data-action="sell-add"]').first().click();
     await expect(page.locator('#basketCount')).toHaveText('10');

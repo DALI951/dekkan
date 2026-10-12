@@ -36,15 +36,16 @@ function _reason(opts) {
 // says the leftover is a DISCOUNT the customer was given (so it is simply not
 // returned) and not a debt he owes — without it, a 50%-off sale could not be
 // refunded at all: the shelf price minus the money taken looked like credit.
+/* no `cash` given + a creditTo = the old dictation: the whole return is written
+   off the notebook and the drawer never moves. `cash` is what unlocks the split.
+
+   cash back — but the till must physically hold it first */
 function _settle(state, back, cashOut, creditTo, note, refs, saleNo, allowGap) {
-  // no `cash` given + a creditTo = the old dictation: the whole return is written
-  // off the notebook and the drawer never moves. `cash` is what unlocks the split.
   const out = cashOut == null ? (creditTo ? 0 : money(back)) : money(cashOut);
   if (out < 0) throw new Error('refund cash must be zero or more');
   if (out > money(back)) throw new Error('refund cash cannot be more than the value coming back');
   const credit = money(money(back) - out);
   if (out > 0) {
-    // cash back — but the till must physically hold it first
     const now = cash(state);
     if (out > now) throw new Error('not enough cash in the till to refund (' + money(now) + ')');
   }
@@ -64,6 +65,9 @@ function _settle(state, back, cashOut, creditTo, note, refs, saleNo, allowGap) {
   return state;
 }
 
+/* you can only give back what actually left the shelf today
+
+   the cost of those goods is undone (can't go below 0 for today's report) */
 function refund(state, opts) {
   state = rollover(clone(state));
   if (!state.settings.allowRefund) throw new Error('refunds are turned off');
@@ -77,7 +81,6 @@ function refund(state, opts) {
     const p = getProduct(state, it.id);
     if (!p) throw new Error('toast.prodNotFound');
     const take = Math.floor(it.qty);
-    // you can only give back what actually left the shelf today
     const broad = (state.day.soldByProduct = state.day.soldByProduct || {});
     const sold = broad[p.id] || 0;
     if (take > sold) throw new Error('refund qty exceeds what was sold today for ' + p.name + ' (sold ' + sold + ')');
@@ -89,17 +92,14 @@ function refund(state, opts) {
     moves.push({ id: p.id, qty: take });
     refs.push(p.name + 'x' + take);
   }
-  // the cost of those goods is undone (can't go below 0 for today's report)
   state.day.soldCost = money(Math.max(0, state.day.soldCost - costBack));
 
   let out;
   if (opts.creditTo) {
-    // was a credit sale -> undo it on the (open) debt, no cash moves
     out = _settle(state, back, opts.cash, opts.creditTo, reason, refs.join(', '), opts.saleNo, opts.discount === true);
   } else {
     out = _settle(state, back, opts.cash, null, reason, refs.join(', '), opts.saleNo, opts.discount === true);
   }
-  // goods coming back are source-linked shelf movements against the refund entry
   const rentry = out.day.entries[out.day.entries.length - 1];
   const rref = rentry && rentry.kind === 'refund' ? rentry.id : null;
   for (const m of moves) stockMove(out, m.id, m.qty, 'refund', rref, null);
@@ -108,6 +108,7 @@ function refund(state, opts) {
 
 
 // Refund something that was sold without stock tracking (service returned / wrong order).
+/* the free-item budget, by NAME — you can only give back what was sold today */
 function refundFree(state, opts) {
   state = rollover(clone(state));
   if (!state.settings.allowRefund) throw new Error('refunds are turned off');
@@ -115,7 +116,6 @@ function refundFree(state, opts) {
   const qty = Math.floor(opts.qty || 1);
   if (!Number.isFinite(qty) || qty <= 0) throw new Error('refund qty must be positive');
   const reason = _reason(opts);
-  // the free-item budget, by NAME — you can only give back what was sold today
   const broad = (state.day.soldFree = state.day.soldFree || {});
   const sfn = String(opts.name).trim();
   const sold = broad[sfn] || 0;

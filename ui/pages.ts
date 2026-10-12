@@ -32,7 +32,13 @@
   function renderHeader(C) {
     const { state, $, T, D, fmt } = C;
     const { money } = fmt;
-    $('shopName').textContent = state.shop.name;
+    const name = shopTitle(state, T.t('app.name'));
+    $('shopName').textContent = name;
+    if ($('sideTitle')) $('sideTitle').textContent = name;
+    if ($('sideTag')) $('sideTag').textContent = shopTagline(state, T.t('app.tagline'));
+    const initial = shopInitial(state, T.t('app.name'));
+    if ($('sideLogo')) $('sideLogo').textContent = initial;
+    if ($('topLogo')) $('topLogo').textContent = initial;
     const cash = money(D.cash(state));
     $('cashNow').textContent = cash;
     if ($('cashNow2')) $('cashNow2').textContent = cash;
@@ -809,23 +815,89 @@
 
   // ----- the printed PAPER SIZE -----
   // @page cannot be scoped by a class, so the size goes into a stylesheet the app
-  // rewrites. A till with a 58mm roll and a shop with A4 invoices both print
-  // straight, with no dialog hunting.
+  // rewrites. A roll gets TWO EXPLICIT LENGTHS: `size:80mm auto` is not valid CSS
+  // (`size` is `auto | <length>{1,2} | <page-size>`), and Chromium drops the whole
+  // rule — the ticket then printed on the default sheet (US Letter), which is
+  // exactly the bug the shop reported. `auto` also is not what a roll needs: the
+  // sheet must be the height the ticket actually uses, so the ticket is laid out
+  // at its print width first, measured, and that height goes on the paper.
   const PAPER = {
-    '58mm': { size: '58mm auto', margin: '2mm', width: '54mm' },
-    '80mm': { size: '80mm auto', margin: '3mm', width: '74mm' },
-    'A4': { size: 'A4', margin: '12mm', width: '190mm' }
+    '58mm': { w: 58, margin: 2, width: 54, name: '58mm', unmeasuredH: 297 },
+    '80mm': { w: 80, margin: 3, width: 74, name: '80mm', unmeasuredH: 297 },
+    'A4': { w: 210, margin: 12, width: 190, name: 'A4', unmeasuredH: 0 }
   };
-  function applyPaper(C) {
-    const p = PAPER[(C.state.custom && C.state.custom.print && C.state.custom.print.size) || '80mm'] || PAPER['80mm'];
+  const PAPER_MIN_MM = 40;    // under this a ticket is a stamp, and a print head jams
+  const PAPER_MAX_MM = 999;   // over this it is a typo, not a ticket
+
+  function paperOf(choice) { return PAPER[choice] || PAPER['80mm']; }
+
+  // A missing measurement ("the ticket is not on screen") is NOT the same as a
+  // measured zero: one wants a whole roll's worth of sheet, the other is a slip.
+  function paperCss(choice, contentMM) {
+    const p = paperOf(choice);
+    if (p.name === 'A4') return '@page{size:A4;margin:' + p.margin + 'mm}\n'
+      + '@media print{.receipt-card{width:' + p.width + 'mm!important;max-width:' + p.width + 'mm!important;margin:0!important;}}';
+    const n = Number(contentMM);
+    const measured = (contentMM === null || contentMM === undefined || !isFinite(n)) ? null : Math.max(0, n);
+    const h = measured === null
+      ? p.unmeasuredH
+      : Math.min(PAPER_MAX_MM, Math.max(PAPER_MIN_MM, Math.round(measured + 2 * p.margin + 1)));
+    return '@page{size:' + p.w + 'mm ' + h + 'mm;margin:' + p.margin + 'mm}\n'
+      + '@media print{.receipt-card{width:' + p.width + 'mm!important;max-width:' + p.width + 'mm!important;margin:0!important;}}';
+  }
+
+  function paperStyleEl() {
     let st = document.getElementById('paperStyle');
     if (!st) {
       st = document.createElement('style');
       st.id = 'paperStyle';
       if (document.head) document.head.appendChild(st);
     }
-    st.textContent = '@page{size:' + p.size + ';margin:' + p.margin + '}\n'
-      + '@media print{.receipt-card{width:' + p.width + '!important;max-width:' + p.width + '!important;margin:0!important;}}';
+    return st;
+  }
+
+  // how tall the ticket really is at the width it will be printed at. The screen's
+  // width is not the paper's, so the card is measured AFTER being put at the print
+  // width (CSS px are exactly 1/96in, so px -> mm is exact, not a guess).
+  function receiptHeightMM(p) {
+    if (!document.querySelector) return null;
+    const card = document.querySelector('#receipt .receipt-card');
+    if (!card || !card.getBoundingClientRect || !card.style) return null;
+    const was = { width: card.style.width, max: card.style.maxWidth, box: card.style.boxSizing, maxH: card.style.maxHeight, overflow: card.style.overflow };
+    card.style.boxSizing = 'border-box';
+    card.style.width = p.width + 'mm';
+    card.style.maxWidth = p.width + 'mm';
+    card.style.maxHeight = 'none';     // the SCREEN caps the card's height; the PAPER does not
+    card.style.overflow = 'visible';
+    const px = card.getBoundingClientRect().height;
+    card.style.width = was.width;
+    card.style.maxWidth = was.max;
+    card.style.boxSizing = was.box;
+    card.style.maxHeight = was.maxH;
+    card.style.overflow = was.overflow;
+    if (!(px > 0)) return null;                        // hidden or empty: not a measurement
+    return Math.ceil((px * 25.4) / 96);
+  }
+
+  function applyPaper(C) {
+    const choice = (C.state.custom && C.state.custom.print && C.state.custom.print.size) || '80mm';
+    const p = paperOf(choice);
+    paperStyleEl().textContent = paperCss(choice, p.name === 'A4' ? 0 : receiptHeightMM(p));
+  }
+
+  // ----- the shop's own NAME, in the app's own style -----
+  function shopTitle(state, fallback) {
+    const name = String((state && state.shop && state.shop.name) || '').trim();
+    return name || String(fallback == null ? '' : fallback);
+  }
+  function shopInitial(state, fallback) {
+    const name = String((state && state.shop && state.shop.name) || '').trim();
+    return name.charAt(0) || String(fallback == null ? '' : fallback).charAt(0);
+  }
+  function shopTagline(state, fallback) {
+    const b = state && state.custom && state.custom.brand;
+    const tag = String((b && b.tagline) || '').trim();
+    return tag || String(fallback == null ? '' : fallback);
   }
 
   function printTicket(C) {
@@ -1129,7 +1201,8 @@
     renderSettings: renderSettings, renderThemes: renderThemes, renderLanguages: renderLanguages, updateStorage: updateStorage,
     renderThemeEditor: renderThemeEditor, themeMsg: themeMsg, hex6: hex6, THEME_GROUPS: THEME_GROUPS,
     renderDocEditor: renderDocEditor, renderDocSample: renderDocSample, docMsg: docMsg, DOC_FIELDS: DOC_FIELDS,
-    applyPaper: applyPaper, printTicket: printTicket,
+    applyPaper: applyPaper, printTicket: printTicket, paperCss: paperCss,
+    shopTitle: shopTitle, shopInitial: shopInitial, shopTagline: shopTagline,
     showReceipt: showReceipt, hideReceipt: hideReceipt, revealProductForm: revealProductForm,
     renderEmployees: renderEmployees, renderMonthly: renderMonthly,
     openPin: openPin, closePin: closePin, pinKey: pinKey

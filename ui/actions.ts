@@ -753,6 +753,7 @@
     C.docDraft = null;
     save();
     $('docEditor').classList.add('hidden');
+    P.applyPaper(C);                      // the paper size is live from now, not from the next boot
     render();                             // everything re-renders with the saved choice
     P.docMsg(C, T.t('doc.saved'), 'ok');
     return true;
@@ -763,6 +764,7 @@
     C.docDraft = null;
     C.state = D.setCustom(C.state, D.defaultCustom());
     save();
+    P.applyPaper(C);
     $('docEditor').classList.add('hidden');
     render();
     P.docMsg(C, T.t('doc.resetDone'), 'ok');

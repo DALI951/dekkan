@@ -539,6 +539,7 @@
     C._lastPushAt = Date.now();
     C.sync = 'ok';
     save();
+    if (P.applyPaper) P.applyPaper(C);
     render();
   }
   // the honest cloud handshake. A copy that differs from a till WITH moves is a

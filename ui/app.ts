@@ -129,6 +129,9 @@
       if (typeof s.day.soldCost !== 'number' || !isFinite(s.day.soldCost)) s.day.soldCost = 0;
     }
     if (D.ensureMovements) D.ensureMovements(s);
+    // a save from before the customization block opens as a full shop, not a
+    // half-customized one (same repair the import path runs)
+    if (D.ensureCustomState) D.ensureCustomState(s);
     return s;
   }
   // a day that opens right now (used when a state arrives with no open day)

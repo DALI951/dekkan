@@ -50,6 +50,10 @@ function createShop(opts) {
       // Tunisian standard — it lives HERE in config, never in posting code.
       tax: opts.tax || defaultTaxConfig()
     },
+    // The shop's OWN look, wording and formats (docs/customize-plan.md). DATA,
+    // never a code branch: waves 2–6 (theme editor, brand + documents, lists,
+    // tabs/density, French) only READ this. See defaultCustom/customProblems.
+    custom: opts.custom || defaultCustom(),
     // GLOBAL per-kind document counters (never reset at midnight — only the
     // client # resets daily). Single writer per account => unique by construction.
     seq: { sale: 0, refund: 0, buy: 0 },
@@ -198,6 +202,9 @@ function restoreState(raw) {
   ensureTaxState(s);
   ensureDocState(s);
   ensureMovements(s);
+  // A backup from before the customization block (or from a build that never had
+  // it) must still come back as a WORKING shop: repair, don't reject.
+  ensureCustomState(s);
   // DATA-001 ("upload success != recoverability"): a file that PARSES is not
   // proof of a shop that can come back. Run the SAME integrity gate the server
   // runs on push (stateProblems) BEFORE this state can replace the live shop —
@@ -283,6 +290,172 @@ function ensureDocState(state) {
 }
 
 
+// ---------- CUSTOMIZATION (state.custom) — wave 1 of docs/customize-plan.md ----------
+// Every configurable value of the shop is DATA here (brand, money format, dates,
+// print, receipt wording, tab order, document language) — never a branch in the
+// UI. Why a shape-first wave: waves 2–6 all READ this block, so freezing the shape
+// (with its defaults, repair and validation) first is what keeps them from being
+// rewrites. Nothing reads it visually yet — that is on purpose.
+//
+// Two paths, deliberately different:
+//   * ensureCustomState() = REPAIR (boot / import / old save). Never throws; fixes
+//     what it can read, keeps every valid choice, fills the rest from the defaults.
+//   * setCustom() (in shop.ts) = STRICT WRITE. A typo, an unknown option or an
+//     out-of-range value throws and changes NOTHING.
+const CUSTOM_TABS = ['sell', 'stock', 'debts', 'clients', 'report', 'employees', 'monthly', 'cashbox', 'settings'];
+const CUSTOM_BRAND_KEYS = ['tagline', 'address', 'phone', 'taxId', 'logoUrl'];
+const CUSTOM_THOUSANDS = ['', ' ', ',', '.'];
+const CUSTOM_DECIMALS_MAX = 3;   // millimes: TND has 3, most currencies 2, some 0
+
+function defaultCustom() {
+  return {
+    brand: { tagline: '', address: '', phone: '', taxId: '', logoUrl: '' },
+    money: { code: 'TND', symbol: 'د.ت', position: 'after', decimals: 3, thousands: ' ', digits: 'latin' },
+    date: { format: 'YYYY-MM-DD', time: '24h', timezone: '' },
+    print: { size: '80mm', copies: 1, autoPrint: false },
+    receipt: { header: '', footer: '', showCashier: true, showTaxId: false, qr: false },
+    tabs: { order: CUSTOM_TABS.slice(), hidden: [] },
+    // '' = follow the interface language. Wave 6 separates UI language from the
+    // language printed on a document (FR interface + AR receipt is normal here).
+    docLanguage: ''
+  };
+}
+
+
+// Everything wrong with a custom block, most-wrong-first. The gate reports the
+// first problem, so a state can never be half-customized on a shopkeeper's phone.
+function customProblems(c) {
+  const out = [];
+  if (!c || typeof c !== 'object' || Array.isArray(c)) return ['custom must be an object'];
+  const SECTIONS = ['brand', 'money', 'date', 'print', 'receipt', 'tabs'];
+  Object.keys(c).forEach(k => {
+    if (k !== 'docLanguage' && SECTIONS.indexOf(k) === -1) out.push('unknown section "' + k + '"');
+  });
+  const isText = (v, max) => typeof v === 'string' && v.length <= max;
+
+  const b = c.brand;
+  if (!b || typeof b !== 'object' || Array.isArray(b)) out.push('brand must be an object');
+  else CUSTOM_BRAND_KEYS.forEach(k => {
+    const max = k === 'address' ? 200 : (k === 'logoUrl' ? 500 : 120);
+    if (!isText(b[k], max)) out.push('brand.' + k + ' must be text (max ' + max + ')');
+  });
+
+  const m = c.money;
+  if (!m || typeof m !== 'object' || Array.isArray(m)) out.push('money must be an object');
+  else {
+    if (!isText(m.code, 8) || !m.code.trim()) out.push('money.code must be a short text code (TND, EUR…)');
+    if (!isText(m.symbol, 6) || !m.symbol) out.push('money.symbol must be non-empty text (max 6)');
+    if (m.position !== 'before' && m.position !== 'after') out.push('money.position must be before|after');
+    if (!Number.isInteger(m.decimals) || m.decimals < 0 || m.decimals > CUSTOM_DECIMALS_MAX) {
+      out.push('money.decimals must be a whole number 0..' + CUSTOM_DECIMALS_MAX);
+    }
+    if (CUSTOM_THOUSANDS.indexOf(m.thousands) === -1) out.push("money.thousands must be one of '' | ' ' | ',' | '.'");
+    if (m.digits !== 'latin' && m.digits !== 'arabic') out.push('money.digits must be latin|arabic');
+  }
+
+  const d = c.date;
+  if (!d || typeof d !== 'object' || Array.isArray(d)) out.push('date must be an object');
+  else {
+    if (['YYYY-MM-DD', 'DD/MM/YYYY', 'MM/DD/YYYY'].indexOf(d.format) === -1) out.push('date.format must be YYYY-MM-DD|DD/MM/YYYY|MM/DD/YYYY');
+    if (d.time !== '24h' && d.time !== '12h') out.push('date.time must be 24h|12h');
+    if (!isText(d.timezone, 64)) out.push('date.timezone must be text (max 64)');
+  }
+
+  const p = c.print;
+  if (!p || typeof p !== 'object' || Array.isArray(p)) out.push('print must be an object');
+  else {
+    if (['58mm', '80mm', 'A4'].indexOf(p.size) === -1) out.push('print.size must be 58mm|80mm|A4');
+    if (!Number.isInteger(p.copies) || p.copies < 1 || p.copies > 5) out.push('print.copies must be a whole number 1..5');
+    if (typeof p.autoPrint !== 'boolean') out.push('print.autoPrint must be true|false');
+  }
+
+  const r = c.receipt;
+  if (!r || typeof r !== 'object' || Array.isArray(r)) out.push('receipt must be an object');
+  else {
+    ['header', 'footer'].forEach(k => { if (!isText(r[k], 300)) out.push('receipt.' + k + ' must be text (max 300)'); });
+    ['showCashier', 'showTaxId', 'qr'].forEach(k => { if (typeof r[k] !== 'boolean') out.push('receipt.' + k + ' must be true|false'); });
+  }
+
+  const t = c.tabs;
+  if (!t || typeof t !== 'object' || Array.isArray(t)) out.push('tabs must be an object');
+  else {
+    const order = t.order;
+    if (!Array.isArray(order) || !order.length) {
+      out.push('tabs.order must list at least one page');
+    } else {
+      const seen = {};
+      order.forEach(id => {
+        if (CUSTOM_TABS.indexOf(id) === -1) out.push('unknown page "' + id + '" in tabs.order');
+        else if (seen[id]) out.push('tabs.order cannot contain "' + id + '" twice');
+        seen[id] = 1;
+      });
+      if (!Array.isArray(t.hidden)) out.push('tabs.hidden must be an array');
+      else t.hidden.forEach(id => {
+        if (order.indexOf(id) === -1) out.push('tab "' + id + '" is hidden but not in the order');
+      });
+    }
+  }
+
+  if (typeof c.docLanguage !== 'string' || c.docLanguage.length > 8) out.push('docLanguage must be a short language id ("" = follow the app)');
+  return out;
+}
+
+
+// Repair (never throws) — the same spirit as ensureTaxState/ensureDocState:
+// an old or thin save must open as a WORKING shop, and a value the shop really
+// chose must survive. Anything unreadable falls back to the default.
+function ensureCustomState(state) {
+  const def = defaultCustom();
+  const raw = (state.custom && typeof state.custom === 'object' && !Array.isArray(state.custom)) ? state.custom : {};
+  const c: any = { brand: {}, money: {}, date: {}, print: {}, receipt: {}, tabs: {}, docLanguage: def.docLanguage };
+
+  CUSTOM_BRAND_KEYS.forEach(k => { c.brand[k] = (raw.brand && typeof raw.brand[k] === 'string') ? raw.brand[k] : def.brand[k]; });
+  Object.keys(def.money).forEach(k => { c.money[k] = (raw.money && raw.money[k] !== undefined) ? raw.money[k] : def.money[k]; });
+  Object.keys(def.date).forEach(k => { c.date[k] = (raw.date && raw.date[k] !== undefined) ? raw.date[k] : def.date[k]; });
+  Object.keys(def.print).forEach(k => { c.print[k] = (raw.print && raw.print[k] !== undefined) ? raw.print[k] : def.print[k]; });
+  Object.keys(def.receipt).forEach(k => { c.receipt[k] = (raw.receipt && raw.receipt[k] !== undefined) ? raw.receipt[k] : def.receipt[k]; });
+
+  const order = (raw.tabs && Array.isArray(raw.tabs.order)) ? raw.tabs.order : null;
+  c.tabs.order = def.tabs.order.slice();
+  let orderReset = true;
+  if (order && order.length) {
+    // a valid order = known pages only, never twice. ONE unreadable entry means
+    // the order came from another build — keeping the readable leftovers would
+    // silently hide pages the owner never hid, so we start over from every page.
+    const seen = {};
+    const clean = order.filter(id => {
+      if (CUSTOM_TABS.indexOf(id) === -1 || seen[id]) return false;
+      seen[id] = 1;
+      return true;
+    });
+    if (clean.length === order.length && clean.length) { c.tabs.order = clean; orderReset = false; }
+  }
+  const hidden = (raw.tabs && Array.isArray(raw.tabs.hidden)) ? raw.tabs.hidden : [];
+  // a hidden list written against an order we could not read is not trustworthy
+  // either — repairing the visible pages and keeping a stale hidden list would
+  // hide a page the shopkeeper never chose to hide.
+  if (orderReset) hidden.length = 0;
+  c.tabs.hidden = hidden.filter(id => c.tabs.order.indexOf(id) !== -1);
+  if (typeof raw.docLanguage === 'string' && raw.docLanguage.length <= 8) c.docLanguage = raw.docLanguage;
+
+  // anything the strict path would refuse goes back to its default (one pass, so
+  // a repaired state is a fixed point: repairing it again changes nothing)
+  customProblems(c).forEach(msg => {
+    const key = msg.split(' ')[0];
+    if (/^money\./.test(key)) c.money[key.slice(6)] = def.money[key.slice(6)];
+    else if (/^date\./.test(key)) c.date[key.slice(5)] = def.date[key.slice(5)];
+    else if (/^print\./.test(key)) c.print[key.slice(6)] = def.print[key.slice(6)];
+    else if (/^receipt\./.test(key)) c.receipt[key.slice(8)] = def.receipt[key.slice(8)];
+    else if (/^brand\./.test(key)) c.brand[key.slice(6)] = def.brand[key.slice(6)];
+    else if (/^tabs\.order/.test(msg)) c.tabs.order = def.tabs.order.slice();
+    else if (/^tabs\.hidden/.test(msg)) c.tabs.hidden = [];
+    else if (/^docLanguage/.test(msg)) c.docLanguage = def.docLanguage;
+  });
+  state.custom = c;
+  return state;
+}
+
+
 // ---------- STATE INTEGRITY (SAL-004, TEN-002, NFR-002) ----------
 // The minimum-viable server-side trust boundary: a pushed blob is validated
 // BEFORE it is stored (stock counters ⇔ movements, bills ⇔ entries, debts
@@ -295,6 +468,9 @@ function stateProblems(state) {
   if (state.version !== 4) out.push('state.version must be 4 (found ' + String(state.version) + ')');
   if (!state.shop || typeof state.shop !== 'object' || typeof state.shop.name !== 'string') out.push('shop.name missing');
   if (!state.settings || typeof state.settings !== 'object') out.push('settings missing');
+  // the customization block must be sane before this state can replace the live
+  // shop: a half-readable format would print money the shopkeeper never chose.
+  customProblems(state.custom).forEach(msg => out.push('custom: ' + msg));
   if (!Array.isArray(state.products)) out.push('products must be an array');
   if (!Array.isArray(state.movements)) out.push('movements must be an array');
   if (!Array.isArray(state.employees)) out.push('employees must be an array');
@@ -499,5 +675,9 @@ function ensureMovements(state) {
   K.fmtDoc = fmtDoc;
   K.ensureDocState = ensureDocState;
   K.stateProblems = stateProblems;
+  K.CUSTOM_TABS = CUSTOM_TABS;
+  K.defaultCustom = defaultCustom;
+  K.customProblems = customProblems;
+  K.ensureCustomState = ensureCustomState;
   K.canApply = canApply;
 });

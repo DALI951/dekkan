@@ -1,0 +1,145 @@
+# DEKKAN — WHAT'S LEFT, AND HOW CUSTOMIZABLE IT CAN GET
+
+Written 2026-10-12 by Big Pickle, after a verification pass on `f63cd9b` (gate green: 292 unit ·
+65 sim · i18n AR=EN=351 · `npm run check` exit 0). Nothing below is invented — every "today"
+claim was read out of the code.
+
+---
+
+# PART A — EVERYTHING STILL OPEN
+
+## A1. Host / ops (only Dali can do these — `php` is not installed here)
+
+| # | Item | Why | Done when |
+|---|---|---|---|
+| A1.1 | **modali is STALE** — `modali.powerpme.com/dekkan` serves sw v39, no `.mhead`, no `#btnGoogle` (pre-2026-10-11 build) | it is missing the whole trust pack + login wall + layout fixes | `$env:DEKKAN_SFTP_PASS=…; python scripts/deploy.py` then re-probe |
+| A1.2 | **`dekkan.web.app` is DEAD** (HTTP 404 "Site Not Found") | a dead link in the repo's story | either `firebase deploy` or delete `firebase.json` + `.firebaserc` |
+| A1.3 | Run `api/schema-p0.sql` ALTER on the live host | RBAC-light ships a `role` column the code already reads | live login as owner + cashier behave differently |
+| A1.4 | Set `backupKey` + `backupRunKey` in the host `api/config.php`, add the cron/CLI call, **do one real restore drill** | `api/backup.php` is written but has never run | a produced `dekkan-<ts>.sql.gz.enc` restored into a scratch DB reconciles |
+| A1.5 | Create the **Google OAuth client id** and paste it into `ui/config.ts` + `api/config.php` | until then "Continue with Google" says "not set up yet" | sign-in with Google works on all three origins |
+| A1.6 | Error monitoring / uptime (PLAN M07 leftover) | you learn about breakage from users today | a 5xx gets a request id and a log line you can read |
+
+## A2. Ship polish (engineering, queued in PLAN §5 — RED-first, one commit each)
+
+| # | Item | Notes |
+|---|---|---|
+| A2.1 | **#8 share / send backup** | Web Share API + WhatsApp intent on Android, fallback copy/download |
+| A2.2 | **#9 Z-report (end-of-day close print)** | today "close day" is a button; the printed Z is missing. Print CSS already exists for the facture |
+| A2.3 | **#10 best-sellers + dead-stock** | needs the weighted-average costing decision (DEC-003) signed off first |
+| A2.4 | PWA install test on a real phone | install prompt, standalone launch, offline boot |
+| A2.5 | Capacitor APK (duoscore pattern) | only after 2–3 real users ask for it |
+| A2.6 | Bump `A_VERSION` (still `0.19.0` although ~10 commits landed after) + a visible changelog screen | honesty about what the user is running |
+
+## A3. Product / market (the actual biggest gap)
+
+| # | Item | Why it matters more than any feature |
+|---|---|---|
+| A3.1 | **M00 validation: 5 real shop interviews in Ben Arous** (persona + pain statement written down) | you have built a shop tool without one shop telling you it is the right one |
+| A3.2 | Close DEC-006 (POS vs back-office) and DEC-010 (price 10–20 TND/mo) from those interviews | pricing without a customer is a guess |
+| A3.3 | 30-day pilot with one real shop, owner-permitted data, biweekly feedback; every bug becomes a regression test | M08 — never started |
+| A3.4 | Support process: who answers the phone at 20:00 when the till is wrong | required before money changes hands (CFG-020) |
+
+## A4. Quality / honesty debt (small, worth doing)
+
+- A4.1 `scripts/seed-test.json` is untracked on purpose — keep it that way (documented).
+- A4.2 The Pong/GA block had been appended to `memory/projects/dekkan-*.md` by mistake — removed 2026-10-12 (memory-side, not repo-side).
+- A4.3 Comments in `ui/*.ts` still say "split from `ui/app.js`" in places — cosmetic.
+- A4.4 The workbook (`docs/dekkan-plan-ultimate.xlsx`) status columns should be re-stamped as P0 closes; today PLAN.md is the truth.
+
+## A5. Languages (see Part B, layer 5)
+
+- A5.1 **French** — Tunisia runs FR + AR in practice; shipping only AR/EN is a market gap, not a feature gap.
+
+---
+
+# PART B — HOW CUSTOMIZABLE CAN IT GET?
+
+## B0. What a shop can customize TODAY (facts from the code)
+
+| Surface | Today |
+|---|---|
+| Look | **3 fixed themes** (`souk`, `mint`, `royal`), each = **41 CSS custom-property tokens** applied as inline vars on `<html>`, persisted + no flash (`ui/themes.ts`). No editor, no custom theme, no light mode. |
+| Shop | `shop.name` (used in reports/receipt), morning cash, allowDiscount, allowRefund, doc prefixes (`F/R/A`), tax profiles with rates + effective dates, owner PIN, interface language. |
+| Language | **AR + EN only**, parity enforced by `check-i18n` (351 keys each). Currency word comes from the i18n key `curr` (TND) — not a shop setting. |
+| Numbers | **hardcoded 3 decimals** (millimes) in `fmt.money`, ` ' ' + T.t('curr')`. `state.shop.currency` exists but **nothing reads it**. |
+| Receipts | one facture overlay, printed with `window.print()` + a print stylesheet; no header/footer/logo/print-size config. |
+| Print sizes | not configurable (no 58mm / 80mm / A4 switch). |
+| Logo / icon | fixed `د` monogram PNGs generated by `icon/gen-icons.py`; manifest name/title/theme-colour are **hardcoded Arabic**. |
+| Layout | fixed: 9 tabs in a fixed order, fixed default landing page, fixed density. |
+| Categories | `categories.in/out` exist in state but have no management UI. |
+
+**Verdict:** today Dekkan is ~**5 % customizable** — 3 skins and 6 toggles. The architecture
+(one `settings` object in state + a 41-token theme registry + full i18n) is exactly the right
+foundation for the rest, which is why "maximum" is realistic rather than a rewrite.
+
+## B1. The target: 5 customization layers
+
+Design rule: **everything configurable is DATA in `state.custom`, never a code branch** — versioned
+(`state.version`), migrated, exported with the backup, validated by the same integrity gate.
+
+### Layer 1 — Brand & identity (the shop's own face)
+1. Shop name, **tagline**, address, phone, tax id (matricule fiscal) — used in the app header and on every printed document.
+2. **Logo upload** (PNG/SVG, auto-resized client-side) → app header, receipt, and the PWA icon (regenerated via canvas).
+3. App **title + short name + theme-colour + manifest** written at runtime so an installed PWA carries the shop's own name instead of "Dekkan".
+4. Receipt header/footer **text blocks** (free text, wrapped, per language) + optional rules line.
+5. **Optional QR / barcode** on the receipt (plain payload first: shop name + doc # + total).
+
+### Layer 2 — Theme engine → theme **editor** (biggest visible win)
+1. Turn the 3 presets into a **theme registry** that also holds user themes (`settings.themes[]`).
+2. **Editor UI**: pick **4 seed colours** (background, surface, text, accent) + the rest of the 41 tokens are **derived** (accent → `acc`, `acc2`, `accdark`, `accbg`, `accborder`, `accover`, `accglow`; bg → `bg2`, `panel`, `panel2`, `panel3`, `line`, `dim`…). Nobody hand-picks 41 values.
+3. Presets that ship alongside: light/day, high-contrast, colour-blind-safe (deuteranopia/protanopia), **print-friendly** (pure-black-on-white for cheap thermal printers).
+4. Theme **export / import as a JSON file** → shareable themes, and a shop can brand several branches consistently.
+5. Font family choice: system stack + 2–3 bundled Arabic-capable webfonts (`Cairo`, `IBM Plex Sans Arabic`, `Amiri`), font size scale, **radius**, **density** (compact / comfortable), motion on/off (respects `prefers-reduced-motion` today — make it explicit).
+6. Dark / light / **auto by hour**.
+
+### Layer 3 — Layout & workflow
+1. **Tab order + hide tabs** (9 tabs today; a grocery does not need Staff).
+2. Default landing page after login (Sell / Report / whatever the shop lives in).
+3. Quick-grid size on Sell (4 / 6 / 9 products per row), show/hide product images.
+4. Sidebar collapsed/expanded default, mobile bar vs strip toggles (careful: one sticky unit — RULES.md).
+5. Keyboard shortcuts remappable (Enter = button already; add F-keys for the till).
+6. Home **dashboard widgets** the owner chooses (till, today's profit, low stock, top 3 products, open debts).
+
+### Layer 4 — Business configuration (the "their rules, not ours" layer)
+1. **Currency**: symbol, position (before/after), decimals (0 / 2 / 3), thousands separator, Arabic-Indic vs Latin digits — the dead `shop.currency` field finally used.
+2. Number + date + time **formats** and timezone (matters for day rollover).
+3. Print: **58mm / 80mm / A4**, paper width, font size on paper, "print 2 copies", auto-print on sale.
+4. Tax config already exists — extend with **prices include/exclude tax** and a per-product tax override.
+5. **Editable lists**: payment methods, expense/income categories, product units (piece/kg/litre/pack), supplier list, "reason codes" for adjustments & refunds.
+6. **Custom fields**: up to N extra fields on a product, a client, an employee (label + type + show-on-receipt flag). This is what makes a phone shop and a bakery both feel "made for me".
+7. Documents: prefix/sequence per type (exists), **receipt vs A4 invoice** templates, "show client number", "show cashier name".
+8. Business rules as switches: refunds (exists), discounts (exists), **credit sales on/off**, negative stock block, mandatory refund reason, mandatory adjustment code, low-stock alert threshold, opening-cash required, day auto-close hour.
+9. Standard rounding policy per shop + DEC-003 costing method (weighted average) once signed.
+
+### Layer 5 — Language & content
+1. **French first** (real Tunisian counter reality), then a **language-file registry** so adding a language = one file, no core change.
+2. Split **interface language** from **document language** (UI in FR, receipt in AR — very common).
+3. Per-shop **custom label overrides**: any key can be re-worded ("Debts" → "الكرني" / "Carnet") without touching code.
+4. Numerals switch (٠١٢٣ vs 0123), currency words ("دينار"/"DT"/"TND").
+
+### Layer 6 (stretch, still sane)
+1. **Opening templates**: "Groceries / Phone shop / Clothes / Café" — preset categories, units, tax profiles, receipt wording, default theme. A new shop starts useful instead of empty.
+2. **Report builder**: choose metrics + period → save as "My report" (covers most of the 22 reports in the workbook without writing 22 screens).
+3. **Custom receipt HTML** (advanced, opt-in, sandboxed with a strict placeholder whitelist) — the last 1 % that a power user wants.
+
+## B2. What must NEVER become customizable
+Customization stops where **trust** begins — these stay fixed and tested:
+- The cash equation (`startCash + Σentries`), stock ↔ ledger reconciliation, `stateProblems()` integrity gate, server-side validation (409), RBAC server rules, PIN hashing (salt + hash, never plaintext), tax **math** (rates are config, arithmetic is not).
+- Anything that could let a UI toggle hide a real accounting error. Rules may be switched *off* by the owner (refunds, credit), but the ledger never lies either way.
+
+## B3. How far can we actually go? (honest numbers)
+- **Layers 1–3 + 4:** fully achievable with the architecture as-is — call it **3 waves of work**, each wave a few commits with RED-first tests. A shop could then look and behave like its own product, not a clone of Dekkan.
+- **Layer 5:** French = 1 focused wave (351 keys + direction/i18n plumbing + the document-language split).
+- **Layer 6:** templates + report builder = 1 wave each; custom receipt HTML = optional, last.
+- **"White-label builder"** (arbitrary HTML/CSS by the user) is a *different product* and a security liability — **not recommended**; the token + settings route gives 95 % of the perceived freedom with 5 % of the risk.
+
+## B4. Build order I recommend (each item = one RED-first commit)
+1. **Settings shape**: introduce `state.custom` (brand, currency, format, print, tabs) + migration + validation → foundation, no visible change, tests only.
+2. **Theme editor + theme JSON import/export** (Layer 2) — the demo-worthy one, and all the tokens already exist.
+3. **Brand & documents** (Layer 1 + print sizes + receipt wording) — this is what a shopkeeper shows his customers.
+4. **Editable lists + custom fields** (Layer 4.5–4.6).
+5. **Tab order / landing / density** (Layer 3).
+6. **French** (Layer 5), then templates (Layer 6.1).
+
+Every wave ships with: parity AR=EN (or AR=EN=FR), a migration test for old backups, an e2e that
+proves a *changed* setting actually changes the screen, and no regression in the 292-unit battery.

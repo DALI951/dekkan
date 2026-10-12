@@ -33,18 +33,27 @@ Last updated: 2026-10-11 (part 2) — by Big Pickle (DESKTOP-OJME2E2)
 - Earlier the same day: M04 reason codes (`a4fd3c5`) and the encrypted MySQL dump (`9955aeb`).
 
 ## In progress
-- Nothing pending. Project declared done pending Dali's own eyeball of the sweep
-  screenshots + his answer on the host items below.
+- **2026-10-12 verification pass + customization plan (`docs/customize-plan.md`).** Dali asked
+  "list everything left and how customizable can this get — maximum". The repo is green
+  (`f63cd9b`, gate exit 0) and **no P0 engineering remains**; the pass found the open items are
+  ops + polish + one missing language, not core work. Verified live (no code changed):
+  **GitHub Pages = current** (`.mhead` + `#btnGoogle` + sw v42), **modali = STALE** (sw v39, no
+  `.mhead`, no `#btnGoogle` — missing the 2026-10-10/11 trust pack, login wall and layout fixes),
+  **`dekkan.web.app` = 404 "Site Not Found"** (never deployed). `A_VERSION` still `0.19.0`.
+  The plan doc holds Part A (everything open, grouped) and Part B (6 customization layers, what
+  must never be customizable, the honest "how far" numbers, and a 6-wave build order).
+  **Awaiting Dali's pick of the next wave** — nothing else is in flight.
 
 ## Next step
-1. Answer the `UNSURE` below (was `api/schema-p0.sql` ever run on the host?) so HANDOFF
-   can record the truth instead of an open question.
-2. Pick the next track with Dali: **(a)** Phase 0 / M00 user validation — 5 real shop
-   interviews in Ben Arous (never done, the biggest real gap), or **(b)** Phase 2
-   ship-polish features already queued in PLAN §5: #8 share/send backup, #9 Z-report
-   end-of-day print, #10 best-sellers + dead-stock.
+1. Dali picks a wave from `docs/customize-plan.md` Part B.4 (wave 1 = the `state.custom`
+   settings foundation, wave 2 = theme editor + theme JSON, wave 3 = brand & documents).
+2. He also still owes an answer on the `UNSURE` below (`api/schema-p0.sql` on the host?) and on
+   the two stale/dead hosts in "Blocked".
 
 ## Blocked / needs Dali (his hands — the dev box cannot do these)
+- **modali is serving a STALE build** (sw v39, no `.mhead`, no `#btnGoogle`) — needs
+  `$env:DEKKAN_SFTP_PASS=…; python scripts/deploy.py` from the repo root, or it stays behind.
+- **`dekkan.web.app` returns 404** — deploy it or drop `firebase.json`/`.firebaserc`.
 - Run the `api/schema-p0.sql` ALTER on the live host (php is not installed here).
 - Set `backupKey` + `backupRunKey` in the host's `api/config.php` and add the cron/CLI
   call to `api/backup.php?run=…`; then do one real restore drill from a produced dump.

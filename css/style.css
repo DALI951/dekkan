@@ -585,4 +585,18 @@ select:focus-visible{outline:2px solid var(--acc);outline-offset:2px;}
 .themeMsg.ok{color:var(--ok);}
 .themeMsg.bad{color:var(--danger);}
 .themeBadge{margin-inline-start:6px;padding:1px 6px;border:1px solid var(--accborder);border-radius:999px;background:var(--accbg);color:var(--acc2);font-size:10px;font-weight:800;}
+
+/* wave 3 — the shop's documents. A row is a control + the name of the thing. */
+.docRow select{flex:1 1 auto;min-width:0;padding:6px 8px;font-size:12px;}
+.docRow.docSwitch{justify-content:space-between;}
+.docRow .switch{flex:0 0 auto;}
+.docKey{max-width:46%;text-align:end;}
+.docSample{margin:2px 0 0;padding:10px 12px;border:1px dashed var(--accborder);border-radius:10px;background:var(--accbg);font-family:ui-monospace,Consolas,monospace;font-size:13px;font-weight:700;color:var(--acc2);}
+.themeMsg.warn{color:var(--acc2);}
+
+/* the paper: brand block + the two free text lines */
+.r-shop{display:flex;flex-direction:column;gap:1px;}
+.r-logo img{width:34px;height:34px;object-fit:contain;border-radius:8px;}
+.r-head-text{margin:10px 0 0;padding:6px 0;border-block:1px dashed var(--line2);text-align:center;font-size:12px;color:var(--txt);}
+.r-head-text.hidden{display:none;}
 label.btn{cursor:pointer;}

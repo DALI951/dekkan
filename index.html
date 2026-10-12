@@ -31,6 +31,8 @@
     }
   })();
 </script>
+<!-- the paper size the shop prints on (rewritten at boot from state.custom.print.size) -->
+<style id="paperStyle"></style>
 </head>
 <body>
 
@@ -412,6 +414,26 @@
         </div>
       </div>
 
+      <p class="sect" data-i18n="settings.sect.docs">الأوراق والعلامة</p>
+      <div class="card">
+        <h3 data-i18n="doc.title">أوراق الدكان</h3>
+        <div class="row wrap gr themeBar">
+          <button type="button" class="btn ghost" id="btnDocEdit" data-i18n="doc.edit">خصّص الأوراق</button>
+          <button type="button" class="btn ghost" id="btnDocReset" data-i18n="doc.reset">رجّع الأصلي</button>
+        </div>
+        <div class="themeEditor hidden" id="docEditor">
+          <p class="muted small" data-i18n="doc.editHint">بدّل الأرقام والأوراق وشوف العيّنة تحت. ما يتسجّلش كان كي تضغط حفظ.</p>
+          <div class="themeGroups" id="docGroups"></div>
+          <p class="docSample" id="docSample"></p>
+          <div class="row end gr">
+            <button type="button" class="btn ghost" id="btnDocCancel" data-i18n="common.cancel">إلغاء</button>
+            <button type="button" class="btn primary" id="btnDocSave" data-i18n="doc.save">حفظ الأوراق</button>
+          </div>
+        </div>
+        <p class="themeMsg" id="docMsg"></p>
+        <p class="muted small" data-i18n="doc.cardHint">الاسم والفلوس والتواريخ وأوراق الطباعة. العيّنة تعطيك فكرة قبل ما تحفظ.</p>
+      </div>
+
       <p class="sect" data-i18n="settings.sect.lang">اللغة</p>
       <div class="card">
         <div class="seg" id="langSeg"></div>
@@ -487,19 +509,27 @@
   <div class="receipt-card">
     <div class="r-head">
       <div class="r-brand">
-        <span class="r-logo">د</span>
-        <div><b id="rShop"></b><small id="rWhen"></small></div>
+        <span class="r-logo" id="rLogo">د</span>
+        <div class="r-shop">
+          <b id="rShop"></b>
+          <small id="rTagline" class="hidden"></small>
+          <small id="rAddr" class="hidden"></small>
+          <small id="rPhone" class="hidden"></small>
+          <small id="rTax" class="hidden"></small>
+          <small id="rWhen"></small>
+        </div>
       </div>
       <button class="btn ghost" id="btnReceiptRefund" data-i18n="sell.refund">استرجاع</button>
       <button class="btn ghost" id="btnReceiptPrint" data-i18n="receipt.print">طباعة</button>
       <button class="btn ghost" id="btnReceiptClose" data-i18n="receipt.close">تمام</button>
     </div>
-    <div class="r-client"><span data-i18n="receipt.client">الزبون</span><b id="rClient"></b></div>
+    <p class="r-head-text hidden" id="rHeadText"></p>
+        <div class="r-client"><span data-i18n="receipt.client">الزبون</span><b id="rClient"></b></div>
     <div class="r-client"><span data-i18n="receipt.doc"></span><b id="rDoc" class="hidden"></b></div>
     <label id="receiptRefundRow" class="r-client hidden"><span data-i18n="refund.reason">السبب</span><input type="text" id="receiptRefundReason" data-i18n-ph="refund.reasonPh"></label>
     <div class="r-lines" id="rLines"></div>
     <div class="r-totals" id="rTotals"></div>
-    <p class="r-thanks" data-i18n="receipt.thanks">شكراً لزيارتكم</p>
+    <p class="r-thanks" id="rFootText" data-i18n="receipt.thanks">شكراً لزيارتكم</p>
     <button class="btn primary full" id="btnReceiptClose2" data-i18n="receipt.close">تمام</button>
   </div>
 </div>

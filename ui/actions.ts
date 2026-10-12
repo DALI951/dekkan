@@ -177,6 +177,9 @@
       C.basket = []; C.freeItems = [];
       $('discPct').value = ''; $('discAmt').value = ''; $('creditName').value = ''; $('paidCash').value = '';
       render();
+      if (C.state.custom && C.state.custom.print && C.state.custom.print.autoPrint) {
+        DEK.pages.printTicket(C);
+      }
       if (rest > 0) toast(T.t('toast.saleRest') + money(rest) + (customer ? ' — ' + customer : ''));
       else if (customer) toast(T.t('toast.saleCredit') + customer);
       else toast(T.t('toast.saleOk'));
@@ -698,7 +701,76 @@
     if (hex) { pick.value = hex; pick.disabled = false; } else { pick.disabled = true; }
   }
 
-  // ---------- events (bound once) ----------
+  // ---------- wave 3: the shop's own paper ----------
+  // Same shape as the colour editor: a DRAFT on C, nothing written until Save,
+  // and the sample line answers the only question a shopkeeper has ("what will
+  // my paper look like?"). The STATE is the authority; Save is the one write.
+  function docOpen(C) {
+    const P = DEK.pages;
+    const { $, D } = C;
+    C.docDraft = D.clone ? D.clone(C.state.custom) : JSON.parse(JSON.stringify(C.state.custom));
+    P.renderDocEditor(C);
+    P.renderDocSample(C);
+    $('docEditor').classList.remove('hidden');
+    P.docMsg(C, '');
+  }
+  function docClose(C) {
+    const P = DEK.pages;
+    const { $, fmt } = C;
+    C.docDraft = null;
+    fmt._setCustom(C.state.custom);      // whatever was typed and not saved is gone
+    P.renderDocSample(C);
+    $('docEditor').classList.add('hidden');
+  }
+  // one field changed: patch the DRAFT and show it, write nothing
+  function docInput(C, el) {
+    const P = DEK.pages;
+    const { $, T, fmt } = C;
+    if (!el || !C.docDraft) return;
+    const key = el.getAttribute('data-doc');
+    let v = el.type === 'checkbox' ? !!el.checked : el.value;
+    const def = P.DOC_FIELDS.filter(function (f) { return f.k === key; })[0];
+    if (def && def.num) v = Number(v);
+    const parts = key.split('.');
+    if (parts.length === 1) C.docDraft[key] = v;
+    else {
+      if (!C.docDraft[parts[0]] || typeof C.docDraft[parts[0]] !== 'object') C.docDraft[parts[0]] = {};
+      C.docDraft[parts[0]][parts[1]] = v;
+    }
+    fmt._setCustom(C.docDraft);          // live: the numbers on screen answer back
+    P.renderDocSample(C);
+    P.docMsg(C, T.t('doc.unsaved'), 'warn');
+    if ($('cashNow')) C.render();        // the header cash line follows the format too
+  }
+  function docSave(C) {
+    const P = DEK.pages;
+    const { $, T, D, save, render } = C;
+    if (!C.docDraft) return;
+    let next;
+    try {
+      next = D.setCustom(C.state, C.docDraft);
+    } catch (e) {
+      P.docMsg(C, String(e && e.message ? e.message : e), 'bad');
+      return false;
+    }
+    C.state = next;
+    C.docDraft = null;
+    save();
+    $('docEditor').classList.add('hidden');
+    render();                             // everything re-renders with the saved choice
+    P.docMsg(C, T.t('doc.saved'), 'ok');
+    return true;
+  }
+  function docReset(C) {
+    const P = DEK.pages;
+    const { $, T, D, save, render } = C;
+    C.docDraft = null;
+    C.state = D.setCustom(C.state, D.defaultCustom());
+    save();
+    $('docEditor').classList.add('hidden');
+    render();
+    P.docMsg(C, T.t('doc.resetDone'), 'ok');
+  }
   function onClick(C, ev) {
     const { basket, $, T, D, render, run, save, toast } = C;
     const P = DEK.pages;
@@ -837,6 +909,7 @@ $('pName').value = p.name; $('pBuy').value = p.buy; $('pSell').value = p.sell;
     fireEmployee: fireEmployee, withPin: withPin, pinSet: pinSet, pinClear: pinClear,
     themeOpen: themeOpen, themeClose: themeClose, themeInput: themeInput, themeBasePick: themeBasePick,
     themeSave: themeSave, themeReset: themeReset, themeExport: themeExport, themeApplyJson: themeApplyJson,
-    themeCopy: themeCopy, themeDownload: themeDownload, themeFile: themeFile, themeSyncPick: themeSyncPick
+    themeCopy: themeCopy, themeDownload: themeDownload, themeFile: themeFile, themeSyncPick: themeSyncPick,
+    docOpen: docOpen, docClose: docClose, docInput: docInput, docSave: docSave, docReset: docReset
   };
 });

@@ -157,6 +157,9 @@
       TH0.applyTheme(declared);
     }
   }
+  // the paper size the shop prints on (58mm roll / 80mm / A4) lives in a stylesheet
+  // the app rewrites — set it once at boot so the very first print is right
+  if (P.applyPaper) P.applyPaper(C);
   // restore a draft the shopkeeper left behind (a refresh/tab-switch mid-order).
   // Anything stale is pruned here: a deleted product, an over-shelf qty, a blank
   // free line — the order must never come back broken or able to oversell.
@@ -262,7 +265,7 @@
   $('btnReceiptClose').addEventListener('click', function () { P.hideReceipt(C); });
   $('btnReceiptClose2').addEventListener('click', function () { P.hideReceipt(C); });
   $('btnReceiptPrint').addEventListener('click', function () {
-    if (window.print) window.print(); // the print CSS turns the overlay into a clean facture
+    P.printTicket(C); // the paper size + copies the shop chose, then the print CSS
   });
   $('btnMetricClose').addEventListener('click', function () { $('metricPanel').classList.add('hidden'); if (document.body) document.body.classList.remove('no-scroll'); });
   $('metricPanel').addEventListener('click', function (ev) {
@@ -402,6 +405,18 @@
   $('themeBase').addEventListener('click', function (e) {
     var b = e.target && e.target.closest ? e.target.closest('[data-base]') : null;
     if (b) A.themeBasePick(C, b.getAttribute('data-base'));
+  });
+
+  // ---- the shop's own paper (wave 3) ----
+  $('btnDocEdit').addEventListener('click', function () { A.docOpen(C); });
+  $('btnDocCancel').addEventListener('click', function () { A.docClose(C); });
+  $('btnDocSave').addEventListener('click', function () { A.docSave(C); });
+  $('btnDocReset').addEventListener('click', function () { A.docReset(C); });
+  // generated fields: one delegated listener for every kind of control
+  ['input', 'change'].forEach(function (evt) {
+    $('docGroups').addEventListener(evt, function (e) {
+      if (e.target && e.target.getAttribute && e.target.getAttribute('data-doc')) A.docInput(C, e.target);
+    });
   });
 
   // navigation (sidebar + bottom bar)

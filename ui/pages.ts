@@ -16,6 +16,9 @@
 
   function render(C) {
     const { renderHeader, renderSell, renderStock, renderDebts, renderClients, renderReport, renderCashBox, renderSettings, renderEmployees, renderMonthly } = DEK.pages;
+    // the shop's own formats (wave 3): told to fmt ONCE per render, before anything
+    // prints a number — every money()/entryTime()/docDate() below then agrees.
+    if (C.fmt && C.fmt._setCustom) C.fmt._setCustom(C.state.custom);
     renderHeader(C);
     renderSell(C);
     renderStock(C);
@@ -655,6 +658,125 @@
     renderPin(C);
   }
 
+  // ----- DOCUMENTS (wave 3): the shop's own paper -----
+  // One table drives the whole screen. `max` documents the core's own limit: the
+  // fields accept what a shopkeeper types and the core is the authority that
+  // refuses an illegal value BY NAME (`setCustom`), so the reason always shows.
+  const DOC_FIELDS = [
+    { g: 'doc.grp.brand', k: 'brand.tagline', kind: 'text', max: 120, rowKey: 'doc.f.tagline' },
+    { g: 'doc.grp.brand', k: 'brand.address', kind: 'text', max: 200, rowKey: 'doc.f.address' },
+    { g: 'doc.grp.brand', k: 'brand.phone', kind: 'text', max: 120, rowKey: 'doc.f.phone' },
+    { g: 'doc.grp.brand', k: 'brand.taxId', kind: 'text', max: 120, rowKey: 'doc.f.taxId' },
+    { g: 'doc.grp.brand', k: 'brand.logoUrl', kind: 'text', max: 500, ltr: true, rowKey: 'doc.f.logo' },
+    { g: 'doc.grp.money', k: 'money.symbol', kind: 'text', max: 6, ltr: true, rowKey: 'doc.f.symbol' },
+    { g: 'doc.grp.money', k: 'money.position', kind: 'select', opts: ['after', 'before'], rowKey: 'doc.f.position', optLabel: { after: 'doc.pos.after', before: 'doc.pos.before' } },
+    { g: 'doc.grp.money', k: 'money.decimals', kind: 'select', opts: ['0', '1', '2', '3'], num: true, rowKey: 'doc.f.decimals' },
+    { g: 'doc.grp.money', k: 'money.thousands', kind: 'select', opts: ['', ' ', ',', '.'], rowKey: 'doc.f.thousands', optLabel: { '': 'doc.thou.none', ' ': 'doc.thou.space', ',': 'doc.thou.comma', '.': 'doc.thou.dot' } },
+    { g: 'doc.grp.money', k: 'money.digits', kind: 'select', opts: ['latin', 'arabic'], rowKey: 'doc.f.digits', optLabel: { latin: 'doc.dig.latin', arabic: 'doc.dig.arabic' } },
+    { g: 'doc.grp.date', k: 'date.format', kind: 'select', opts: ['YYYY-MM-DD', 'YYYY/MM/DD', 'DD/MM/YYYY', 'MM/DD/YYYY', 'DD-MM-YYYY', 'DD.MM.YYYY'], rowKey: 'doc.f.dateFormat' },
+    { g: 'doc.grp.date', k: 'date.time', kind: 'select', opts: ['24h', '12h'], rowKey: 'doc.f.time' },
+    { g: 'doc.grp.print', k: 'print.size', kind: 'select', opts: ['58mm', '80mm', 'A4'], rowKey: 'doc.f.paper' },
+    { g: 'doc.grp.print', k: 'print.copies', kind: 'select', opts: ['1', '2', '3'], num: true, rowKey: 'doc.f.copies' },
+    { g: 'doc.grp.print', k: 'print.autoPrint', kind: 'switch', rowKey: 'doc.f.autoPrint' },
+    { g: 'doc.grp.receipt', k: 'receipt.header', kind: 'text', max: 120, rowKey: 'doc.f.header' },
+    { g: 'doc.grp.receipt', k: 'receipt.footer', kind: 'text', max: 120, rowKey: 'doc.f.footer' },
+    { g: 'doc.grp.receipt', k: 'receipt.showTaxId', kind: 'switch', rowKey: 'doc.f.showTaxId' },
+    { g: 'doc.grp.lang', k: 'docLanguage', kind: 'select', langAny: true, rowKey: 'doc.f.docLang' }
+  ];
+
+  function docValue(custom, key) {
+    const parts = key.split('.');
+    if (parts.length === 1) return custom[key];
+    return (custom[parts[0]] || {})[parts[1]];
+  }
+
+  // the fields, grouped; a switch is a switch because a shopkeeper sees a switch
+  function renderDocEditor(C) {
+    const { $, T, fmt } = C;
+    const { esc } = fmt;
+    const box = $('docGroups');
+    if (!box || !C.docDraft) return;
+    const groups = [];
+    DOC_FIELDS.forEach(function (f) {
+      if (!groups.length || groups[groups.length - 1].g !== f.g) groups.push({ g: f.g, fields: [] });
+      groups[groups.length - 1].fields.push(f);
+    });
+    box.innerHTML = groups.map(function (grp) {
+      return '<div class="themeGrp"><b>' + T.t(grp.g) + '</b>' + grp.fields.map(function (f) {
+        const v = docValue(C.docDraft, f.k);
+        const lab = T.t(f.rowKey);
+        let ctl;
+        if (f.kind === 'switch') {
+          ctl = '<label class="switch"><input type="checkbox" data-doc="' + f.k + '"' + (v ? ' checked' : '') + '><span></span></label>';
+        } else if (f.kind === 'select') {
+          let opts = f.opts;
+          if (f.langAny) {
+            opts = [''].concat((window.DEK.Langs ? window.DEK.Langs.list() : []).map(function (l) {
+              return typeof l === 'string' ? l : l.id;
+            }));
+          }
+          ctl = '<select data-doc="' + f.k + '">' + opts.map(function (o) {
+            const shown = f.langAny
+              ? (o === '' ? T.t('doc.docLang.follow') : o.toUpperCase())
+              : (f.optLabel && f.optLabel[o] ? T.t(f.optLabel[o]) : o);
+            return '<option value="' + esc(o) + '"' + (String(v) === String(o) ? ' selected' : '') + '>' + esc(shown) + '</option>';
+          }).join('') + '</select>';
+        } else {
+          ctl = '<input type="text" data-doc="' + f.k + '" value="' + esc(v == null ? '' : v) + '" spellcheck="false"'
+            + (f.ltr ? ' dir="ltr"' : '') + '>';
+        }
+        return '<span class="themeRow docRow' + (f.kind === 'switch' ? ' docSwitch' : '') + '">'
+          + ctl
+          + '<code class="themeTok docKey">' + esc(lab) + '</code></span>';
+      }).join('') + '</div>';
+    }).join('');
+    T.apply();
+  }
+
+  // The sample: a shopkeeper does not read "decimals: 2", he reads the number.
+  // It is the ONE thing that makes a format screen trustworthy.
+  function renderDocSample(C) {
+    const { $, T, fmt } = C;
+    const el = $('docSample');
+    if (!el) return;
+    el.textContent = T.t('doc.sample') + ':  ' + fmt.money(1500.5) + '  ·  ' + fmt.docDate(new Date().toISOString().slice(0, 10));
+  }
+
+  function docMsg(C, text, kind) {
+    const el = C.$('docMsg');
+    if (!el) return;
+    el.textContent = text || '';
+    el.className = 'themeMsg' + (kind ? ' ' + kind : '');
+  }
+
+  // ----- the printed PAPER SIZE -----
+  // @page cannot be scoped by a class, so the size goes into a stylesheet the app
+  // rewrites. A till with a 58mm roll and a shop with A4 invoices both print
+  // straight, with no dialog hunting.
+  const PAPER = {
+    '58mm': { size: '58mm auto', margin: '2mm', width: '54mm' },
+    '80mm': { size: '80mm auto', margin: '3mm', width: '74mm' },
+    'A4': { size: 'A4', margin: '12mm', width: '190mm' }
+  };
+  function applyPaper(C) {
+    const p = PAPER[(C.state.custom && C.state.custom.print && C.state.custom.print.size) || '80mm'] || PAPER['80mm'];
+    let st = document.getElementById('paperStyle');
+    if (!st) {
+      st = document.createElement('style');
+      st.id = 'paperStyle';
+      if (document.head) document.head.appendChild(st);
+    }
+    st.textContent = '@page{size:' + p.size + ';margin:' + p.margin + '}\n'
+      + '@media print{.receipt-card{width:' + p.width + '!important;max-width:' + p.width + '!important;margin:0!important;}}';
+  }
+
+  function printTicket(C) {
+    if (!window.print) return;
+    applyPaper(C);
+    const copies = (C.state.custom && C.state.custom.print && C.state.custom.print.copies) || 1;
+    for (let i = 0; i < copies; i++) window.print();
+  }
+
   // ----- THEMES (colors live in ui/themes.js — the app just asks) -----
   function themes() { return window.DEK && window.DEK.Themes; }
 
@@ -767,13 +889,46 @@
   }
 
   // ----- the till: one checkout = one client = one receipt -----
+  // The ticket is the shop's PAPER (wave 3): its brand, its wording, its date
+  // format, and — when it asks — a language other than the screen's.
   function showReceipt(C, r) {
-    const { state, $, T, fmt } = C;
-    const { money, esc, entryTime } = fmt;
+    const { state, $, fmt } = C;
+    const { money, esc, entryTime, docT, docDate } = fmt;
+    const cb = state.custom || {};
+    const brand = cb.brand || {};
+    const receiptCfg = cb.receipt || {};
     const rec = $('receipt');
     const when = r.when || new Date().toISOString();
     $('rShop').textContent = state.shop.name;
-    $('rWhen').textContent = String(when).slice(0, 10) + ' ' + entryTime(when);
+    $('rWhen').textContent = docDate(when) + ' ' + entryTime(when);
+    const line = function (id, text) {
+      const el = $(id);
+      if (!el) return;
+      el.textContent = text || '';
+      el.classList.toggle('hidden', !text);
+    };
+    line('rTagline', brand.tagline);
+    line('rAddr', brand.address);
+    line('rPhone', brand.phone);
+    line('rTax', receiptCfg.showTaxId ? brand.taxId : '');
+    const logo = $('rLogo');
+    if (logo) {
+      const url = String(brand.logoUrl || '').trim();
+      if (/^(https?:|data:image\/)/.test(url)) {
+        logo.innerHTML = '<img src="' + esc(url) + '" alt="">';
+      } else {
+        logo.textContent = (brand.logoUrl || state.shop.name || 'د').trim().charAt(0) || 'د';
+      }
+    }
+    line('rHeadText', receiptCfg.header);
+    const footEl = $('rFootText');
+    if (footEl) footEl.textContent = receiptCfg.footer || docT('receipt.thanks');
+    const card = rec.querySelector ? rec.querySelector('.receipt-card') : null;
+    if (card && card.setAttribute) {
+      const lang = (cb.docLanguage || '');
+      if (lang) { card.setAttribute('lang', lang); card.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr'); }
+      else { card.removeAttribute('lang'); card.removeAttribute('dir'); }
+    }
     $('rClient').textContent = r.customer ? esc(r.customer) + ' #' + r.no : '#' + r.no;
     if (r.doc && r.doc.no) {
       $('rDoc').textContent = r.doc.no;
@@ -786,17 +941,17 @@
         + ' @ ' + money(l.price) + '</span></span><b>' + money(l.total) + '</b></div>';
     }).join('') || '<div class="empty">—</div>';
 
-    let t = '<div class="r-row big"><span>' + T.t('receipt.total') + '</span><b>' + money(r.net) + '</b></div>';
-    if (r.discount > 0) t += '<div class="r-row dim"><span>' + T.t('sell.discount') + '</span><span>−' + money(r.discount) + '</span></div>';
+    let t = '<div class="r-row big"><span>' + docT('receipt.total') + '</span><b>' + money(r.net) + '</b></div>';
+    if (r.discount > 0) t += '<div class="r-row dim"><span>' + docT('sell.discount') + '</span><span>−' + money(r.discount) + '</span></div>';
     if (r.tax && r.tax.code) {
       t += '<div class="r-row dim"><span>' + esc(r.tax.code) + ' ' + Math.round(r.tax.rate * 100) + '%</span><b>' + money(r.net * r.tax.rate) + '</b></div>';
     }
     if (r.paid !== null) {
-      t += '<div class="r-row"><span>' + T.t('receipt.paid') + '</span><b>' + money(r.paid) + '</b></div>';
-      if (r.change > 0) t += '<div class="r-row ok"><span>' + T.t('sell.change') + '</span><b>' + money(r.change) + '</b></div>';
-      else if (r.rest > 0) t += '<div class="r-row bad"><span>' + T.t('sell.rest') + '</span><b>' + money(r.rest) + '</b></div>';
+      t += '<div class="r-row"><span>' + docT('receipt.paid') + '</span><b>' + money(r.paid) + '</b></div>';
+      if (r.change > 0) t += '<div class="r-row ok"><span>' + docT('sell.change') + '</span><b>' + money(r.change) + '</b></div>';
+      else if (r.rest > 0) t += '<div class="r-row bad"><span>' + docT('sell.rest') + '</span><b>' + money(r.rest) + '</b></div>';
     } else if (r.rest > 0) {
-      t += '<div class="r-row bad"><span>' + T.t('sell.rest') + '</span><b>' + money(r.rest) + '</b></div>';
+      t += '<div class="r-row bad"><span>' + docT('sell.rest') + '</span><b>' + money(r.rest) + '</b></div>';
     }
     $('rTotals').innerHTML = t;
     // a fresh receipt starts with no refund reason typed and the row tucked away
@@ -915,6 +1070,8 @@
     renderCashBox: renderCashBox, catOptions: catOptions, catChips: catChips,
     renderSettings: renderSettings, renderThemes: renderThemes, renderLanguages: renderLanguages, updateStorage: updateStorage,
     renderThemeEditor: renderThemeEditor, themeMsg: themeMsg, hex6: hex6, THEME_GROUPS: THEME_GROUPS,
+    renderDocEditor: renderDocEditor, renderDocSample: renderDocSample, docMsg: docMsg, DOC_FIELDS: DOC_FIELDS,
+    applyPaper: applyPaper, printTicket: printTicket,
     showReceipt: showReceipt, hideReceipt: hideReceipt, revealProductForm: revealProductForm,
     renderEmployees: renderEmployees, renderMonthly: renderMonthly,
     openPin: openPin, closePin: closePin, pinKey: pinKey

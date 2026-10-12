@@ -86,7 +86,7 @@ test('setCustom REFUSES nonsense — and a refusal changes nothing', () => {
     [{ money: { decimals: 9 } }, 'decimals out of range'],
     [{ money: { decimals: 2.5 } }, 'decimals must be a whole number'],
     [{ money: { position: 'middle' } }, 'unknown currency position'],
-    [{ money: { symbol: '' } }, 'an empty currency symbol'],
+    [{ money: { symbol: 'too-long-symbol' } }, 'a symbol that is not a symbol (wave 3: "" is legal and means "the language word")'],
     [{ money: { digits: 'roman' } }, 'unknown numerals'],
     [{ money: { thousands: 'x' } }, 'unknown thousands separator'],
     [{ print: { size: '11in' } }, 'unknown paper size'],

@@ -49,7 +49,14 @@ Client-side core is the tested truth; a small PHP API (`api/`) carries the optio
 - **Languages are registry data (2026-10-12):** one language = ONE object registered through `DEK.Langs` (`ui/langs.ts`, the language twin of the theme engine). Never add a language branch in `core/` or `pages/`; the engine owns dir/persist/resolution/parity. Every language must carry the exact same key set as the base (`en`) — enforced by `check-i18n`. Language ids map to Settings buttons `#lang<Id>` (`ar` → `#langAr`), so the generated markup keeps the e2e selectors working.
 - **Customization is DATA in `state.custom` (2026-10-12):** every configurable value (brand, money format, dates, print, receipt wording, tabs, document language) lives there — never a code branch, never a hardcoded literal in the UI. It is repaired on load (`ensureCustomState`), strictly validated on write (`setCustom`, throws and writes nothing), exported with the backup, and validated by the integrity gate before it can be pushed. The 41 theme tokens stay the styling truth.
 - `state.version` is 4 — a shape change means a migration path, not a version bump alone.
-- Comment style in this repo: explain **why**, in plain English, with the date of the decision when it matters.
+- Comment style in this repo (tightened by Dali 2026-10-12):
+  - **NO comments inside a function body.** A function must read from its name and
+    its parameters alone — rename or restructure instead of explaining.
+  - Comments live **above** a function or block (why it exists, what invariant it
+    keeps) or at the top of the file. Short, plain English, dated when it decides
+    something.
+  - JSDoc-style headers are fine; line-by-line narration inside a body is not.
+  - This applies to `ui/`, `core/`, `scripts/` and new tests. Writing one is a bug.
 
 ## Do NOT
 - **Never commit secrets/tokens/passwords.** `api/config.php` and `js/config.js` hold server/account config — real values live only on the host; only `config.example.php` ships.

@@ -306,11 +306,17 @@ const CUSTOM_TABS = ['sell', 'stock', 'debts', 'clients', 'report', 'employees',
 const CUSTOM_BRAND_KEYS = ['tagline', 'address', 'phone', 'taxId', 'logoUrl'];
 const CUSTOM_THOUSANDS = ['', ' ', ',', '.'];
 const CUSTOM_DECIMALS_MAX = 3;   // millimes: TND has 3, most currencies 2, some 0
+// The date formats a shop can put on its paper. ui/fmt.ts keeps the same list (it
+// has no imports); test/money-format.test.ts asserts the two never drift apart.
+const CUSTOM_DATE_FORMATS = ['YYYY-MM-DD', 'YYYY/MM/DD', 'DD/MM/YYYY', 'MM/DD/YYYY', 'DD-MM-YYYY', 'DD.MM.YYYY'];
 
 function defaultCustom() {
   return {
     brand: { tagline: '', address: '', phone: '', taxId: '', logoUrl: '' },
-    money: { code: 'TND', symbol: 'د.ت', position: 'after', decimals: 3, thousands: ' ', digits: 'latin' },
+    // '' symbol = print the currency WORD of the language in use (AR د.ت / EN TND);
+    // '' thousands = no grouping. Both defaults reproduce, byte for byte, what the
+    // app printed before a shop could choose (wave 3 decision in RULES.md).
+    money: { code: 'TND', symbol: '', position: 'after', decimals: 3, thousands: '', digits: 'latin' },
     date: { format: 'YYYY-MM-DD', time: '24h', timezone: '' },
     print: { size: '80mm', copies: 1, autoPrint: false },
     receipt: { header: '', footer: '', showCashier: true, showTaxId: false, qr: false },
@@ -348,7 +354,7 @@ function customProblems(c) {
   if (!m || typeof m !== 'object' || Array.isArray(m)) out.push('money must be an object');
   else {
     if (!isText(m.code, 8) || !m.code.trim()) out.push('money.code must be a short text code (TND, EUR…)');
-    if (!isText(m.symbol, 6) || !m.symbol) out.push('money.symbol must be non-empty text (max 6)');
+    if (!isText(m.symbol, 6)) out.push("money.symbol must be text (max 6; '' = the language's own word)");
     if (m.position !== 'before' && m.position !== 'after') out.push('money.position must be before|after');
     if (!Number.isInteger(m.decimals) || m.decimals < 0 || m.decimals > CUSTOM_DECIMALS_MAX) {
       out.push('money.decimals must be a whole number 0..' + CUSTOM_DECIMALS_MAX);
@@ -360,7 +366,7 @@ function customProblems(c) {
   const d = c.date;
   if (!d || typeof d !== 'object' || Array.isArray(d)) out.push('date must be an object');
   else {
-    if (['YYYY-MM-DD', 'DD/MM/YYYY', 'MM/DD/YYYY'].indexOf(d.format) === -1) out.push('date.format must be YYYY-MM-DD|DD/MM/YYYY|MM/DD/YYYY');
+    if (CUSTOM_DATE_FORMATS.indexOf(d.format) === -1) out.push('date.format must be one of ' + CUSTOM_DATE_FORMATS.join('|'));
     if (d.time !== '24h' && d.time !== '12h') out.push('date.time must be 24h|12h');
     if (!isText(d.timezone, 64)) out.push('date.timezone must be text (max 64)');
   }
@@ -715,6 +721,7 @@ function ensureMovements(state) {
   K.ensureDocState = ensureDocState;
   K.stateProblems = stateProblems;
   K.CUSTOM_TABS = CUSTOM_TABS;
+  K.CUSTOM_DATE_FORMATS = CUSTOM_DATE_FORMATS;
   K.defaultCustom = defaultCustom;
   K.customProblems = customProblems;
   K.ensureCustomState = ensureCustomState;

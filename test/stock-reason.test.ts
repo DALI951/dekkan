@@ -75,7 +75,7 @@ test('M04: the reason stays on the movement, never on the product', () => {
   const id = s.products[0].id;
   s = D.setProduct(s, id, { stock: 9, stockReason: 'count' });
   assert.strictEqual('stockReason' in D.getProduct(s, id), false, 'the catalogue is untouched');
-  assert.deepStrictEqual(Object.keys(D.getProduct(s, id)).sort(), ['buy', 'id', 'lowAt', 'name', 'sell', 'sku', 'stock']);
+  assert.deepStrictEqual(Object.keys(D.getProduct(s, id)).sort(), ['buy', 'id', 'lowAt', 'name', 'sell', 'sku', 'stock', 'unit']);
 });
 
 test('RPT-006: the stock card shows each adjustment with its reason', () => {

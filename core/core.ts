@@ -301,7 +301,16 @@ const CUSTOM_DECIMALS_MAX = 3;   // millimes: TND has 3, most currencies 2, some
 // The date formats a shop can put on its paper. ui/fmt.ts keeps the same list (it
 // has no imports); test/money-format.test.ts asserts the two never drift apart.
 const CUSTOM_DATE_FORMATS = ['YYYY-MM-DD', 'YYYY/MM/DD', 'DD/MM/YYYY', 'MM/DD/YYYY', 'DD-MM-YYYY', 'DD.MM.YYYY'];
-
+// The lists the SHOP owns (wave 4). A phone shop counts pieces, a grocery counts
+// kilos: the app must not decide that for them. min = how few items are still a
+// usable form (a product form with no unit is a broken form), max + item = the
+// ceiling that keeps a list a list and not a database.
+const CUSTOM_LISTS = {
+  units: { min: 1, max: 24, item: 24 },
+  suppliers: { min: 0, max: 50, item: 60 },
+  refundReasons: { min: 0, max: 12, item: 60 }
+};
+const DEFAULT_UNITS = ['piece', 'kg', 'litre', 'pack'];
 function defaultCustom() {
   return {
     brand: { tagline: '', address: '', phone: '', taxId: '', logoUrl: '' },
@@ -310,9 +319,28 @@ function defaultCustom() {
     print: { size: '80mm', copies: 1, autoPrint: false },
     receipt: { header: '', footer: '', showCashier: true, showTaxId: false, qr: false },
     tabs: { order: CUSTOM_TABS.slice(), hidden: [] },
+    lists: { units: DEFAULT_UNITS.slice(), suppliers: [], refundReasons: [] },
     theme: { id: 'souk', tokens: {} },
     docLanguage: ''
   };
+}
+
+
+// Everything wrong with one of the shop's own lists, BY NAME: the message always
+// starts with the list's own path so the screen can point at the field.
+function listProblems(path, value, spec) {
+  const out = [];
+  if (!Array.isArray(value)) { out.push(path + ' must be a list'); return out; }
+  if (value.length < spec.min) out.push(path + ' must keep at least ' + spec.min + ' item(s)');
+  if (value.length > spec.max) out.push(path + ' cannot hold more than ' + spec.max + ' items');
+  const seen = {};
+  for (const item of value) {
+    if (typeof item !== 'string' || !item.trim()) { out.push(path + ' holds an empty item'); break; }
+    if (item.trim().length > spec.item) { out.push(path + ' holds an item longer than ' + spec.item + ' characters'); break; }
+    if (seen[item.trim()]) { out.push(path + ' holds "' + item.trim() + '" twice'); break; }
+    seen[item.trim()] = 1;
+  }
+  return out;
 }
 
 
@@ -325,7 +353,7 @@ function defaultCustom() {
 function customProblems(c) {
   const out = [];
   if (!c || typeof c !== 'object' || Array.isArray(c)) return ['custom must be an object'];
-  const SECTIONS = ['brand', 'money', 'date', 'print', 'receipt', 'tabs', 'theme'];
+  const SECTIONS = ['brand', 'money', 'date', 'print', 'receipt', 'tabs', 'lists', 'theme'];
   Object.keys(c).forEach(k => {
     if (k !== 'docLanguage' && SECTIONS.indexOf(k) === -1) out.push('unknown section "' + k + '"');
   });
@@ -394,8 +422,19 @@ function customProblems(c) {
     }
   }
 
-  if (typeof c.docLanguage !== 'string' || c.docLanguage.length > 8) out.push('docLanguage must be a short language id ("" = follow the app)');
+  const li = c.lists;
+  if (!li || typeof li !== 'object' || Array.isArray(li)) out.push('lists must be an object');
+  else {
+    Object.keys(li).forEach(name => {
+      if (!CUSTOM_LISTS[name]) { out.push('lists.' + name + ' is not a list the shop owns'); return; }
+      out.push.apply(out, listProblems('lists.' + name, li[name], CUSTOM_LISTS[name]));
+    });
+    Object.keys(CUSTOM_LISTS).forEach(name => {
+      if (li[name] === undefined) out.push('lists.' + name + ' is missing');
+    });
+  }
 
+  if (typeof c.docLanguage !== 'string' || c.docLanguage.length > 8) out.push('docLanguage must be a short language id ("" = follow the app)');
   const th = c.theme;
   if (!th || typeof th !== 'object' || Array.isArray(th)) out.push('theme must be an object');
   else {
@@ -436,7 +475,7 @@ function customProblems(c) {
 function ensureCustomState(state) {
   const def = defaultCustom();
   const raw = (state.custom && typeof state.custom === 'object' && !Array.isArray(state.custom)) ? state.custom : {};
-  const c: any = { brand: {}, money: {}, date: {}, print: {}, receipt: {}, tabs: {}, theme: {}, docLanguage: def.docLanguage };
+  const c: any = { brand: {}, money: {}, date: {}, print: {}, receipt: {}, tabs: {}, lists: {}, theme: {}, docLanguage: def.docLanguage };
 
   CUSTOM_BRAND_KEYS.forEach(k => { c.brand[k] = (raw.brand && typeof raw.brand[k] === 'string') ? raw.brand[k] : def.brand[k]; });
   Object.keys(def.money).forEach(k => { c.money[k] = (raw.money && raw.money[k] !== undefined) ? raw.money[k] : def.money[k]; });
@@ -459,6 +498,20 @@ function ensureCustomState(state) {
   const hidden = (raw.tabs && Array.isArray(raw.tabs.hidden)) ? raw.tabs.hidden : [];
   if (orderReset) hidden.length = 0;
   c.tabs.hidden = hidden.filter(id => c.tabs.order.indexOf(id) !== -1);
+  const rl = (raw.lists && typeof raw.lists === 'object' && !Array.isArray(raw.lists)) ? raw.lists : {};
+  Object.keys(CUSTOM_LISTS).forEach(name => {
+    const spec = CUSTOM_LISTS[name];
+    const seen = {};
+    const clean = (Array.isArray(rl[name]) ? rl[name] : []).filter(item => {
+      if (typeof item !== 'string') return false;
+      const t = item.trim();
+      if (!t || t.length > spec.item || seen[t]) return false;
+      seen[t] = 1;
+      return true;
+    }).map(item => item.trim());
+    c.lists[name] = clean.length >= spec.min ? clean.slice(0, spec.max) : def.lists[name].slice();
+  });
+
   if (typeof raw.docLanguage === 'string' && raw.docLanguage.length <= 8) c.docLanguage = raw.docLanguage;
 
   const rt = (raw.theme && typeof raw.theme === 'object' && !Array.isArray(raw.theme)) ? raw.theme : {};
@@ -480,6 +533,11 @@ function ensureCustomState(state) {
     else if (/^brand\./.test(key)) c.brand[key.slice(6)] = def.brand[key.slice(6)];
     else if (/^tabs\.order/.test(msg)) c.tabs.order = def.tabs.order.slice();
     else if (/^tabs\.hidden/.test(msg)) c.tabs.hidden = [];
+    else if (/^lists\./.test(key)) {
+      const name = key.slice(6);
+      if (def.lists[name]) c.lists[name] = def.lists[name].slice();
+      else delete c.lists[name];
+    }
     else if (/^theme/.test(msg)) c.theme = { id: def.theme.id, tokens: {} };
     else if (/^docLanguage/.test(msg)) c.docLanguage = def.docLanguage;
   });

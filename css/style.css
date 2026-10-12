@@ -600,3 +600,14 @@ select:focus-visible{outline:2px solid var(--acc);outline-offset:2px;}
 .r-head-text{margin:10px 0 0;padding:6px 0;border-block:1px dashed var(--line2);text-align:center;font-size:12px;color:var(--txt);}
 .r-head-text.hidden{display:none;}
 label.btn{cursor:pointer;}
+
+/* the shop's own lists (wave 4): one group per list, chips + one input */
+.listGroup{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:10px;}
+.listHead{display:flex;align-items:center;justify-content:space-between;font-size:13px;}
+.listHead .muted{font-size:12px;}
+.listChips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.listRow{display:flex;gap:8px;margin-top:8px;}
+.listRow input{flex:1;min-width:0;}
+.listMsg{margin:6px 0 0;font-size:12px;min-height:14px;}
+.listMsg.ok{color:var(--ok);}
+.listMsg.bad{color:var(--danger);}

@@ -113,7 +113,7 @@
       <div class="grid products" id="refundGrid"></div>
       <div class="stack">
         <label><span data-i18n="refund.qty">الكمية</span><input type="number" id="refundQty" value="1" min="1"></label>
-        <label><span data-i18n="refund.reason">السبب</span><input type="text" id="refundReason" data-i18n-ph="refund.reasonPh"></label>
+        <label><span data-i18n="refund.reason">السبب</span><input type="text" id="refundReason" list="refundReasonList" data-i18n-ph="refund.reasonPh"><datalist id="refundReasonList"></datalist></label>
         <button class="btn danger" id="btnDoRefund" data-i18n="refund.go">تسجيل الاسترجاع</button>
       </div>
     </div>
@@ -172,7 +172,7 @@
 <div class="grid2">
 <label><span data-i18n="buy.qty"></span><input type="number" id="bQty" min="1" value="10"></label>
 <label><span data-i18n="stock.buy"></span><input type="number" id="bUnit" min="0" step="0.01"></label>
-<label><span data-i18n="buy.supplier"></span><input type="text" id="bSupName"></label>
+<label><span data-i18n="buy.supplier"></span><input type="text" id="bSupName" list="supList"><datalist id="supList"></datalist></label>
 <label><span data-i18n="buy.contact"></span><input type="tel" id="bSupPhone"></label>
 </div>
 <div class="row end">
@@ -189,6 +189,7 @@
         <label><span data-i18n="stock.qty">الكمية</span><input type="number" id="pStock" min="0"></label>
         <label><span data-i18n="stock.lowAt">تنبيه عند (كمية قليلة)</span><input type="number" id="pLow" min="0" value="3"></label>
 <label><span data-i18n="stock.sku"></span><input type="text" id="pSku" placeholder="COCA-33"></label>
+        <label><span data-i18n="stock.unit"></span><select id="pUnit"></select></label>
         <label id="pReasonWrap" class="hidden"><span data-i18n="stock.reason"></span><select id="pReason"><option value="" data-i18n="stock.reason.pick"></option><option value="count" data-i18n="stock.reason.count"></option><option value="damage" data-i18n="stock.reason.damage"></option><option value="loss" data-i18n="stock.reason.loss"></option><option value="other" data-i18n="stock.reason.other"></option></select></label>
       </div>
       <div class="row end">
@@ -434,6 +435,14 @@
         <p class="muted small" data-i18n="doc.cardHint">الاسم والفلوس والتواريخ وأوراق الطباعة. العيّنة تعطيك فكرة قبل ما تحفظ.</p>
       </div>
 
+      <p class="sect" data-i18n="settings.sect.lists">قوائم الدكان</p>
+      <div class="card">
+        <h3 data-i18n="lists.title">قوائمك انت</h3>
+        <p class="muted small" data-i18n="lists.hint">الوحدات (كيلو، قطعة، لتر…) والمزوّدين وأسباب الاسترجاع. اللي تكتبه هنا يظهر في الفورمات وفي التيكي.</p>
+        <div id="listGroups"></div>
+        <p class="muted small" data-i18n="lists.cardHint">الوحدة تتبع المنتج، وتحبّ تظهر في التيكي. المزوّدين يظهرون في شراء المخزون.</p>
+      </div>
+
       <p class="sect" data-i18n="settings.sect.lang">اللغة</p>
       <div class="card">
         <div class="seg" id="langSeg"></div>
@@ -526,7 +535,7 @@
     <p class="r-head-text hidden" id="rHeadText"></p>
         <div class="r-client"><span data-i18n="receipt.client">الزبون</span><b id="rClient"></b></div>
     <div class="r-client"><span data-i18n="receipt.doc"></span><b id="rDoc" class="hidden"></b></div>
-    <label id="receiptRefundRow" class="r-client hidden"><span data-i18n="refund.reason">السبب</span><input type="text" id="receiptRefundReason" data-i18n-ph="refund.reasonPh"></label>
+    <label id="receiptRefundRow" class="r-client hidden"><span data-i18n="refund.reason">السبب</span><input type="text" id="receiptRefundReason" list="refundReasonList" data-i18n-ph="refund.reasonPh"></label>
     <div class="r-lines" id="rLines"></div>
     <div class="r-totals" id="rTotals"></div>
     <p class="r-thanks" id="rFootText" data-i18n="receipt.thanks">شكراً لزيارتكم</p>

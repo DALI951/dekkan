@@ -50,6 +50,7 @@ function addProduct(state, p) {
   if (typeof p.sell !== 'number' || p.sell < 0) throw new Error('product needs a valid sell price');
   if (p.stock != null && (!Number.isFinite(p.stock) || p.stock < 0)) throw new Error('stock cannot be negative');
   if (p.lowAt != null && (!Number.isFinite(p.lowAt) || p.lowAt < 0)) throw new Error('lowAt cannot be negative');
+  if (p.unit != null && p.unit !== '' && (typeof p.unit !== 'string' || p.unit.trim().length > 24)) throw new Error('product unit must be short text (max 24)');
   const sku = normalizeSku(p.sku);
   assertSkuFree(state, sku, null);
   const item = {
@@ -59,7 +60,8 @@ function addProduct(state, p) {
     sell: money(p.sell),
     stock: Math.floor(p.stock || 0),
     lowAt: Math.floor(p.lowAt || 0),
-    sku: sku
+    sku: sku,
+    unit: typeof p.unit === 'string' ? p.unit.trim() : ''
   };
   state.products.push(item);
   if (item.stock !== 0) stockMove(state, item.id, item.stock, 'opening', null, null);
@@ -88,10 +90,12 @@ function setProduct(state, id, patch) {
   if ('stock' in patch && patch.stock < 0) throw new Error('stock cannot be negative');
   if ('lowAt' in patch && !Number.isFinite(patch.lowAt)) throw new Error('lowAt invalid');
   if ('lowAt' in patch && patch.lowAt < 0) throw new Error('lowAt cannot be negative');
+  if ('unit' in patch && patch.unit !== '' && (typeof patch.unit !== 'string' || patch.unit.trim().length > 24)) throw new Error('product unit must be short text (max 24)');
   if ('stock' in patch) patch.stock = Math.floor(patch.stock);
   if ('lowAt' in patch) patch.lowAt = Math.floor(patch.lowAt);
   if ('sku' in patch) patch.sku = normalizeSku(patch.sku);
   if ('sku' in patch) assertSkuFree(state, patch.sku, p.id);
+  if ('unit' in patch && typeof patch.unit === 'string') patch.unit = patch.unit.trim();
   const oldStock = p.stock;
   if ('stock' in patch && patch.stock !== oldStock) assertStockReason(patch.stockReason);
   for (const k in patch) {

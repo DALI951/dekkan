@@ -152,6 +152,7 @@
     if (cl) cl.innerHTML = D.cashierNames(state).map(function (n) {
       return '<option value="' + esc(n) + '"></option>';
     }).join('');
+    P.fillListHints(C);
 
     var ci = $('cashierName');
     if (ci && ci.dataset && !ci.dataset.touched) {
@@ -233,7 +234,7 @@
       const low = p.lowAt > 0 && p.stock <= p.lowAt;
       html += '<div class="stock-card"><span>'
         + '<span class="s-name">' + esc(p.name) + '</span>'
-        + '<span class="s-meta">' + T.t('stock.buy') + ' ' + money(p.buy) + '  •  ' + T.t('stock.sell') + ' ' + money(p.sell) + '</span></span>'
+        + '<span class="s-meta">' + T.t('stock.buy') + ' ' + money(p.buy) + '  •  ' + T.t('stock.sell') + ' ' + money(p.sell) + (p.unit ? ' / ' + esc(p.unit) : '') + '</span></span>'
         + '<span class="row gap"><span class="s-stock' + (low ? ' low' : '') + '">' + p.stock + '</span>'
         + '<button class="btn ghost" data-action="stock-card" data-id="' + p.id + '">' + T.t('stock.card') + '</button>'
         + '<button class="btn ghost" data-action="stock-edit" data-id="' + p.id + '">' + T.t('stock.edit') + '</button>'
@@ -241,6 +242,7 @@
       + '<button class="btn ghost" data-action="buy-open" data-id="' + p.id + '">' + T.t('buy.title') + '</button></span></div>';
     });
     $('stockList').innerHTML = html || '<div class="empty">' + T.t('stock.empty') + '</div>';
+    DEK.pages.fillListHints(C);
   }
 
   // ----- DEBTS -----
@@ -536,6 +538,73 @@
     }).join('') || '<span class="muted">' + T.t('cashbox.noCats') + '</span>';
   }
 
+  // ---------- the shop's OWN lists (wave 4): units, suppliers, refund reasons ----------
+  /* one card, one row per list. The core is the gate: a list that breaks a rule
+     (an empty unit list, a duplicate, an item too long) is refused BY NAME and the
+     message under the row says which list and why — nothing is written. */
+  function renderLists(C) {
+    const { state, $, T, fmt } = C;
+    const { esc } = fmt;
+    const box = $('listGroups');
+    if (!box) return;
+    const lists = (state.custom && state.custom.lists) || {};
+    const SPEC = [
+      { name: 'units', key: 'lists.units' },
+      { name: 'suppliers', key: 'lists.suppliers' },
+      { name: 'refundReasons', key: 'lists.refundReasons' }
+    ];
+    box.innerHTML = SPEC.map(function (l) {
+      const items = lists[l.name] || [];
+      const chips = items.map(function (item) {
+        return '<span class="chip">' + esc(item)
+          + '<button class="chip-x" data-action="list-del" data-list="' + l.name + '" data-item="' + esc(item) + '">×</button></span>';
+      }).join('') || '<span class="muted">' + T.t('lists.empty') + '</span>';
+      return '<div class="listGroup">'
+        + '<div class="listHead"><b>' + T.t(l.key) + '</b><span class="muted">' + items.length + '</span></div>'
+        + '<div class="listChips">' + chips + '</div>'
+        + '<div class="listRow"><input type="text" id="listInput-' + l.name + '">'
+        + '<button type="button" class="btn ghost" data-action="list-add" data-list="' + l.name + '">' + T.t('lists.add') + '</button></div>'
+        + '<p class="listMsg" id="listMsg-' + l.name + '"></p>'
+        + '</div>';
+    }).join('');
+  }
+
+  /* the shop's lists reach the forms that USE them: the product form's units
+     (a real picker), and the supplier + refund-reason hints (native datalists,
+     the same pattern as the customer/cashier names the app already offers). */
+  function fillListHints(C) {
+    const { state, $, fmt } = C;
+    const { esc } = fmt;
+    const lists = (state.custom && state.custom.lists) || {};
+    const hint = function (id, items) {
+      const el = $(id);
+      if (!el) return;
+      el.innerHTML = (items || []).map(function (v) {
+        return '<option value="' + esc(v) + '"></option>';
+      }).join('');
+    };
+    hint('supList', lists.suppliers);
+    hint('refundReasonList', lists.refundReasons);
+    if ($('pUnit')) $('pUnit').innerHTML = DEK.pages.unitOptions(C, $('pUnit').value);
+  }
+
+  // the product form's unit choices — the shop's list, with "" (no unit) first
+  function unitOptions(C, selected) {    const { state, fmt } = C;
+    const { esc } = fmt;
+    const items = (state.custom && state.custom.lists && state.custom.lists.units) || [];
+    return '<option value="">—</option>' + items.map(function (u) {
+      return '<option value="' + esc(u) + '"' + (u === selected ? ' selected' : '') + '>' + esc(u) + '</option>';
+    }).join('');
+  }
+
+  // the one line under a list row: what just happened, or the refusal BY NAME
+  function listMsg(C, name, text, kind) {
+    const el = C.$('listMsg-' + name);
+    if (!el) return;
+    el.textContent = text || '';
+    el.className = 'listMsg ' + (kind === 'ok' ? 'ok' : 'bad');
+  }
+
   // ----- SETTINGS -----
   /* account row — the ONE place the account lives. It opens the form; it never
      ambushes the till. It also tells the truth about the cloud: signed out,
@@ -549,6 +618,7 @@
     $('cfgRefund').checked = !!state.settings.allowRefund;
     P.renderThemes(C);
     P.renderLanguages(C);
+    P.renderLists(C);
     if ($('appVersion')) $('appVersion').textContent = version;
     P.renderThemes(C);
     P.updateStorage(C);
@@ -926,7 +996,7 @@
       $('rDoc').classList.add('hidden');
     }
     $('rLines').innerHTML = r.lines.map(function (l) {
-      return '<div class="r-line"><span>' + esc(l.name) + ' <span class="r-q">×' + l.qty
+      return '<div class="r-line"><span>' + esc(l.name) + ' <span class="r-q">×' + l.qty + (l.unit ? ' ' + esc(l.unit) : '')
         + ' @ ' + money(l.price) + '</span></span><b>' + money(l.total) + '</b></div>';
     }).join('') || '<div class="empty">—</div>';
 
@@ -1055,6 +1125,7 @@
     renderStock: renderStock, renderDebts: renderDebts, renderClients: renderClients, setNewDebt: setNewDebt,
     renderReport: renderReport, openTicket: openTicket, openMetric: openMetric, openStockCard: openStockCard,
     renderCashBox: renderCashBox, catOptions: catOptions, catChips: catChips,
+  renderLists: renderLists, unitOptions: unitOptions, listMsg: listMsg, fillListHints: fillListHints,
     renderSettings: renderSettings, renderThemes: renderThemes, renderLanguages: renderLanguages, updateStorage: updateStorage,
     renderThemeEditor: renderThemeEditor, themeMsg: themeMsg, hex6: hex6, THEME_GROUPS: THEME_GROUPS,
     renderDocEditor: renderDocEditor, renderDocSample: renderDocSample, docMsg: docMsg, DOC_FIELDS: DOC_FIELDS,

@@ -141,7 +141,7 @@
     const lines = [];
     basket.forEach(function (b) {
       const p = D.getProduct(state, b.id);
-      if (p) lines.push({ name: p.name, qty: b.qty, price: p.sell, total: n3(p.sell * b.qty) });
+      if (p) lines.push({ name: p.name, qty: b.qty, price: p.sell, total: n3(p.sell * b.qty), unit: p.unit || '' });
     });
     freeItems.forEach(function (f) { lines.push({ name: f.name, qty: f.qty, price: f.price, total: n3(f.price * f.qty) }); });
 
@@ -229,6 +229,7 @@
     C.editProductId = 'new';
     $('productFormTitle').textContent = T.t('stock.new');
     $('pName').value = ''; $('pBuy').value = ''; $('pSell').value = ''; $('pStock').value = '0'; $('pLow').value = '3'; $('pSku').value = '';
+    if ($('pUnit')) $('pUnit').innerHTML = DEK.pages.unitOptions(C, '');
     $('pReason').value = '';
     $('pReasonWrap').classList.add('hidden'); // a NEW product is an opening count — no reason needed
     $('productForm').classList.remove('hidden');
@@ -251,6 +252,7 @@
     const stock = parseInt($('pStock').value, 10) || 0;
     const lowAt = parseInt($('pLow').value, 10) || 0;
     const sku = $('pSku').value;
+    const unit = $('pUnit') ? $('pUnit').value : '';
     const reason = $('pReason').value;
     try {
       if (!name) throw new Error(T.t('toast.prodName'));
@@ -258,18 +260,18 @@
       if (stock < 0) throw new Error(T.t('toast.stockBad'));
       if (lowAt < 0) throw new Error(T.t('toast.stockBad'));
       if (editProductId === 'new') {
-        C.state = D.addProduct(state, { name: name, buy: buy, sell: sell, stock: stock, lowAt: lowAt, sku: sku });
+        C.state = D.addProduct(state, { name: name, buy: buy, sell: sell, stock: stock, lowAt: lowAt, sku: sku, unit: unit });
       } else {
         const was = D.getProduct(state, editProductId);
         const moved = !!(was && stock !== was.stock);
         if (moved && D.STOCK_REASONS.indexOf(reason) === -1) throw new Error(T.t('toast.stockReason'));
-        const patch = { name: name, buy: buy, sell: sell, stock: stock, lowAt: lowAt, sku: sku };
+        const patch = { name: name, buy: buy, sell: sell, stock: stock, lowAt: lowAt, sku: sku, unit: unit };
         if (moved) patch.stockReason = reason;
         try {
           C.state = D.setProduct(state, editProductId, patch);
         } catch (e) {
           if (e.message === 'toast.prodNotFound') {
-            C.state = D.addProduct(state, { name: name, buy: buy, sell: sell, stock: stock, lowAt: lowAt, sku: sku });
+            C.state = D.addProduct(state, { name: name, buy: buy, sell: sell, stock: stock, lowAt: lowAt, sku: sku, unit: unit });
           } else throw e;
         }
       }
@@ -765,6 +767,44 @@
     render();
     P.docMsg(C, T.t('doc.resetDone'), 'ok');
   }
+  // ---------- the shop's own lists (wave 4) ----------
+  /* one writer, one gate: the list goes through setCustom, so the core decides
+     what a list may hold. A refusal is shown BY NAME under that list's row and
+     nothing is written — the state is never half-edited. */
+  function listAdd(C, listName, value, input) {
+    const P = DEK.pages;
+    const { $, T, D, save, render } = C;
+    const list = ((C.state.custom.lists || {})[listName] || []).slice();
+    list.push(value);
+    try {
+      C.state = D.setCustom(C.state, { lists: { [listName]: list } });
+    } catch (e) {
+      P.listMsg(C, listName, T.t('lists.refused') + ' ' + String(e && e.message ? e.message : e).replace(/^custom: /, ''), 'bad');
+      return false;
+    }
+    if (input) input.value = '';
+    save();
+    render();
+    P.listMsg(C, listName, T.t('lists.added'), 'ok');
+    return true;
+  }
+
+  function listDel(C, listName, item) {
+    const P = DEK.pages;
+    const { T, D, save, render } = C;
+    const list = ((C.state.custom.lists || {})[listName] || []).filter(function (x) { return x !== item; });
+    try {
+      C.state = D.setCustom(C.state, { lists: { [listName]: list } });
+    } catch (e) {
+      P.listMsg(C, listName, T.t('lists.refused') + ' ' + String(e && e.message ? e.message : e).replace(/^custom: /, ''), 'bad');
+      return false;
+    }
+    save();
+    render();
+    P.listMsg(C, listName, T.t('lists.removed'), 'ok');
+    return true;
+  }
+
   function onClick(C, ev) {
     const { basket, $, T, D, render, run, save, toast } = C;
     const P = DEK.pages;
@@ -806,6 +846,7 @@
       $('productFormTitle').textContent = T.t('stock.edit') + ': ' + p.name;
 $('pName').value = p.name; $('pBuy').value = p.buy; $('pSell').value = p.sell;
     $('pStock').value = p.stock; $('pLow').value = p.lowAt; $('pSku').value = p.sku || '';
+      if ($('pUnit')) $('pUnit').value = p.unit || '';
       $('pReason').value = '';
       $('pReasonWrap').classList.remove('hidden'); // an existing shelf can explain a count change
       $('productForm').classList.remove('hidden');
@@ -873,6 +914,20 @@ $('pName').value = p.name; $('pBuy').value = p.buy; $('pSell').value = p.sell;
       render();
     }
 
+    if (act === 'list-add') {
+      const listName = el.getAttribute('data-list');
+      const input = document.getElementById('listInput-' + listName);
+      const value = input ? String(input.value || '').trim() : '';
+      if (!value) return;
+      listAdd(C, listName, value, input);
+      return;
+    }
+    if (act === 'list-del') {
+      const listName = el.getAttribute('data-list');
+      listDel(C, listName, el.getAttribute('data-item'));
+      return;
+    }
+
     if (act === 'staff-edit') {
       const e = (C.state.employees || []).find(function (x) { return x.id === id; });
       if (!e) return;
@@ -903,6 +958,7 @@ $('pName').value = p.name; $('pBuy').value = p.buy; $('pSell').value = p.sell;
     themeOpen: themeOpen, themeClose: themeClose, themeInput: themeInput, themeBasePick: themeBasePick,
     themeSave: themeSave, themeReset: themeReset, themeExport: themeExport, themeApplyJson: themeApplyJson,
     themeCopy: themeCopy, themeDownload: themeDownload, themeFile: themeFile, themeSyncPick: themeSyncPick,
-    docOpen: docOpen, docClose: docClose, docInput: docInput, docSave: docSave, docReset: docReset
+    docOpen: docOpen, docClose: docClose, docInput: docInput, docSave: docSave, docReset: docReset,
+    listAdd: listAdd, listDel: listDel
   };
 });

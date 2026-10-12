@@ -63,6 +63,7 @@ const CUSTOM_SECTIONS = {
   print: ['size', 'copies', 'autoPrint'],
   receipt: ['header', 'footer', 'showCashier', 'showTaxId', 'qr'],
   tabs: ['order', 'hidden'],
+  lists: ['units', 'suppliers', 'refundReasons'],
   theme: ['id', 'tokens']
 };
 

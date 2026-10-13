@@ -59,6 +59,7 @@
   </nav>
 
   <div class="sideFoot">
+    <div id="shopUserSide" class="userchip hidden"></div>
     <div class="sideCash">
       <span data-i18n="cashbox.label">رصيد الصندوق</span>
       <strong id="cashNow">0.000 د.ت</strong>
@@ -82,6 +83,7 @@
   <div class="cashbox">
     <small data-i18n="cashbox.label">رصيد الصندوق</small>
     <strong id="cashNow2">0.000 د.ت</strong>
+    <div id="shopUserPhone" class="userchip hidden"></div>
   </div>
 </header>
 
@@ -286,6 +288,13 @@
         <label><span data-i18n="staff.salary">الراتب الشهري</span><input type="number" id="empSalary" min="0" inputmode="decimal"></label>
         <label><span data-i18n="staff.phone">الهاتف (اختياري)</span><input type="tel" id="empPhone"></label>
         <label><span data-i18n="staff.note">ملاحظة</span><input type="text" id="empNote"></label>
+        <label><span data-i18n="staff.user">اسم الدخول</span><input type="text" id="empUser" autocomplete="off"></label>
+        <label><span data-i18n="staff.role">الدور</span><select id="empRole">
+          <option value="manager" data-i18n="role.manager">مدير</option>
+          <option value="cashier" data-i18n="role.cashier">كاشير</option>
+        </select></label>
+        <label><span data-i18n="staff.pass">كلمة السر</span><input type="password" id="empPass" autocomplete="new-password"></label>
+        <p class="muted small" id="empLoginHint" data-i18n="staff.loginHint" style="grid-column:1/-1"></p>
       </div>
       <div class="row end">
         <button class="btn ghost" id="btnCancelEmployee" data-i18n="common.cancel">إلغاء</button>
@@ -585,6 +594,25 @@
   </div>
 </div>
 
+<!-- ======= the SHOP's own door: name + password of a counter user (no Google) =======
+     Shown when the shop has users and nobody is signed in yet. A cashier gets the
+     till and stops there; the manager opens the rest with his own credentials. -->
+<div id="shopGate" class="gate hidden" role="dialog" aria-modal="true">
+  <div class="gate-box wall">
+    <div class="gate-logo">د</div>
+    <h2 id="shopGateTitle"></h2>
+    <p class="muted" id="shopGateSub"></p>
+    <form id="shopGateForm" autocomplete="off">
+      <input type="text" id="shopUser" data-i18n-ph="shop.user" autocomplete="username">
+      <div class="pass-wrap">
+        <input type="password" id="shopPass" data-i18n-ph="shop.pass" autocomplete="current-password">
+      </div>
+      <div class="pin-error hidden" id="shopGateError"></div>
+      <button type="submit" class="btn primary big" id="shopEnter"></button>
+      <button type="button" class="btn ghost hidden" id="shopGateCancel" data-i18n="common.cancel"></button>
+    </form>
+  </div>
+</div>
 <!-- ================= the login wall (shown on boot unless signed in / local mode) ================= -->
 <div id="gate" class="gate hidden" role="dialog" aria-modal="true">
   <div class="gate-box wall">
@@ -599,22 +627,32 @@
         <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
         <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
       </svg>
+      <span class="spin" aria-hidden="true"></span>
       <span id="btnGoogleLabel"></span>
     </button>
+    <p class="muted gate-hint hidden" id="gateHint"></p>
 
     <div class="or"><span id="gateOr"></span></div>
 
     <form id="gateForm" autocomplete="on">
-      <div id="gateNameRow" class="hidden">
-        <input type="text" id="gateName" data-i18n-ph="auth.namePh" autocomplete="organization">
+      <div id="gateNameRow" class="fld hidden">
+        <label for="gateName" data-i18n="auth.namePh"></label>
+        <input type="text" id="gateName" data-i18n-ph="auth.nameEx" autocomplete="organization">
       </div>
-      <input type="email" id="gateEmail" data-i18n-ph="auth.email" autocomplete="email">
-      <div class="pass-wrap">
-        <input type="password" id="gatePass" data-i18n-ph="auth.password" autocomplete="current-password">
-        <button type="button" class="eye" id="btnGateEye" aria-label="show password">&#128065;</button>
+      <div class="fld">
+        <label for="gateEmail" data-i18n="auth.email"></label>
+        <input type="email" id="gateEmail" dir="ltr" placeholder="you@shop.tn" autocomplete="email">
       </div>
-      <div class="hidden" id="gatePass2Row">
-        <input type="password" id="gatePass2" data-i18n-ph="auth.pass2" autocomplete="new-password">
+      <div class="fld">
+        <label for="gatePass" data-i18n="auth.password"></label>
+        <div class="pass-wrap">
+          <input type="password" id="gatePass" placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;" autocomplete="current-password">
+          <button type="button" class="eye" id="btnGateEye" aria-label="show password">&#128065;</button>
+        </div>
+      </div>
+      <div class="fld hidden" id="gatePass2Row">
+        <label for="gatePass2" data-i18n="auth.pass2"></label>
+        <input type="password" id="gatePass2" placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;" autocomplete="new-password">
       </div>
       <div class="pin-error hidden" id="gateError"></div>
       <button type="submit" class="btn primary big" id="gateSubmit"></button>
@@ -638,6 +676,7 @@
 <script src="core/report.js"></script>
 <script src="core/shop.js"></script>
 <script src="core/pin.js"></script>
+<script src="core/accounts.js"></script>
 <script src="ui/langs.js"></script>
 <script src="ui/lang.js"></script>
 <script src="ui/fmt.js"></script>

@@ -15,7 +15,7 @@
   'use strict';
 
   function render(C) {
-    const { renderHeader, renderSell, renderStock, renderDebts, renderClients, renderReport, renderCashBox, renderSettings, renderEmployees, renderMonthly } = DEK.pages;
+    const { renderHeader, renderSell, renderStock, renderDebts, renderClients, renderReport, renderCashBox, renderSettings, renderEmployees, renderMonthly, renderShopUser } = DEK.pages;
     if (C.fmt && C.fmt._setCustom) C.fmt._setCustom(C.state.custom);
     renderHeader(C);
     renderSell(C);
@@ -27,6 +27,7 @@
     renderSettings(C);
     renderEmployees(C);
     renderMonthly(C);
+    renderShopUser(C);
   }
 
   function renderHeader(C) {
@@ -1115,19 +1116,26 @@
   // ----- STAFF (the team: hire / edit / fire) -----
   /* the hire/edit form only exists when it is in flight (C.editEmployeeId) */
   function renderEmployees(C) {
-    const { state, $, T, fmt } = C;
+    const { state, $, T, D, fmt } = C;
     const { money, esc } = fmt;
     const team = state.employees || [];
+    /* the login that came with the hire (wave 6) — an employee may predate it */
+    const loginOf = function (e) {
+      const acc = (D.accounts ? D.accounts(state) : []).find(function (a) { return a.employeeId === e.id; });
+      return acc ? acc.name + ' · ' + T.t('role.' + acc.role) : '';
+    };
     if (!team.length) {
       $('staffList').innerHTML = '<p class="muted">' + T.t('staff.empty') + '</p>';
     } else {
       $('staffList').innerHTML = team.map(function (e) {
         const meta = [e.type, T.t('staff.hired') + ': ' + e.hiredAt, e.phone, e.note].filter(Boolean).join(' · ');
         const fired = e.active ? '' : ' <span class="muted">(' + T.t('staff.fired') + ')</span>';
+        const who = loginOf(e);
         return '<div class="entry">' +
           '<div class="stack" style="flex:1">' +
           '<b>' + esc(e.name) + fired + '</b>' +
           '<small class="muted">' + esc(meta) + '</small>' +
+          (who ? '<small class="muted">' + T.t('staff.user') + ': ' + esc(who) + '</small>' : '') +
           '<small class="muted">' + money(e.salary) + ' / ' + T.t('staff.perMonth') + '</small>' +
           '</div>' +
           '<span class="row gr">' +
@@ -1149,11 +1157,72 @@
           $('empSalary').value = String(e.salary);
           $('empPhone').value = e.phone;
           $('empNote').value = e.note;
+          const acc = (D.accounts ? D.accounts(state) : []).find(function (a) { return a.employeeId === e.id; });
+          if ($('empUser')) $('empUser').value = acc ? acc.name : '';
+          if ($('empRole')) $('empRole').value = acc ? acc.role : 'cashier';
+          if ($('empPass')) $('empPass').value = '';
+          if ($('empLoginHint')) $('empLoginHint').textContent = T.t('staff.passKeep');
         }
       }
     } else {
       form.classList.add('hidden');
     }
+  }
+
+  // ----- WHO IS AT THE TILL (wave 6): a chip, not a screen -----
+  /* The sidebar footer and the phone header both show it. With a login it names
+     the person and offers the one button that matters (lock it, and for a
+     cashier the manager's way back in). With users but NOBODY signed in — the
+     moment right after the first hire — it is the door itself: tap and sign in,
+     so the owner can hand the tablet to the cashier and have it locked. */
+  function renderShopUser(C) {
+    const { $, T, D, state, fmt } = C;
+    const { esc } = fmt;
+    const s = C.session;
+    const hasUsers = D.hasAccounts ? D.hasAccounts(state) : false;
+    /* the person's own name is what the shop recognises (the login name is
+       theirs alone) — the chip shows "Hedi · Cashier", never "hedi" */
+    const emp = s && s.employeeId
+      ? (state.employees || []).find(function (e) { return e.id === s.employeeId; })
+      : null;
+    const label = (emp && emp.name) || (s && s.name) || '';
+    const html = !s
+      ? (hasUsers
+        ? '<span class="who"><b>' + T.t('shop.noUser') + '</b></span>' +
+          '<span class="row gr"><button class="btn ghost" data-action="shop-signin">' +
+          T.t('shop.enter') + '</button></span>'
+        : '')
+      : '<span class="who"><b>' + esc(label) + '</b>' +
+        '<span class="tag' + (s.role === 'manager' ? ' manager' : '') + '">' + T.t('role.' + s.role) + '</span></span>' +
+        '<span class="row gr">' +
+        (s.role === 'cashier'
+          ? '<button class="btn ghost" data-action="shop-unlock">' + T.t('shop.unlock') + '</button>' : '') +
+        '<button class="btn ghost" data-action="shop-lock">' + T.t('shop.lock') + '</button>' +
+        '</span>';
+    ['shopUserSide', 'shopUserPhone'].forEach(function (id) {
+      const el = $(id);
+      if (!el) return;
+      el.innerHTML = html;
+      el.classList.toggle('hidden', !html);
+    });
+  }
+
+  // ----- THE SHOP'S OWN DOOR (wave 6): name + password, no Google -----
+  function renderShopGate(C) {
+    const { $, T } = C;
+    const unlock = C.shopGateMode === 'unlock';
+    $('shopGateTitle').textContent = T.t(unlock ? 'shop.unlock.title' : 'shop.login.title');
+    $('shopGateSub').textContent = T.t(unlock ? 'shop.unlock.sub' : 'shop.login.sub');
+    $('shopEnter').textContent = T.t('shop.enter');
+    if ($('shopGateCancel')) $('shopGateCancel').classList.toggle('hidden', !unlock);
+    shopGateError(C, '');
+  }
+
+  function shopGateError(C, msg) {
+    const el = C.$('shopGateError');
+    if (!el) return;
+    el.textContent = msg || '';
+    el.classList.toggle('hidden', !msg);
   }
 
   // ----- MONTHLY REVIEW (one month, wins/losses/profit with salaries) -----
@@ -1218,6 +1287,7 @@
     shopTitle: shopTitle, shopInitial: shopInitial, shopTagline: shopTagline,
     showReceipt: showReceipt, hideReceipt: hideReceipt, revealProductForm: revealProductForm,
     renderEmployees: renderEmployees, renderMonthly: renderMonthly,
+  renderShopUser: renderShopUser, renderShopGate: renderShopGate, shopGateError: shopGateError,
     openPin: openPin, closePin: closePin, pinKey: pinKey
   };
 });

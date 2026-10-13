@@ -19,10 +19,15 @@ test('hire a cashier and see them in the team with their salary', async ({ page 
   await page.locator('#empName').fill('Sami');
   await page.locator('#empType').fill('Cashier');
   await page.locator('#empSalary').fill('400');
+  /* wave 6: the hire carries his login — the first user of a shop is its manager */
+  await expect(page.locator('#empRole')).toHaveValue('manager');
+  await page.locator('#empUser').fill('sami');
+  await page.locator('#empPass').fill('sh0p1234');
   await page.locator('#btnSaveEmployee').click();
 
   await expect(page.locator('#staffList')).toContainText('Sami');
   await expect(page.locator('#staffList')).toContainText(/400/);
+  await expect(page.locator('#staffList')).toContainText('sami', { timeout: 10000 });
 });
 
 test('monthly review counts wins, losses and the salaries inside', async ({ page }) => {
@@ -31,7 +36,10 @@ test('monthly review counts wins, losses and the salaries inside', async ({ page
   await page.locator('#empName').fill('Sami');
   await page.locator('#empType').fill('Cashier');
   await page.locator('#empSalary').fill('400');
+  await page.locator('#empUser').fill('sami');
+  await page.locator('#empPass').fill('sh0p1234');
   await page.locator('#btnSaveEmployee').click();
+  await expect(page.locator('#staffList')).toContainText('sami', { timeout: 10000 });
 
   await gotoTab(page, '#/stock');
   await page.locator('#btnAddProduct').click();

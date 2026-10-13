@@ -30,7 +30,7 @@ function fakeFirebase(st) {
     return Promise.reject(Object.assign(new Error('network'), { code: 'auth/network-request-failed' }));
   }
 
-  const calls = { register: [], login: [], google: [], logout: [], set: [], update: [] };
+  const calls = { register: [], login: [], google: [], redirect: [], redirectResult: [], logout: [], set: [], update: [] };
 
   function auth() {
     return {
@@ -70,9 +70,30 @@ function fakeFirebase(st) {
         calls.google.push({});
         if (state.failNetwork) return rejectNetwork();
         if (state.googleBlocked) return Promise.reject(Object.assign(new Error('blocked'), { code: 'auth/popup-blocked' }));
+        if (state.domainBlocked) return Promise.reject(Object.assign(new Error('domain'), { code: 'auth/unauthorized-domain' }));
         if (!state.allowGoogle) return Promise.reject(Object.assign(new Error('disabled'), { code: 'auth/operation-not-allowed' }));
         const u = { uid: 'ug1', email: state.googleEmail || 'g@shop.tn', displayName: state.googleName || 'Google Boss' };
         state.user = u;
+        emitAuth();
+        return Promise.resolve({ user: u });
+      },
+      /* the whole-page route: the browser LEAVES for Google, so there is no
+         user to resolve here — it comes back in a fresh document and
+         getRedirectResult() reports it (that is how the real SDK behaves). */
+      signInWithRedirect() {
+        calls.redirect.push({});
+        if (state.failNetwork) return rejectNetwork();
+        if (state.redirectFails) return Promise.reject(Object.assign(new Error('redirect'), { code: 'auth/operation-not-supported-in-this-environment' }));
+        state.redirectPending = true;
+        return Promise.resolve();
+      },
+      getRedirectResult() {
+        calls.redirectResult.push({});
+        if (!state.redirectUser) return Promise.resolve(null);
+        const u = Object.assign({}, state.redirectUser);
+        state.user = u;
+        state.redirectUser = null;
+        state.redirectPending = false;
         emitAuth();
         return Promise.resolve({ user: u });
       },

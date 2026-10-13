@@ -74,9 +74,14 @@ function boot(seed, pre, env) {
     dispatchEvent() {}
   };
   const store = {};
+  const sess = {};
   const sandbox = {
     console, setTimeout, clearTimeout, document: doc, Promise, Object, JSON, Math,
     Number, String, Array, Date, RegExp, Error, parseInt, parseFloat, isFinite,
+    /* the shop's own login (wave 6) hashes with WebCrypto — the browser has it on
+       any secure origin, node has the very same API, so the harness hands it in.
+       TextEncoder is a host API (not a JS intrinsic), so a bare vm context needs it too. */
+    crypto: require('node:crypto').webcrypto, TextEncoder: TextEncoder, Uint8Array: Uint8Array,
     navigator: {
       onLine: true,
       storage: { estimate: () => ({ then() { return this; }, catch() { return this; } }) }
@@ -89,6 +94,12 @@ function boot(seed, pre, env) {
       getItem: k => (k in store ? store[k] : null),
       setItem: (k, v) => { store[k] = String(v); },
       removeItem: k => { delete store[k]; }
+    },
+    /* a login lasts the tab (sessionStorage), never longer — same idea here */
+    sessionStorage: {
+      getItem: k => (k in sess ? sess[k] : null),
+      setItem: (k, v) => { sess[k] = String(v); },
+      removeItem: k => { delete sess[k]; }
     },
     CustomEvent: function (t, o) { this.type = t; this.detail = o && o.detail; },
     URL: { createObjectURL: () => '', revokeObjectURL() {} },
@@ -113,7 +124,7 @@ function boot(seed, pre, env) {
   if (pre) pre(store);
 
   ['core/dekkan-core.ts', 'core/core.ts', 'core/products.ts', 'core/debts.ts',
-    'core/sales.ts', 'core/refunds.ts', 'core/employees.ts', 'core/cashbox.ts', 'core/report.ts', 'core/shop.ts', 'core/pin.ts',
+    'core/sales.ts', 'core/refunds.ts', 'core/accounts.ts', 'core/employees.ts', 'core/cashbox.ts', 'core/report.ts', 'core/shop.ts', 'core/pin.ts',
     'ui/themes.ts', 'ui/langs.ts', 'ui/lang.ts', 'ui/fmt.ts', 'ui/pages.ts', 'ui/actions.ts', 'ui/config.ts', 'ui/auth.ts', 'ui/app.ts'].forEach(f => {
     vm.runInContext(stripTypeScriptTypes(fs.readFileSync(path.join(ROOT, f), 'utf8')), sandbox, { filename: f });
   });
@@ -595,25 +606,47 @@ test("today's moves: bare number rows and refunds name the sale they undid", () 
 
 // ---------- STAFF (team page) + MONTHLY REVIEW (its own page) ----------
 
-test('the staff page hires a worker into the book', () => {
+test('the staff page hires a worker into the book, login and all', async () => {
   const ui = boot();
   ui.goto('#/employees');
   ui.$('btnAddEmployee').fire('click');
   ui.$('empName').value = 'Ali';
   ui.$('empType').value = 'Cashier';
   ui.$('empSalary').value = '300';
+  /* wave 6: the hire form carries the login too — and the FIRST user of a shop
+     is offered the manager role, because a shop with nobody able to open it
+     would lock itself out the moment the first cashier is hired. */
+  assert.strictEqual(ui.$('empRole').value, 'manager', 'the first hire is offered the manager role');
+  ui.$('empUser').value = 'ali';
+  ui.$('empPass').value = 'sh0p-pass';
   ui.$('btnSaveEmployee').fire('click');
+  /* hashing a password is real work (PBKDF2), so saving is async: wait for it */
+  await ui.sandbox.DEK.actions.saveEmployee(ui.sandbox.DEK.app);
 
   const s = ui.saved();
   assert.strictEqual(s.employees.length, 1);
   assert.strictEqual(s.employees[0].name, 'Ali', 'trimmed name is in the book');
   assert.strictEqual(s.employees[0].salary, 300);
+  assert.strictEqual((s.accounts || []).length, 1, 'and the hire came with his login');
+  assert.strictEqual(s.accounts[0].name, 'ali');
+  assert.strictEqual(s.accounts[0].role, 'manager');
+  assert.strictEqual(s.accounts[0].employeeId, s.employees[0].id, 'bound to the employee');
+  assert.notStrictEqual(s.accounts[0].hash, 'sh0p-pass', 'what goes to disk is a hash, never the password');
+  assert.ok(s.accounts[0].salt && s.accounts[0].iters >= 1000, 'salted, and many rounds');
   assert.ok(ui.$('staffList').innerHTML.indexOf('Ali') !== -1, 'the hire is on screen');
 });
 
 test('the staff page fires a worker and the monthly page counts a month of money', () => {
   const ui = boot((core, s) => {
-    s = core.addEmployee(s, { name: 'Sarra', type: 'Cleaner', salary: 150 });
+    s = core.addEmployee(s, {
+      name: 'Sarra', type: 'Cleaner', salary: 150,
+      /* a hire now always carries a login (wave 6). A cashier here on purpose:
+         firing the shop's ONLY manager is refused (nobody may lock the shop out). */
+      account: {
+        name: 'sarra', role: 'cashier', salt: 'saltsaltsaltsalt',
+        hash: 'hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh', iters: 1000
+      }
+    });
     s.day.entries.push({ id: 'x1', kind: 'sale', amount: 100, at: new Date().toISOString(), note: '', ref: '', bill: 0 });
     s.day.entries.push({ id: 'x2', kind: 'expense', amount: -30, at: new Date().toISOString(), note: '', ref: '', bill: 0 });
     return s;
@@ -682,6 +715,53 @@ test('the wall offers BOTH ways in: Google and local', async () => {
   assert.ok(ui.$('btnGoogle'), 'a Google sign-in button is on the wall');
   assert.strictEqual(ui.$('btnGoogleLabel').textContent, ui.T.t('auth.google'));
   assert.strictEqual(ui.$('gateSkip').textContent, ui.T.t('auth.local'));
+});
+
+// ---------- THE WALL HAS TO ANSWER THE TAP (2026-10-13) ----------
+/* "google sign in dont work" was two complaints in one: nothing visibly
+   happened while it tried, and when it did fail the wall said nothing useful.
+   A wall that neither shows it heard you nor tells you what to do next is a
+   dead end for a shopkeeper standing at the counter. */
+
+test('the wall locks BOTH buttons while a Google sign-in is in flight', async () => {
+  const ui = boot(null, null, { fb: { allowGoogle: true } });
+  await ui.settle();
+  ui.$('btnGoogle').fire('click');
+  assert.strictEqual(ui.$('btnGoogle').disabled, true, 'the Google button cannot be tapped twice');
+  assert.ok(ui.$('btnGoogle').classList.contains('busy'), 'and it shows it is working');
+  assert.strictEqual(ui.$('gateSubmit').disabled, true, 'the email button waits too — one sign-in at a time');
+  await ui.settle();
+  assert.strictEqual(ui.$('gate').style.display, 'none', 'a real sign-in still opens the till');
+});
+
+test('a Google sign-in that leaves the page says so calmly, in no error red', async () => {
+  const ui = boot(null, null, { fb: { googleBlocked: true } });
+  await ui.settle();
+  ui.$('btnGoogle').fire('click');
+  await ui.settle();
+  assert.strictEqual(ui.$('gateError').textContent, ui.T.t('auth.err.googleRedirect'), 'the wall names what is happening');
+  assert.ok(ui.$('gateError').classList.contains('info'), 'and it is NOT dressed as a failure');
+  assert.strictEqual(ui.$('btnGoogle').disabled, true, 'the button stays locked: the page is on its way out');
+});
+
+test('Google not set up here points at the way that DOES work', async () => {
+  const ui = boot(null, null, { fb: {} }); // provider off -> operation-not-allowed
+  await ui.settle();
+  ui.$('btnGoogle').fire('click');
+  await ui.settle();
+  assert.strictEqual(ui.$('gateError').textContent, ui.T.t('auth.err.google'));
+  assert.strictEqual(ui.$('gateHint').textContent, ui.T.t('auth.googleNotSet'), 'the honest hint under the button');
+  assert.ok(!ui.$('gateHint').classList.contains('hidden'), 'and it is actually visible');
+  assert.strictEqual(ui.$('btnGoogle').disabled, false, 'the button is usable again');
+});
+
+test('changing mode on the wall clears stale news', async () => {
+  const ui = boot(null, null, { fb: {} });
+  await ui.settle();
+  ui.$('btnGoogle').fire('click');
+  await ui.settle();
+  ui.$('gateSwitch').fire('click');
+  assert.strictEqual(ui.$('gateHint').textContent, '', 'no leftover hint from the other mode');
 });
 
 test('choosing "local only" on the wall opens the till and remembers the choice', async () => {

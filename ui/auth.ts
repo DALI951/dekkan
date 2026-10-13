@@ -54,6 +54,7 @@
         c === 'auth/invalid-login-credentials' || c === 'auth/user-disabled' || c === 'auth/too-many-requests') return 'auth.err.badCredentials';
     if (c === 'auth/network-request-failed' || c === 'auth/timeout' || c === 'unavailable' || c === 'deadline-exceeded') return 'auth.err.offline';
     if (c === 'auth/operation-not-allowed') return notAllowedKey || 'auth.err.server';
+    if (c === 'auth/unauthorized-domain') return 'auth.err.domain';   // the ADDRESS is refused, the account is fine
     if (c.indexOf('auth/popup') === 0) return 'auth.err.google';
     if (!c && offline()) return 'auth.err.offline';
     return 'auth.err.server';
@@ -92,6 +93,15 @@
         if (fu) setUser(fu); else clearUser();
         if (readyResolve) readyResolve();
       });
+      // coming back from the whole-page Google route: the SDK reports the
+      // user here, not through the popup, so boot has to ask for it.
+      try {
+        if (FB.auth().getRedirectResult) {
+          FB.auth().getRedirectResult().then(function (res) {
+            if (res && res.user) setUser(res.user);
+          }, function () {});
+        }
+      } catch (e) {}
     } catch (e) {
       if (readyResolve) readyResolve();
     }
@@ -141,10 +151,35 @@
     if (!FB) return Promise.reject(fail('auth.err.google'));
     var Provider = FB.auth.GoogleAuthProvider;
     if (!Provider) return Promise.reject(fail('auth.err.google'));
-    return FB.auth().signInWithPopup(new Provider()).then(function (cred) {
-      setUser(cred.user);
-      return user;
-    }).catch(function (e) { throw fail(mapErr(e, 'auth.err.google')); });
+    try {
+      return FB.auth().signInWithPopup(new Provider()).then(function (cred) {
+        setUser(cred.user);
+        return user;
+      }).catch(function (e) {
+        if (popupUnusable(e)) return googleRedirect();
+        throw fail(mapErr(e, 'auth.err.google'));
+      });
+    } catch (e) { throw fail(mapErr(e, 'auth.err.google')); }
+  }
+
+  // A phone or an in-app browser often refuses the popup outright; leaving for
+  // Google's own page finishes the same sign-in with no popup involved.
+  function popupUnusable(e) {
+    var c = String((e && e.code) || '');
+    return c === 'auth/popup-blocked' || c === 'auth/operation-not-supported-in-this-environment';
+  }
+
+  /* the whole-page route: signInWithRedirect never resolves with a user — the
+     document LEAVES for Google. The way back is init() -> getRedirectResult(). */
+  function googleRedirect() {
+    if (!FB) return Promise.reject(fail('auth.err.google'));
+    var Provider = FB.auth.GoogleAuthProvider;
+    if (!Provider) return Promise.reject(fail('auth.err.google'));
+    try {
+      return FB.auth().signInWithRedirect(new Provider()).then(function () {
+        throw fail('auth.err.googleRedirect');
+      }, function (e) { throw fail(mapErr(e, 'auth.err.google')); });
+    } catch (e) { return Promise.reject(fail(mapErr(e, 'auth.err.google'))); }
   }
 
   function logout() {
@@ -208,6 +243,7 @@
       register: register,
       login: login,
       loginWithGoogle: loginWithGoogle,
+      loginWithGoogleRedirect: googleRedirect,
       logout: logout,
       fetchState: fetchState,
       pushState: pushState

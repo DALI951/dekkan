@@ -432,6 +432,22 @@ select option{background:var(--inbg);color:var(--txt);}
 .btn.google:hover{background:#f6f7f8;color:#111;border-color:#c9ccd1;}
 .btn.google:focus-visible{outline:2px solid var(--acc);outline-offset:2px;}
 .g-logo{flex:0 0 auto;}
+/* a field is a LABEL + input, never a placeholder alone: the placeholder
+   disappears the moment the shopkeeper starts typing, the label does not. */
+.fld{display:flex;flex-direction:column;gap:5px;}
+.fld label{font-size:12px;font-weight:600;color:var(--dim);}
+/* the Google button is the FIRST thing people tap: it must show it heard them */
+.btn.google .spin{margin-inline-start:2px;}
+.btn.google[aria-busy="true"] .g-logo{display:none;}
+.btn.google[aria-busy="true"] .spin{display:inline-block;}
+.spin{display:none;width:14px;height:14px;border-radius:50%;box-sizing:border-box;
+  border:2px solid rgba(60,64,67,.25);border-top-color:#4285F4;animation:gate-spin .7s linear infinite;}
+@keyframes gate-spin{to{transform:rotate(360deg);}}
+.btn.google:disabled,.btn.google[aria-busy="true"]{opacity:.75;cursor:progress;}
+/* "Google is not set up here" is INFORMATION, not a failure: it never wears red */
+.gate-hint{font-size:12px;line-height:1.5;background:var(--bg,#f4f5f7);border:1px solid var(--line);
+  border-radius:8px;padding:8px 10px;}
+.pin-error.info{color:var(--dim);}
 .or{display:flex;align-items:center;gap:10px;color:var(--dim);font-size:12px;}
 .or::before,.or::after{content:"";flex:1;height:1px;background:var(--line);}
 .link{background:none;border:0;color:var(--dim);text-decoration:underline;
@@ -630,3 +646,13 @@ label.btn{cursor:pointer;}
 /* a settings button is a button, not a full-width bar (Dali, 2026-10-12) */
 #page-settings .row.wrap > *{flex:0 1 auto;}
 #page-settings .row.wrap{justify-content:flex-start;}
+
+/* wave 6 — who is at the till today (a chip, not a screen) */
+.userchip { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.userchip .who { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
+.userchip .who b { font-size: 12px; }
+.userchip .tag { border: 1px solid var(--line); border-radius: 999px; padding: 1px 7px; font-size: 11px; color: var(--mut); }
+.userchip .tag.manager { color: var(--acc); border-color: var(--acc); }
+.userchip .btn { padding: 3px 9px; font-size: 12px; min-height: 0; }
+.sideFoot .userchip { margin-bottom: 10px; justify-content: space-between; }
+.topbar .userchip { margin-top: 2px; justify-content: flex-end; }

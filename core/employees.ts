@@ -12,8 +12,12 @@
 
   const num = v => typeof v === 'number' && isFinite(v);
 
-  // a state with one more team member (all the guards live in addEmployee)
-  const book = (state, member) => Object.assign({}, state, { employees: (state.employees || []).concat(member) });
+  // a state with one more team member AND his login (wave 6: hiring and giving
+  // the login are ONE action — an employee without one could never open the till)
+  const book = (state, member, account) => Object.assign({}, state, {
+    employees: (state.employees || []).concat(member),
+    accounts: (state.accounts || []).concat(account)
+  });
 
   function addEmployee(state, opts) {
     opts = opts || {};
@@ -23,12 +27,16 @@
     if (!type) throw new Error('employees: type required');
     const salary = opts.salary == null ? 0 : opts.salary;
     if (!num(salary) || salary < 0) throw new Error('employees: salary must be a number >= 0');
-    return book(state, {
+    const member = {
       id: uid(), name: name, type: type, salary: money(salary),
       phone: String(opts.phone == null ? '' : opts.phone),
       note: String(opts.note == null ? '' : opts.note),
       hiredAt: todayStr(), active: true
-    });
+    };
+    /* the login is REQUIRED (Dali): name + role + the salted hash the screen
+       already made with K.hashPassword. Bind it to the employee we just made. */
+    const account = K.accountFor(state, opts.account, member.id);
+    return book(state, member, account);
   }
 
   function updateEmployee(state, id, patch) {
@@ -60,9 +68,12 @@
   function fireEmployee(state, id) {
     const i = (state.employees || []).findIndex(e => e.id === id);
     if (i === -1) throw new Error('employees: not found');
-    const emps = state.employees.slice();
+    /* his login leaves with him — and dropAccount refuses if he was the last
+       manager, so nobody ever locks the shop out of itself */
+    const next = K.dropAccount(state, id);
+    const emps = next.employees.slice();
     emps[i] = Object.assign({}, emps[i], { active: false, firedAt: todayStr() });
-    return Object.assign({}, state, { employees: emps });
+    return Object.assign({}, next, { employees: emps });
   }
 
   // The payroll of one month: full salary for everyone hired by its end who is

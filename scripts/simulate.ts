@@ -253,7 +253,14 @@ ok(rm.sales === D.money(allMoves.reduce(function (a, e) { return a + (e.kind ===
   'monthly: the sales column matches the ledger');
 ok(rm.profit === D.money(rm.wins - rm.losses), 'monthly: profit = wins - losses');
 ok(rm.salaries === 0, 'monthly: no team hired -> no salaries');
-s = D.addEmployee(s, { name: 'Sami', type: 'chef', salary: 300 });
+s = D.addEmployee(s, {
+  name: 'Sami', type: 'chef', salary: 300,
+  /* wave 6: a hire always carries a login (that is how the till opens) */
+  account: {
+    name: 'sami', role: 'cashier', salt: 'saltsaltsaltsalt',
+    hash: 'hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh', iters: 1000
+  }
+});
 ok(D.salariesFor(s, now) === 300, 'monthly: a hire adds their salary to the month');
 ok(D.monthlyReport(s, now).losses === D.money(rm.losses + 300), 'monthly: the salary lands inside the losses');
 ok(D.monthlyReport(s, '2000-01').moves === 0 && D.monthlyReport(s, '2000-01').profit === 0,

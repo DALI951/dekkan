@@ -284,11 +284,17 @@
 
   // ----- staff (hire / edit / fire) -----
   function newEmployee(C) {
-    const { $, T } = C;
+    const { $, T, D, state } = C;
     C.editEmployeeId = 'new';
     $('staffFormTitle').textContent = T.t('staff.new');
     $('empName').value = ''; $('empType').value = '';
     $('empSalary').value = ''; $('empPhone').value = ''; $('empNote').value = '';
+    /* the login comes WITH the hire (wave 6). The FIRST user of a shop is its
+       manager — every shop needs one to be able to open itself. */
+    if ($('empUser')) $('empUser').value = '';
+    if ($('empPass')) $('empPass').value = '';
+    if ($('empRole')) $('empRole').value = D.hasAccounts(state) ? 'cashier' : 'manager';
+    if ($('empLoginHint')) $('empLoginHint').textContent = T.t('staff.loginHint');
     $('staffForm').classList.remove('hidden');
   }
   function cancelEmployee(C) {
@@ -296,27 +302,139 @@
     C.editEmployeeId = null;
     $('staffForm').classList.add('hidden');
   }
-  function saveEmployee(C) {
+
+  /* wave 6: hiring IS giving the login. The password is hashed here, once, and
+     only the hash ever reaches the shop's data; the login name + role travel to
+     addEmployee, which refuses an employee without them. A manager may also
+     switch an existing employee's role from the same form. */
+  async function saveEmployee(C) {
     const { state, $, T, D, save, render, toast } = C;
     const name = $('empName').value.trim();
     const type = $('empType').value.trim();
     const raw = $('empSalary').value.trim();
     const salary = raw === '' ? 0 : parseFloat(raw);
+    const roleField = $('empRole');
     try {
       if (!name || !type) throw new Error(T.t('toast.empFields'));
       if (!(isFinite(salary) && salary >= 0)) throw new Error(T.t('toast.empSalary'));
       const fields = { name: name, type: type, salary: salary, phone: $('empPhone').value.trim(), note: $('empNote').value.trim() };
       if (C.editEmployeeId === 'new') {
-        C.state = D.addEmployee(state, fields);
+        const user = $('empUser').value.trim();
+        const pass = $('empPass') ? $('empPass').value : '';
+        if (!user || !pass) throw new Error(T.t('toast.empLogin'));
+        const cred = await D.hashPassword(pass);
+        C.state = D.addEmployee(state, Object.assign({}, fields, {
+          account: {
+            name: user, role: (roleField && roleField.value) || 'cashier',
+            salt: cred.salt, hash: cred.hash, iters: cred.iters
+          }
+        }));
       } else {
         C.state = D.updateEmployee(state, C.editEmployeeId, fields);
+        const acc = D.accounts(C.state).find(function (a) { return a.employeeId === C.editEmployeeId; });
+        if (acc && roleField && roleField.value && roleField.value !== acc.role) {
+          C.state = D.setRole(C.state, acc.id, roleField.value, C.session);
+          toast(T.t('toast.roleChanged'));
+        }
       }
       save(); C.editEmployeeId = null;
       $('staffForm').classList.add('hidden');
       render();
       toast(T.t('toast.empSaved'));
-    } catch (e) { toast(e.message, true); }
+    } catch (e) { toast(empError(C, e), true); }
   }
+
+  /* the core talks about hashes and roles in English; the shop hears its own tongue */
+  function empError(C, e) {
+    const m = String((e && e.message) || e || '');
+    const T = C.T;
+    if (/accounts: password/i.test(m)) return T.t('toast.passShort');
+    if (/already taken/i.test(m)) return T.t('toast.empUserTaken');
+    if (/accounts: name/i.test(m)) return T.t('toast.empUserShort');
+    if (/only a manager/i.test(m)) return T.t('toast.onlyManager');
+    if (/keep one manager/i.test(m)) return T.t('toast.keepManager');
+    return m;
+  }
+
+  // ----- the SHOP's own door (wave 6) -----
+  /* ONE door, two questions: 'login' starts the day (a cashier stops at the
+     till), 'unlock' is the manager coming in to open the rest. The session lives
+     in this tab only (sessionStorage), so closing the browser closes the shop. */
+  const SESSION_KEY = 'dekkan.session';
+
+  function setSession(C, session) {
+    C.session = session || null;
+    try {
+      if (C.session) sessionStorage.setItem(SESSION_KEY, JSON.stringify({ accountId: C.session.accountId }));
+      else sessionStorage.removeItem(SESSION_KEY);
+    } catch (e) { /* private mode: the session then lives in memory only */ }
+  }
+
+  function restoreSession(C) {
+    let raw = null;
+    try { raw = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null'); } catch (e) { raw = null; }
+    const acc = raw && raw.accountId
+      ? C.D.accounts(C.state).find(function (a) { return a.id === raw.accountId; })
+      : null;
+    C.session = acc ? C.D.sessionOf(acc) : null;
+    if (!C.session && raw) { try { sessionStorage.removeItem(SESSION_KEY); } catch (e) {} }
+    return C.session;
+  }
+
+  function openShopGate(C, mode) {
+    const { $ } = C;
+    C.shopGateMode = mode === 'unlock' ? 'unlock' : 'login';
+    if ($('shopUser')) $('shopUser').value = '';
+    if ($('shopPass')) $('shopPass').value = '';
+    DEK.pages.renderShopGate(C);
+    $('shopGate').classList.remove('hidden');
+    if ($('shopGate').style) $('shopGate').style.display = '';
+    if (document.body) document.body.classList.add('no-scroll');
+    const first = $('shopUser');
+    if (first && first.focus && typeof setTimeout === 'function') {
+      setTimeout(function () { try { first.focus(); } catch (e) {} }, 30);
+    }
+  }
+
+  function hideShopGate(C) {
+    const { $ } = C;
+    $('shopGate').classList.add('hidden');
+    if ($('shopGate').style) $('shopGate').style.display = 'none';
+    if (document.body) document.body.classList.remove('no-scroll');
+    DEK.pages.shopGateError(C, '');
+  }
+
+  async function shopEnter(C) {
+    const { state, $, T, D, render } = C;
+    const user = $('shopUser').value.trim();
+    const pass = $('shopPass') ? $('shopPass').value : '';
+    const unlock = C.shopGateMode === 'unlock';
+    $('shopEnter').disabled = true;
+    try {
+      const res = unlock ? await D.openShop(state, user, pass) : await D.login(state, user, pass);
+      if (!res.ok) {
+        DEK.pages.shopGateError(C, T.t(res.why === 'auth.noUsers' ? 'shop.err.noUsers'
+          : res.why === 'auth.notManager' ? 'shop.err.notManager' : 'shop.err.bad'));
+        return;
+      }
+      setSession(C, res.session);
+      $('shopPass').value = '';
+      hideShopGate(C);
+      render();
+      if (C.applySession) C.applySession();
+    } finally { $('shopEnter').disabled = false; }
+  }
+
+  function shopLock(C) {
+    const { T, render, toast } = C;
+    setSession(C, null);
+    render();
+    if (C.applySession) C.applySession();
+    openShopGate(C, 'login');
+    toast(T.t('toast.shopLocked'));
+  }
+
+  function shopUnlock(C) { openShopGate(C, 'unlock'); }
   function fireEmployee(C, id) {
     const { state, $, T, D, save, render, toast } = C;
     try {
@@ -937,6 +1055,10 @@ $('pName').value = p.name; $('pBuy').value = p.buy; $('pSell').value = p.sell;
       $('staffForm').classList.remove('hidden');
       render();
     }
+    if (act === 'shop-lock') shopLock(C);
+    if (act === 'shop-unlock') shopUnlock(C);
+    if (act === 'shop-signin') openShopGate(C, 'login');
+
     if (act === 'staff-fire') withPin(C, T.t('pin.fire'), function () { fireEmployee(C, id); });
   }
 
@@ -951,6 +1073,8 @@ $('pName').value = p.name; $('pBuy').value = p.buy; $('pSell').value = p.sell;
     exportBackup: exportBackup, importBackup: importBackup, onImportFile: onImportFile, resetAll: resetAll, onClick: onClick,
     newEmployee: newEmployee, cancelEmployee: cancelEmployee, saveEmployee: saveEmployee,
     fireEmployee: fireEmployee, withPin: withPin, pinSet: pinSet, pinClear: pinClear,
+    openShopGate: openShopGate, hideShopGate: hideShopGate, shopEnter: shopEnter,
+    shopLock: shopLock, shopUnlock: shopUnlock, restoreSession: restoreSession, setSession: setSession,
     themeOpen: themeOpen, themeClose: themeClose, themeSeedPick: themeSeedPick,
     themeSave: themeSave, themeReset: themeReset, themeExport: themeExport, themeApplyJson: themeApplyJson,
     themeCopy: themeCopy, themeDownload: themeDownload, themeFile: themeFile,

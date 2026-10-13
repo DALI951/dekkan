@@ -33,7 +33,7 @@ FILES = [
     'core/dekkan-core.js',
     'core/core.js', 'core/products.js', 'core/debts.js', 'core/sales.js',
     'core/refunds.js', 'core/employees.js', 'core/cashbox.js', 'core/report.js', 'core/shop.js',
-    'core/pin.js',
+    'core/pin.js', 'core/accounts.js',
     'icon/icon.svg', 'icon/icon-192.png', 'icon/icon-512.png',
     'icon/maskable-512.png',
     # the account API (config.php is created on the server, never shipped;

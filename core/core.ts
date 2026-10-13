@@ -65,6 +65,7 @@ function createShop(opts) {
     debts: [],
     movements: [],
     employees: [],
+    accounts: [],
     days: [],
     day: { date: todayStr(), openedAt: now, startCash: start, soldCost: 0, entries: [], checks: [], soldByProduct: {}, soldFree: {} }
   };
@@ -199,6 +200,7 @@ function restoreState(raw) {
     s.categories = { in: [], out: [] };
   }
   if (!Array.isArray(s.employees)) s.employees = [];
+  if (!Array.isArray(s.accounts)) s.accounts = [];
   ensureTaxState(s);
   ensureDocState(s);
   ensureMovements(s);

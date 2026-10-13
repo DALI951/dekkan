@@ -412,7 +412,14 @@
     });
   });
   function navigate() {
-    const hash = location.hash || '#/sell';
+    let hash = location.hash || '#/sell';
+    /* a role may only open what it is allowed to see — a typed address bounces
+       back to the till (the core decides; see D.canSee) */
+    const role = C.session && C.session.role;
+    if (role && !D.canSee(role, hash.replace('#/', ''))) {
+      location.hash = '#/sell';
+      hash = '#/sell';
+    }
     document.querySelectorAll('.page').forEach(function (p) { p.classList.add('hidden'); });
     const page = $('page-' + hash.replace('#/', '')) || $('page-sell');
     page.classList.remove('hidden');
@@ -420,10 +427,40 @@
     tabs.forEach(function (t) {
       t.classList.toggle('active', t.getAttribute('data-hash') === hash);
     });
+    applyRole();
     render();
   }
+
+  /* the rail tells the truth about the role: a cashier sees the caisse, a
+     manager sees the shop (wave 6) */
+  function applyRole() {
+    const role = C.session && C.session.role;
+    tabs.forEach(function (t) {
+      const h = String(t.getAttribute('data-hash') || '').replace('#/', '');
+      t.classList.toggle('hidden', !!(role && !D.canSee(role, h)));
+    });
+  }
+  C.applySession = function () { applyRole(); navigate(); };
+
+  // the shop's door: who is signed in THIS tab (sessionStorage — closing the
+  // browser closes the shop), and the form behind it
+  A.restoreSession(C);
+  if ($('shopGateForm')) {
+    $('shopGateForm').addEventListener('submit', function (ev) {
+      if (ev.preventDefault) ev.preventDefault();
+      A.shopEnter(C);
+    });
+  }
+  if ($('shopGateCancel')) {
+    $('shopGateCancel').addEventListener('click', function () { A.hideShopGate(C); });
+  }
+
   window.addEventListener('hashchange', navigate);
   navigate();
+
+  /* a shop WITH users opens on its own door, not on the till. A shop with no
+     user yet keeps opening straight into the till, exactly as before. */
+  if (D.hasAccounts(C.state) && !C.session) A.openShopGate(C, 'login');
 
   // ---------- the account: cloud backup (opt-in, from Settings) ----------
   // ui/auth.js talks to the API; this block decides when the form is up.
@@ -440,10 +477,19 @@
     try { if (m) localStorage.setItem(MODE_KEY, m); else localStorage.removeItem(MODE_KEY); } catch (e) {}
   }
 
-  function gateError(msg) {
+  function gateError(msg, kind) {
     const el = $('gateError');
     if (!el) return;
     el.textContent = msg;
+    if (el.classList) el.classList.toggle('info', kind === 'info');
+    el.classList.toggle('hidden', !msg);
+  }
+  // "Google is not set up here" is a fact about the shop, not a failure: it gets
+  // its own calm line under the button instead of the red error slot.
+  function gateHint(msg) {
+    const el = $('gateHint');
+    if (!el) return;
+    el.textContent = msg || '';
     el.classList.toggle('hidden', !msg);
   }
   function openAccount(mode) {
@@ -460,6 +506,7 @@
     $('gate').style.display = 'none';
     $('gate').classList.add('hidden');
     gateError('');
+    gateHint('');
   }
   function showRow(id, on) {
     const el = $(id);
@@ -467,6 +514,7 @@
   }
   function fillGate() {
     const reg = gateMode === 'register';
+    gateHint('');   // a fresh look at the wall never keeps the old news
     $('gateTitle').textContent = T.t('auth.wallTitle');
     $('gateSub').textContent = T.t('auth.wallSub');
     if ($('btnGoogleLabel')) $('btnGoogleLabel').textContent = T.t('auth.google');
@@ -479,11 +527,24 @@
     $('gateSkip').textContent = T.t('auth.local');
     $('gatePass').setAttribute('autocomplete', reg ? 'new-password' : 'current-password');
   }
-  function gateBusy(on) { $('gateSubmit').disabled = !!on; }
+  /* one busy flag for the whole wall: the email button AND the Google button.
+     Without it a second tap opens a second popup (or a second sign-in attempt). */
+  function gateBusy(on) {
+    on = !!on;
+    const submit = $('gateSubmit'), google = $('btnGoogle');
+    if (submit) submit.disabled = on;
+    if (google) {
+      google.disabled = on;
+      if (google.setAttribute) google.setAttribute('aria-busy', on ? 'true' : 'false');
+      if (google.classList) google.classList.toggle('busy', on);
+    }
+  }
 
   // ---------- Sign in with Google (Firebase Auth opens the Google popup) ----------
   function googleSignIn() {
+    if ($('btnGoogle') && $('btnGoogle').disabled) return;   // already leaving
     gateError('');
+    gateHint('');
     gateBusy(true);
     AUTH.loginWithGoogle().then(function (u) {
       gateBusy(false);
@@ -494,8 +555,16 @@
       render();
       return pullCloud();
     }).catch(function (e) {
+      const code = (e && e.code) || 'auth.err.google';
+      if (code === 'auth.err.googleRedirect') {
+        /* the page is LEAVING for Google — it is not an error, so it must not
+           wear red, and the button stays busy (the document is on its way out) */
+        gateError(T.t('auth.err.googleRedirect'), 'info');
+        return;
+      }
       gateBusy(false);
-      gateError(T.t((e && e.code) || 'auth.err.google'));
+      gateError(T.t(code));
+      if (code === 'auth.err.google') gateHint(T.t('auth.googleNotSet'));
     });
   }
 

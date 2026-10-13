@@ -552,7 +552,8 @@
     const { $ } = C;
     const TH = C.themes();
     const id = TH.currentId();
-    C.themeDraft = { id: id, tokens: themeEffective(TH, id, TH.overrides()) };
+    const tokens = themeEffective(TH, id, TH.overrides());
+    C.themeDraft = { id: id, tokens: tokens, seeds: TH.seedsOf(id, TH.overrides()) };
     $('themeJson').classList.add('hidden');
     $('themeEditor').classList.remove('hidden');
     P.renderThemeEditor(C);
@@ -566,18 +567,20 @@
     $('themeEditor').classList.add('hidden');
     P.renderThemes(C);
   }
-  function themeInput(C, tok, val) {
-    if (!C.themeDraft || !tok) return;
-    C.themeDraft.tokens[tok] = val;
-    C.themes().preview(C.themeDraft.tokens);   // live, unsaved; unreadable values just do not paint
-  }
-  function themeBasePick(C, id) {
+
+  // One picker moves one of the shop's three colours, and the ENGINE builds the whole
+  // shop around it: the same three colours always give the same forty-two tokens, and
+  // every one of them is guaranteed readable against the wall he chose.
+  function themeSeedPick(C, which, val) {
     const P = DEK.pages;
     const TH = C.themes();
-    if (!TH.get(id) || !C.themeDraft) return;
-    C.themeDraft = { id: id, tokens: Object.assign({}, TH.get(id).tokens) };
+    if (!C.themeDraft || !TH || TH.SEEDS.indexOf(which) === -1) return;
+    const seeds = Object.assign({}, C.themeDraft.seeds);
+    seeds[which] = val;
+    C.themeDraft.seeds = seeds;
+    C.themeDraft.tokens = TH.palette(seeds);
+    TH.preview(C.themeDraft.tokens);   // live and unsaved; Save is what keeps it
     P.renderThemeEditor(C);
-    TH.preview(C.themeDraft.tokens);
   }
   function themeSave(C) {
     const P = DEK.pages;
@@ -612,7 +615,7 @@
     save();
     TH.applyTheme(C.state.custom.theme);
     if (C.themeDraft && $('themeEditor') && !$('themeEditor').classList.contains('hidden')) {
-      C.themeDraft = { id: id, tokens: Object.assign({}, TH.get(id).tokens) };
+      C.themeDraft = { id: id, tokens: Object.assign({}, TH.get(id).tokens), seeds: TH.seedsOf(id, {}) };
       P.renderThemeEditor(C);
     }
     P.renderThemes(C);
@@ -645,7 +648,7 @@
     }
     save();
     TH.applyTheme(C.state.custom.theme);
-    C.themeDraft = { id: res.theme.id, tokens: themeEffective(TH, res.theme.id, diff) };
+    C.themeDraft = { id: res.theme.id, tokens: themeEffective(TH, res.theme.id, diff), seeds: TH.seedsOf(res.theme.id, diff) };
     if ($('themeEditor') && !$('themeEditor').classList.contains('hidden')) P.renderThemeEditor(C);
     P.renderThemes(C);
     P.themeMsg(C, T.t('theme.applied'), 'ok');
@@ -683,18 +686,6 @@
       themeApplyJson(C);
     };
     reader.readAsText(file);
-  }
-
-  // setting a colour from the picker also writes the text field (the truth), then
-  // the same live preview runs — one path in, whether he types or taps a swatch
-  function themeSyncPick(C, txtEl) {
-    const P = DEK.pages;
-    if (!txtEl || !txtEl.closest) return;
-    const row = txtEl.closest('.themeRow');
-    const pick = row ? row.querySelector('input[type=color]') : null;
-    if (!pick) return;
-    const hex = P.hex6(txtEl.value);
-    if (hex) { pick.value = hex; pick.disabled = false; } else { pick.disabled = true; }
   }
 
   // ---------- wave 3: the shop's own paper ----------
@@ -813,7 +804,10 @@
     const TH = C.themes();
     const sw = ev.target.closest('[data-theme]');
     if (sw) {
-      if (TH && TH.set(sw.getAttribute('data-theme'))) {
+      const id = sw.getAttribute('data-theme');
+      if (TH && TH.set(id)) {
+        C.state = D.setCustom(C.state, { theme: { id: id, tokens: {} } });   // a preset pick is a DECLARED choice, not a device whim
+        save();
         P.renderThemes(C);
         toast(T.t('toast.themeOk'));
       }
@@ -957,9 +951,9 @@ $('pName').value = p.name; $('pBuy').value = p.buy; $('pSell').value = p.sell;
     exportBackup: exportBackup, importBackup: importBackup, onImportFile: onImportFile, resetAll: resetAll, onClick: onClick,
     newEmployee: newEmployee, cancelEmployee: cancelEmployee, saveEmployee: saveEmployee,
     fireEmployee: fireEmployee, withPin: withPin, pinSet: pinSet, pinClear: pinClear,
-    themeOpen: themeOpen, themeClose: themeClose, themeInput: themeInput, themeBasePick: themeBasePick,
+    themeOpen: themeOpen, themeClose: themeClose, themeSeedPick: themeSeedPick,
     themeSave: themeSave, themeReset: themeReset, themeExport: themeExport, themeApplyJson: themeApplyJson,
-    themeCopy: themeCopy, themeDownload: themeDownload, themeFile: themeFile, themeSyncPick: themeSyncPick,
+    themeCopy: themeCopy, themeDownload: themeDownload, themeFile: themeFile,
     docOpen: docOpen, docClose: docClose, docInput: docInput, docSave: docSave, docReset: docReset,
     listAdd: listAdd, listDel: listDel
   };

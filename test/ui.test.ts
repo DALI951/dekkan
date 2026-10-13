@@ -1000,20 +1000,44 @@ test('the shop\'s declared theme paints — the browser cache never overrules th
   assert.strictEqual(TH.currentId(), 'mint', 'and the screen agrees on which theme is on');
 });
 
-test('the editor screen builds every token row (the vm harness can catch a broken render)', () => {
+test('the palette screen offers THREE colours and no token editor at all (the vm harness catches a broken render)', () => {
   const ui = boot();
   ui.goto('#/settings');
   const C = ui.sandbox.DEK.app;
   ui.sandbox.DEK.actions.themeOpen(C);
-  const html = ui.$('themeGroups').innerHTML;
-  assert.strictEqual((html.match(/data-tok="/g) || []).length, 42, 'one control per token');
-  assert.ok(html.indexOf('data-tok="--acc"') !== -1, 'including the accent');
-  assert.ok(html.indexOf('data-tok="--shadow"') !== -1, 'and the whole-shadow token');
-  assert.strictEqual((html.match(/class="themeRow"/g) || []).length, 42, 'each is a row a shopkeeper can tap');
-  assert.strictEqual((ui.$('themeBase').innerHTML.match(/data-base="/g) || []).length, 3, 'and every preset is offered as a starting point');
+  const html = ui.$('themeSeeds').innerHTML;
+  assert.strictEqual((html.match(/data-seed="/g) || []).length, 3, 'three pickers: brand, money, walls');
+  assert.ok(html.indexOf('data-seed="brand"') !== -1, 'the brand colour');
+  assert.ok(html.indexOf('data-seed="money"') !== -1, 'the money colour');
+  assert.ok(html.indexOf('data-seed="ground"') !== -1, 'the wall colour');
+  assert.strictEqual((html.match(/data-tok="/g) || []).length, 0, 'and NOT forty-two token boxes');
+  assert.ok(ui.$('themePreview').innerHTML.indexOf('pvCoin') !== -1, 'a live preview of his shop, painted on real tokens');
   assert.strictEqual(ui.sandbox.DEK.Themes.currentId(), 'souk', 'opening the editor changes nothing yet');
   ui.sandbox.DEK.actions.themeClose(C);
   assert.strictEqual(ui.sandbox.DEK.Themes.currentId(), 'souk', 'and closing it changes nothing either');
+});
+
+test('one colour in, the WHOLE shop out — and Save keeps it, reopening shows it back', () => {
+  const ui = boot();
+  ui.goto('#/settings');
+  const C = ui.sandbox.DEK.app;
+  const A = ui.sandbox.DEK.actions;
+  A.themeOpen(C);
+  A.themeSeedPick(C, 'brand', '#ff0000');
+  const draft = C.themeDraft;
+  assert.strictEqual(draft.seeds.brand, '#ff0000', 'the picker he touched holds his colour');
+  assert.strictEqual(draft.tokens['--acc'], '#ff0000', 'the accent IS the colour he picked');
+  assert.strictEqual(Object.keys(draft.tokens).length, 42, 'and the whole shop came with it');
+  assert.ok(draft.tokens['--acc2'] && draft.tokens['--acc2'] !== '#ff0000', 'the rest of the accent family was derived');
+  assert.ok(draft.tokens['--bg'] !== undefined, 'walls included');
+  assert.strictEqual(ui.rootStyle['--acc'], '#ff0000', 'and it is already painted: picking is live');
+  A.themeSave(C);
+  assert.strictEqual(ui.saved().custom.theme.tokens['--acc'], '#ff0000', 'Save writes the shop\'s colours to the data');
+  assert.ok(ui.saved().custom.theme.tokens['--acc2'] !== undefined, 'the derived family he saw on screen is what got saved');
+  A.themeOpen(C);
+  assert.ok(ui.$('themeSeeds').innerHTML.indexOf('value="#ff0000"') !== -1, 'and reopening shows him his own colour again');
+  assert.ok(ui.$('themeSeeds').innerHTML.indexOf('data-seed="brand"') !== -1, 'on the picker he chose it with');
+  A.themeClose(C);
 });
 
 /* a device that picked Indigo Night (+ a colour tweak) before custom.theme existed:

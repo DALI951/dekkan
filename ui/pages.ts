@@ -926,21 +926,20 @@
     }).join('');
   }
 
-  // ----- THE COLOUR EDITOR (wave 2) -----
-  // The SAME 42 tokens the app already paints, grouped the way a shopkeeper
-  // thinks about them. Each row is a text field (the truth: it can hold rgba()
-  // or a whole shadow) + a picker that drives it when the value is a plain hex.
-  // The list is DATA: a group here, a token there, and the screen follows.
-  const THEME_GROUPS = [
-    { key: 'theme.grp.bg', toks: ['--bg', '--bg2', '--glowa', '--glowb'] },
-    { key: 'theme.grp.surface', toks: ['--panel', '--panel2', '--panel3'] },
-    { key: 'theme.grp.line', toks: ['--line', '--line2'] },
-    { key: 'theme.grp.text', toks: ['--txt', '--mut', '--dim', '--ink'] },
-    { key: 'theme.grp.acc', toks: ['--acc', '--acc2', '--accdark', '--accbg', '--accborder', '--accover', '--accglow'] },
-    { key: 'theme.grp.status', toks: ['--ok', '--okbg', '--okhi', '--danger', '--dangerbg', '--dangerhi'] },
-    { key: 'theme.grp.coin', toks: ['--coin1', '--coin2', '--coin3', '--coinedge', '--coinring', '--coinshadow'] },
-    { key: 'theme.grp.ctrl', toks: ['--pri1', '--pri2', '--priedge', '--inbg', '--inbgfocus', '--switchknob', '--switchfill', '--scrail', '--scrthumb', '--shadow'] }
-  ];
+  // ----- THE SHOP'S PALETTE (wave 5) -----
+  // Three colours, not forty-two tokens. A shopkeeper picks the colour of his brand,
+  // the colour of his money and the colour of his walls; ui/themes.ts derives the
+  // whole shop from those three and guarantees the result is readable. The app's own
+  // themes above are READ-ONLY presets — a shop picks one, it does not edit one
+  // (Dali, 2026-10-12: "not edit the own app themes that shouldnt be customiwale").
+  const SEED_LABEL = { brand: 'theme.seed.brand', money: 'theme.seed.money', ground: 'theme.seed.ground' };
+  const SEED_HINT = { brand: 'theme.seed.brandHint', money: 'theme.seed.moneyHint', ground: 'theme.seed.groundHint' };
+
+  function seedsOf(C) {
+    const TH = themes();
+    if (!TH || !C.themeDraft) return null;
+    return C.themeDraft.seeds || TH.seedsOf(C.themeDraft.id, C.themeDraft.tokens);
+  }
 
   // "#abc" -> "#aabbcc"; anything a colour picker cannot hold -> null (the picker
   // is then disabled and the text field is the only way in — on purpose)
@@ -956,28 +955,42 @@
     const { $, T, fmt } = C;
     const { esc } = fmt;
     const TH = themes();
-    const box = $('themeGroups');
-    if (!TH || !box || !C.themeDraft) return;
-    const toks = C.themeDraft.tokens || {};
-    const base = $('themeBase');
-    if (base) {
-      base.innerHTML = TH.all().map(function (th) {
-        return '<button type="button" class="segbtn' + (th.id === C.themeDraft.id ? ' active' : '') + '"'
-          + ' data-base="' + th.id + '">' + T.t(th.nameKey) + '</button>';
-      }).join('');
-    }
-    box.innerHTML = THEME_GROUPS.map(function (g) {
-      return '<div class="themeGrp"><b>' + T.t(g.key) + '</b>'
-        + g.toks.map(function (tok) {
-          const v = toks[tok] === undefined ? '' : toks[tok];
-          const c = hex6(v);
-          return '<span class="themeRow">'
-            + '<input type="color" data-pick="' + tok + '" value="' + (c || '#000000') + '"' + (c ? '' : ' disabled') + '>'
-            + '<input type="text" data-tok="' + tok + '" value="' + esc(v) + '" spellcheck="false" dir="ltr">'
-            + '<code class="themeTok">' + tok + '</code></span>';
-        }).join('') + '</div>';
+    const box = $('themeSeeds');
+    const seeds = seedsOf(C);
+    if (!TH || !box || !seeds) return;
+    box.innerHTML = TH.SEEDS.map(function (k) {
+      const v = /^#[0-9a-f]{6}$/.test(seeds[k] || '') ? seeds[k] : '#000000';
+      return '<label class="seedRow">'
+        + '<input type="color" data-seed="' + k + '" value="' + v + '">'
+        + '<span class="seedText"><b>' + esc(T.t(SEED_LABEL[k])) + '</b>'
+        + '<small>' + esc(T.t(SEED_HINT[k])) + '</small>'
+        + '<code dir="ltr">' + esc(v) + '</code></span>'
+        + '</label>';
     }).join('');
-    T.apply(); // the group labels are [data-i18n], generated just now
+    renderSeedPreview(C);
+    T.apply();
+  }
+
+  // The shop as it will look, painted on real tokens — a money chip, a price row, the
+  // button a cashier taps — instead of a list of hex codes. Picking a colour shows ITS
+  // consequences, which is the entire reason the pickers exist.
+  function renderSeedPreview(C) {
+    const { $, T, fmt } = C;
+    const { esc } = fmt;
+    const el = $('themePreview');
+    if (!el || !C.themeDraft) return;
+    const t = C.themeDraft.tokens || {};
+    const v = function (k, d) { return t[k] || d; };
+    el.setAttribute('style', '--p-bg:' + v('--bg', '#0e0c0a') + ';--p-panel:' + v('--panel', '#171310')
+      + ';--p-line:' + v('--line', 'rgba(255,255,255,.09)') + ';--p-txt:' + v('--txt', '#f2ead9')
+      + ';--p-mut:' + v('--mut', '#b3a48d') + ';--p-acc:' + v('--acc', '#e8b04b')
+      + ';--p-ink:' + v('--ink', '#241a08') + ';--p-inbg:' + v('--inbg', '#262019')
+      + ';--p-coin1:' + v('--coin1', '#f8d184') + ';--p-coin2:' + v('--coin2', '#e8b04b')
+      + ';--p-coin3:' + v('--coin3', '#a97a28') + ';--p-coinring:' + v('--coinring', 'rgba(36,26,8,.5)')
+      + ';--p-ok:' + v('--ok', '#2ea368') + ';--p-danger:' + v('--danger', '#d8453f'));
+    el.innerHTML = '<span class="pvCoin">' + esc(shopInitial(C.state)) + '</span>'
+      + '<span class="pvMain"><b>1.500</b><small>' + esc(T.t('theme.preview.item')) + '</small></span>'
+      + '<span class="pvBtn">' + esc(T.t('theme.preview.sell')) + '</span>';
   }
 
   // the little line under the JSON box: a refusal is shown, never swallowed
@@ -1199,7 +1212,7 @@
     renderCashBox: renderCashBox, catOptions: catOptions, catChips: catChips,
   renderLists: renderLists, unitOptions: unitOptions, listMsg: listMsg, fillListHints: fillListHints,
     renderSettings: renderSettings, renderThemes: renderThemes, renderLanguages: renderLanguages, updateStorage: updateStorage,
-    renderThemeEditor: renderThemeEditor, themeMsg: themeMsg, hex6: hex6, THEME_GROUPS: THEME_GROUPS,
+    renderThemeEditor: renderThemeEditor, renderSeedPreview: renderSeedPreview, themeMsg: themeMsg, hex6: hex6,
     renderDocEditor: renderDocEditor, renderDocSample: renderDocSample, docMsg: docMsg, DOC_FIELDS: DOC_FIELDS,
     applyPaper: applyPaper, printTicket: printTicket, paperCss: paperCss,
     shopTitle: shopTitle, shopInitial: shopInitial, shopTagline: shopTagline,

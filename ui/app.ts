@@ -385,24 +385,11 @@
     if (themeFile.files && themeFile.files[0]) A.themeFile(C, themeFile.files[0]);
     themeFile.value = '';   // re-picking the same file must work again
   });
-  $('themeGroups').addEventListener('input', function (e) {
+  $('themeSeeds').addEventListener('input', function (e) {
     var t = e.target;
     if (!t || !t.getAttribute) return;
-    var pick = t.getAttribute('data-pick');
-    if (pick) {
-      var prow = t.closest ? t.closest('.themeRow') : null;
-      var ptxt = prow ? prow.querySelector('[data-tok]') : null;
-      if (ptxt) { ptxt.value = t.value; A.themeInput(C, pick, t.value); }
-      return;
-    }
-    var tok = t.getAttribute('data-tok');
-    if (!tok) return;
-    A.themeInput(C, tok, t.value);
-    A.themeSyncPick(C, t);
-  });
-  $('themeBase').addEventListener('click', function (e) {
-    var b = e.target && e.target.closest ? e.target.closest('[data-base]') : null;
-    if (b) A.themeBasePick(C, b.getAttribute('data-base'));
+    var which = t.getAttribute('data-seed');
+    if (which) A.themeSeedPick(C, which, t.value);
   });
 
   // ---- the shop's own paper (wave 3) ----

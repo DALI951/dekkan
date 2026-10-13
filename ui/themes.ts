@@ -270,6 +270,158 @@
   }
 
 
+  // ---------- the shop's PALETTE: three colours in, the whole shop out ----------
+  // A shopkeeper does not think in 42 tokens. He thinks: my brand colour, the colour
+  // of my money, the colour of my walls. The rest - the ladder of surfaces, the
+  // hairlines, the glows, the status colours - is DERIVED here, deterministically, so
+  // the same three colours always build the same shop.
+  //
+  // Readability is not a suggestion either. Whatever he picks, the body text, the
+  // muted text, the dim text and the accent have to clear a real WCAG contrast floor
+  // against HIS wall, and the label that lands on an accent button has to clear its
+  // own floor against that accent. Only then does the palette come out; otherwise we
+  // walk LIGHTNESS - never the hue he chose - until the floors are met.
+  var SEEDS = ['brand', 'money', 'ground'];
+  var SEED_TOKEN = { brand: '--acc', money: '--coin2', ground: '--bg' };
+  var TEXT_FLOOR = 7, MUT_FLOOR = 4.5, DIM_FLOOR = 3, ACC_FLOOR = 3, INK_FLOOR = 4.5;
+
+  function normHex(v) {
+    var s = String(v == null ? '' : v).trim().toLowerCase();
+    return /^#[0-9a-f]{6}$/.test(s) ? s : null;
+  }
+
+  function hexRgb(h) {
+    var s = normHex(h) || '#000000';
+    return [parseInt(s.slice(1, 3), 16), parseInt(s.slice(3, 5), 16), parseInt(s.slice(5, 7), 16)];
+  }
+
+  function byte(n) {
+    var s = Math.max(0, Math.min(255, Math.round(n))).toString(16);
+    return s.length === 1 ? '0' + s : s;
+  }
+
+  function rgbHex(r, g, b) { return '#' + byte(r) + byte(g) + byte(b); }
+
+  // pct > 0 leans toward white, pct < 0 toward black: the building block of every
+  // surface, hover shade and edge in the palette.
+  function shade(hex, pct) {
+    var c = hexRgb(hex), t = pct > 0 ? 255 : 0, k = Math.abs(pct);
+    return rgbHex(c[0] + (t - c[0]) * k, c[1] + (t - c[1]) * k, c[2] + (t - c[2]) * k);
+  }
+
+  function mix(a, b, t) {
+    var x = hexRgb(a), y = hexRgb(b);
+    return rgbHex(x[0] + (y[0] - x[0]) * t, x[1] + (y[1] - x[1]) * t, x[2] + (y[2] - x[2]) * t);
+  }
+
+  function rgba(hex, a) {
+    var c = hexRgb(hex);
+    return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + a + ')';
+  }
+
+  function luminance(hex) {
+    var c = hexRgb(hex), out = [];
+    for (var i = 0; i < 3; i++) {
+      var s = c[i] / 255;
+      out.push(s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4));
+    }
+    return 0.2126 * out[0] + 0.7152 * out[1] + 0.0722 * out[2];
+  }
+
+  function contrast(a, b) {
+    var x = luminance(a), y = luminance(b);
+    return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+  }
+
+  // Walk a colour's lightness away from `on` until it clears the floor. Hue is
+  // untouched, so the shopkeeper still recognises the colour he picked. A mid-tone
+  // `on` cannot be escaped in one direction (a green button cannot carry white text),
+  // so both directions are walked and the better one wins.
+  function walk(from, on, toward, floor) {
+    var out = from;
+    for (var i = 0; i < 300 && contrast(out, on) < floor; i++) {
+      var next = shade(out, toward * 0.05);
+      if (next === out) break;
+      out = next;
+    }
+    return out;
+  }
+
+  function readable(on, hex, floor) {
+    if (contrast(hex, on) >= floor) return hex;
+    var toward = luminance(hex) >= luminance(on) ? 1 : -1;
+    var a = walk(hex, on, toward, floor);
+    var b = walk(hex, on, -toward, floor);
+    var best = contrast(a, on) >= contrast(b, on) ? a : b;
+    if (contrast(best, on) >= floor) return best;
+    // The walk is geometric, and rounding in shade() stalls a few units short of the
+    // end. When even that cannot reach the floor (a mid-tone wall has no 7:1 text at
+    // all), take the honest best a screen can do: the pure extreme.
+    return contrast('#ffffff', on) >= contrast('#000000', on) ? '#ffffff' : '#000000';
+  }
+
+  function inkOn(hex) {
+    return luminance(hex) > 0.45 ? mix(hex, '#000000', 0.84) : mix(hex, '#ffffff', 0.86);
+  }
+
+  function palette(seeds) {
+    var s = (seeds && typeof seeds === 'object' && !Array.isArray(seeds)) ? seeds : {};
+    var origin = THEMES[DEFAULT].tokens;
+    var brand = normHex(s.brand) || origin['--acc'];
+    var money = normHex(s.money) || origin['--coin2'];
+    var ground = normHex(s.ground) || origin['--bg'];
+    var light = luminance(ground) > 0.42;
+    var lift = light ? [0.3, 0.62, 0.78, 0.9] : [0.035, 0.06, 0.095, 0.15];
+    var bg2 = mix(ground, '#ffffff', lift[0]);
+    var panel = mix(ground, '#ffffff', lift[1]);
+    var panel2 = mix(ground, '#ffffff', lift[2]);
+    var panel3 = mix(ground, '#ffffff', lift[3]);
+    var wash = mix(mix(ground, light ? '#000000' : '#ffffff', light ? 0.86 : 0.9), brand, 0.06);
+    var txt = readable(ground, wash, TEXT_FLOOR);
+    var mut = readable(ground, mix(txt, ground, 0.42), MUT_FLOOR);
+    var dim = readable(ground, mix(txt, ground, 0.56), DIM_FLOOR);
+    var acc = readable(ground, brand, ACC_FLOOR);
+    var ink = readable(acc, inkOn(acc), INK_FLOOR);
+    var ok = light ? '#1f8f5c' : '#2ea368';
+    var danger = light ? '#c53a33' : '#d8453f';
+    var pri1 = light ? shade(acc, -0.02) : shade(acc, 0.05);
+    var pri2 = light ? shade(acc, -0.18) : shade(acc, -0.1);
+    return {
+      '--bg': ground, '--bg2': bg2,
+      '--glowa': rgba(acc, 0.06), '--glowb': rgba(acc, 0.04),
+      '--panel': panel, '--panel2': panel2, '--panel3': panel3,
+      '--line': rgba(txt, 0.08), '--line2': rgba(txt, 0.15),
+      '--txt': txt, '--mut': mut, '--dim': dim,
+      '--acc': acc, '--acc2': light ? shade(acc, -0.1) : shade(acc, 0.1), '--accdark': shade(acc, -0.2),
+      '--accbg': rgba(acc, light ? 0.12 : 0.13), '--accborder': rgba(acc, 0.4),
+      '--accover': rgba(acc, light ? 0.16 : 0.19), '--accglow': rgba(acc, 0.3),
+      '--ok': ok, '--okbg': rgba(ok, 0.14), '--okhi': shade(ok, 0.14),
+      '--danger': danger, '--dangerbg': rgba(danger, 0.13), '--dangerhi': shade(danger, 0.12),
+      '--ink': ink,
+      '--pri1': pri1, '--pri2': pri2, '--priedge': rgba(shade(acc, light ? -0.35 : 0.35), 0.5),
+      '--coin1': shade(money, light ? -0.06 : 0.12), '--coin2': money, '--coin3': shade(money, -0.2),
+      '--coinedge': rgba(shade(money, light ? -0.3 : 0.45), 0.6),
+      '--coinring': rgba(inkOn(money), 0.5), '--coinshadow': rgba(shade(money, -0.42), 0.55),
+      '--inbg': mix(ground, '#ffffff', light ? 0.9 : 0.15),
+      '--inbgfocus': mix(ground, '#ffffff', light ? 1 : 0.19),
+      '--switchknob': mix(ground, '#ffffff', light ? 0.35 : 0.78), '--switchfill': pri1,
+      '--scrail': rgba(txt, 0.12), '--scrthumb': rgba(txt, 0.22),
+      '--shadow': '0 12px 32px rgba(0,0,0,' + (light ? '.13' : '.45') + ')'
+    };
+  }
+
+  // The three colours a token set was built from: what the pickers must show, and
+  // what a shop with no palette of its own inherits from its base theme.
+  function seedsOf(id, tokens) {
+    var th = THEMES[id] || THEMES[DEFAULT];
+    var raw = (tokens && typeof tokens === 'object' && !Array.isArray(tokens)) ? tokens : {};
+    var out = {};
+    SEEDS.forEach(function (k) {
+      out[k] = normHex(raw[SEED_TOKEN[k]]) || normHex(th.tokens[SEED_TOKEN[k]]);
+    });
+    return out;
+  }
+
   var Themes = {
     DEFAULT: DEFAULT,
     BASE: BASE,
@@ -293,8 +445,20 @@
     preview: preview,
     revert: revert,
     exportTheme: exportTheme,
-    importTheme: importTheme
+    importTheme: importTheme,
+    SEEDS: SEEDS,
+    SEED_TOKEN: SEED_TOKEN,
+    palette: palette,
+    seedsOf: seedsOf,
+    isHex6: function (v) { return !!normHex(v); },
+    shade: shade,
+    mix: mix,
+    rgba: rgba,
+    luminance: luminance,
+    contrast: contrast,
+    inkOn: inkOn,
+    readable: readable
   };
 
-  return { THEMES: THEMES, Themes: Themes, BASE: BASE };
+  return { THEMES: THEMES, Themes: Themes, BASE: BASE, SEEDS: SEEDS, SEED_TOKEN: SEED_TOKEN, palette: palette };
 });

@@ -52,9 +52,7 @@ test('the chosen theme applies from the first paint and survives a reload', asyn
 
 test('a stale device cache cannot overrule what the SHOP declared', async ({ page }) => {
   await open(page, '#/settings');
-  await page.locator('#btnThemeEdit').click();
-  await page.locator('#themeBase [data-base="royal"]').click();
-  await page.locator('#btnThemeSave').click();
+  await page.locator('#themeGrid [data-theme="royal"]').click();   // a preset pick is a DECLARED choice (wave 5)
   await page.evaluate(() => localStorage.setItem('dekkan.theme', 'mint'));
 
   await page.reload();
@@ -140,4 +138,42 @@ test('phone: a stock row fits inside its card (name readable, no button hanging 
     return out;
   });
   expect(bad).toEqual([]);
+});
+
+/* Dali, 2026-10-12: "make button size normal not screen wide in settings".
+   The Settings card bars used to stretch every button to fill the row. */
+test('settings buttons are buttons, not full-width bars', async ({ page }) => {
+  await open(page, '#/settings');
+  await expect(page.locator('#page-settings .row.wrap .btn').first()).toBeVisible();
+  /* measurements must not race the app's own transitions (a half-animated width is
+     neither the stretched one nor the natural one) */
+  await page.addStyleTag({ content: '*{transition:none !important;animation:none !important;}' });
+
+  /* a stretch-proof measurement: ask the button how wide it WANTS to be */
+  const measure = () => page.evaluate(() => {
+    const natural = (b) => {
+      const prev = b.getAttribute('style');
+      b.style.setProperty('flex', '0 0 auto', 'important');
+      b.style.setProperty('width', 'max-content', 'important');
+      const w = b.getBoundingClientRect().width;
+      if (prev === null) b.removeAttribute('style'); else b.setAttribute('style', prev);
+      return w;
+    };
+    const out = [];
+    document.querySelectorAll('#page-settings .row.wrap .btn').forEach((b) => {
+      const r = b.getBoundingClientRect();
+      const n = natural(b);
+      if (r.width > n + 6) out.push(b.textContent.trim() + ' stretched to ' + Math.round(r.width) + 'px (it wants ' + Math.round(n) + 'px)');
+    });
+    return out;
+  });
+
+  const bad = await measure();
+  expect(bad).toEqual([]);
+
+  /* the detector is not vacuous: put the old screen-wide rule back and it fires */
+  await page.addStyleTag({ content: '#page-settings .row.wrap > *{flex:1 1 130px !important;}' });
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  const stretched = await measure();
+  expect(stretched.length).toBeGreaterThan(0);
 });

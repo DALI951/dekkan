@@ -1,27 +1,22 @@
 // @ts-nocheck
 // JS -> TS migration (first pass): a vm sandbox with loose globals.
-/* DEKKAN themes, wave 2 — the CUSTOM theme editor's engine contract.
- * (docs/customize-plan.md B.4 wave 2, "the demo-worthy one": all 41 tokens
- * already exist, so this wave is validation + a screen, not new styling.)
+/* DEKKAN themes, wave 2 — the theme REGISTRY contract. Wave 2's token editor is DEAD.
  *
- * RED-first: written before any of it existed.
+ * History, so nobody "fixes" this file the wrong way: wave 2 let a shopkeeper edit
+ * all 42 tokens one by one and stored them as OVERRIDES on one of the app's own
+ * themes (`{id, tokens}`). Wave 5 asked three colours instead. Wave 7 (2026-10-13)
+ * REVERSED the override model outright — Dali's words: "i want the user to be able
+ * to create his own theme using any 3 colors and as i said no one can be able to
+ * change the default themes". So:
  *
- * The contract:
- *   * a theme = { id, nameKey, preview, tokens } and EVERY theme carries exactly
- *     the 41 base tokens — the same rule test/themes.test.ts already enforces,
- *     now enforced by the engine itself, at runtime, for themes that arrive as
- *     JSON from a shopkeeper's clipboard.
- *   * an IMPORT is untrusted text: bad JSON, an unknown base theme, an unknown
- *     token, a non-color value and a non-object are all REFUSED BY NAME, and a
- *     refusal changes nothing (the current theme keeps painting).
- *   * a shop's own colors are OVERRIDES on a base theme ({id, tokens}) — not a
- *     separate "custom" theme — so a shop that tweaks two tokens still inherits
- *     every future fix to its base.
- *   * an override that cannot be read is IGNORED on load (a shop must never open
- *     into an unreadable screen) but REFUSED on write (a typo must not be saved
- *     silently).
- *   * localStorage stays a no-flash CACHE of the state's choice: the head script
- *     applies the right colors before the first paint; the state is authoritative.
+ *   * a preset is READ-ONLY (a token handed to the engine is ignored, and named),
+ *   * the shop's own theme is `{id:'own', name, seeds}` — three colours, derived out,
+ *   * a save from the token era is MIGRATED into that own theme, never re-edited.
+ *
+ * The contract for all of that lives in test/theme-own.test.ts. What is left HERE is
+ * what never changed: the engine validates every theme OBJECT at runtime (a theme
+ * that arrives as JSON from a shopkeeper's clipboard is untrusted), and core owns the
+ * shape of the shop's theme BLOCK as data.
  */
 'use strict';
 const { test } = require('node:test');
@@ -33,6 +28,8 @@ const { stripTypeScriptTypes } = require('module');
 
 const ROOT = path.join(__dirname, '..');
 
+// themes.ts is a plain UMD file: it loads in a browser and in a vm sandbox with a
+// document + localStorage, which is how the engine gets exercised without a browser.
 function boot(store) {
   store = store || {};
   const applied = {};
@@ -115,117 +112,20 @@ test('add(): one theme = one object, and a bad or duplicate one is refused loudl
   assert.strictEqual(Themes.all().length, before + 1, 'a refusal registers nothing');
 });
 
-// ---------- a shop's own colors are overrides ----------
-
-test('applyTheme({id, tokens}) paints the base theme, then the shop\'s overrides', () => {
-  const { Themes, applied } = boot();
-  const res = Themes.applyTheme({ id: 'mint', tokens: { '--acc': '#ff0000' } });
-  assert.strictEqual(res.id, 'mint', 'the effective theme is reported back');
-  assert.strictEqual(res.overrides, 1, 'and how many overrides were applied');
-  assert.strictEqual(applied['--acc'], '#ff0000', 'the override wins');
-  assert.strictEqual(applied['--bg'], Themes.get('mint').tokens['--bg'], 'everything else comes from the base');
+test('the app\'s own themes are the first three, and the shop\'s own theme is the fourth', () => {
+  const { Themes } = boot();
+  const ids = Themes.all().map((t) => t.id);
+  assert.deepStrictEqual(Array.from(ids), ['souk', 'mint', 'royal', 'own'], 'three presets, then the shop\'s own');
+  assert.strictEqual(Themes.get('own').own, true, 'and it is the only one flagged as the shop\'s own');
 });
 
-test('applyTheme IGNORES an override that cannot be read (a phone must never open unreadable)', () => {
-  const { Themes, applied } = boot();
-  const res = Themes.applyTheme({ id: 'royal', tokens: { '--acc': 'not-a-color', '--nope': '#fff', '--txt': '#00ff00' } });
-  assert.strictEqual(applied['--acc'], Themes.get('royal').tokens['--acc'], 'a bad color falls back to the base color');
-  assert.strictEqual(applied['--txt'], '#00ff00', 'a good override still applies');
-  assert.strictEqual(res.overrides, 1, 'only the readable override counts');
-  assert.strictEqual(res.ignored.length, 2, 'and what was ignored is reported, not silent');
-});
+// ---------- applyTheme with an unknown or missing base ----------
 
 test('applyTheme with an unknown or missing base falls back to the default theme', () => {
   const { Themes } = boot();
-  assert.strictEqual(Themes.applyTheme({ id: 'no-such-theme', tokens: {} }).id, 'souk');
+  assert.strictEqual(Themes.applyTheme({ id: 'no-such-theme', seeds: {} }).id, 'souk');
   assert.strictEqual(Themes.applyTheme(null).id, 'souk');
-  assert.strictEqual(Themes.applyTheme({ id: 'souk', tokens: 'nope' }).id, 'souk', 'a token blob that is not an object is not a crash');
-});
-
-test('preview() paints live WITHOUT saving; revert() puts the shop\'s theme back', () => {
-  const { Themes, applied, store } = boot();
-  Themes.applyTheme({ id: 'souk', tokens: { '--acc': '#111111' } });
-  Themes.preview({ '--acc': '#abcdef' });
-  assert.strictEqual(applied['--acc'], '#abcdef', 'the preview is on screen');
-  assert.strictEqual(store['dekkan.theme'], 'souk', 'previewing does NOT persist a choice');
-  assert.strictEqual(store['dekkan.themetokens'], JSON.stringify({ '--acc': '#111111' }), 'and does not touch the cache');
-  Themes.revert();
-  assert.strictEqual(applied['--acc'], '#111111', 'revert restores the saved overrides');
-});
-
-// ---------- the no-flash cache (state is authoritative, storage is the cache) ----------
-
-test('applyTheme caches the choice for index.html\'s pre-paint script', () => {
-  const { Themes, store } = boot();
-  Themes.applyTheme({ id: 'royal', tokens: { '--acc': '#00ff00' } });
-  assert.strictEqual(store['dekkan.theme'], 'royal');
-  assert.strictEqual(JSON.parse(store['dekkan.themetokens'])['--acc'], '#00ff00');
-});
-
-test('restore() brings back the cached choice with its overrides (what the head script calls)', () => {
-  const { Themes, applied } = boot();
-  Themes.applyTheme({ id: 'royal', tokens: { '--acc': '#00ff00' } });
-  const fresh = boot({ 'dekkan.theme': 'royal', 'dekkan.themetokens': JSON.stringify({ '--acc': '#00ff00' }) });
-  fresh.Themes.restore();
-  assert.strictEqual(fresh.Themes.current().id, 'royal', 'the cached base is restored');
-  assert.strictEqual(fresh.applied['--acc'], '#00ff00', 'and its overrides with it');
-});
-
-test('restore() survives a corrupted cache instead of painting nothing', () => {
-  const broken = boot({ 'dekkan.theme': 'royal', 'dekkan.themetokens': '{not json' });
-  broken.Themes.restore();
-  assert.strictEqual(broken.Themes.current().id, 'royal', 'the base still applies');
-  assert.strictEqual(broken.applied['--bg'], broken.Themes.get('royal').tokens['--bg'], 'and the screen is still readable');
-});
-
-// ---------- export / import ----------
-
-test('exportTheme() gives JSON a shopkeeper can copy, edit and share', () => {
-  const { Themes } = boot();
-  const json = Themes.exportTheme({ id: 'souk', tokens: { '--acc': '#ff0000' } });
-  const back = JSON.parse(json);
-  assert.strictEqual(back.id, 'souk');
-  assert.strictEqual(back.tokens['--acc'], '#ff0000');
-  assert.ok(typeof back.name === 'string' && back.name.length, 'a shared theme carries a human name');
-  assert.ok(back.tokens['--bg'], 'and the WHOLE token set, so it stands alone');
-});
-
-test('export → import round-trips the shop\'s own colors', () => {
-  const { Themes } = boot();
-  const json = Themes.exportTheme({ id: 'mint', tokens: { '--acc': '#ff0000', '--panel': '#0a0a0a' } });
-  const res = Themes.importTheme(json);
-  assert.strictEqual(res.ok, true, 'a valid export is accepted');
-  assert.strictEqual(res.theme.id, 'mint');
-  assert.strictEqual(res.theme.tokens['--acc'], '#ff0000');
-});
-
-test('importTheme REFUSES untrusted text by name, and changes nothing', () => {
-  const { Themes, store } = boot();
-  Themes.applyTheme({ id: 'souk', tokens: {} });
-
-  const cases = [
-    ['{not json', /json/i],
-    ['[]', /theme|object/i],
-    ['{"id":"no-such-base","tokens":{}}', /base|unknown/i],
-    ['{"id":"souk","tokens":{"--acc":"#fff","--nope":"#fff"}}', /--nope/],
-    ['{"id":"souk","tokens":{"--acc":"gold-ish"}}', /--acc/],
-    ['{"id":"souk","tokens":"nope"}', /tokens/i],
-    ['{"id":"souk"}', /tokens/i]
-  ];
-  cases.forEach(([text, re]) => {
-    const res = Themes.importTheme(text);
-    assert.strictEqual(res.ok, false, 'must be refused: ' + text);
-    assert.match(res.problems.join(' | '), re, 'the refusal names the problem: ' + text);
-  });
-  assert.strictEqual(Themes.current().id, 'souk', 'no refusal changed the current theme');
-  assert.strictEqual(store['dekkan.theme'], 'souk');
-});
-
-test('importTheme accepts a PARTIAL token set (inherit the base, override the rest)', () => {
-  const { Themes } = boot();
-  const res = Themes.importTheme('{"id":"royal","tokens":{"--acc":"#abcdef"}}');
-  assert.strictEqual(res.ok, true);
-  assert.strictEqual(res.theme.tokens['--acc'], '#abcdef');
+  assert.strictEqual(Themes.applyTheme({ id: 'souk', seeds: 'nope' }).id, 'souk', 'a seed blob that is not an object is not a crash');
 });
 
 test('checkTokens splits a bag into paintable values and unreadable ones (one verdict for engine + screen)', () => {
@@ -236,33 +136,45 @@ test('checkTokens splits a bag into paintable values and unreadable ones (one ve
   assert.strictEqual(JSON.stringify(Themes.checkTokens('nope')), '{"good":{},"ignored":[]}', 'junk in, nothing out — never a crash');
 });
 
-// ---------- the state side (core): the shop's colors are DATA ----------
+// ---------- the state side (core): the shop's theme is DATA ----------
 
-test('a fresh shop declares the default theme, and the gate accepts it', () => {
+test('a fresh shop declares the default theme, owns no colours, and the gate accepts it', () => {
   const s = CORE.createShop({});
-  assert.deepStrictEqual(s.custom.theme, { id: 'souk', tokens: {} });
+  assert.deepStrictEqual(s.custom.theme, { id: 'souk', name: '', seeds: {} });
   assert.deepStrictEqual(CORE.customProblems(s.custom), []);
 });
 
 test('the gate refuses a theme block that is not a theme (and names it)', () => {
   const mk = (theme) => { const c = CORE.defaultCustom(); c.theme = theme; return CORE.customProblems(c); };
-  assert.ok(mk({ id: '', tokens: {} }).some((p) => /theme\.id/.test(p)), 'an empty id');
-  assert.ok(mk({ id: 'souk', tokens: { acc: '#fff' } }).some((p) => /--/.test(p)), 'a token that is not a CSS custom property');
-  assert.ok(mk({ id: 'souk', tokens: { '--acc': 123 } }).some((p) => /theme\.tokens/.test(p)), 'a non-string value');
-  assert.ok(mk({ id: 'souk', tokens: 'nope' }).some((p) => /theme\.tokens/.test(p)), 'tokens must be an object');
-  assert.ok(mk({ id: 'souk', tokens: {}, extra: 1 }).some((p) => /theme/.test(p)), 'an unknown key inside theme');
+  assert.ok(mk({ id: '', name: '', seeds: {} }).some((p) => /theme\.id/.test(p)), 'an empty id');
+  assert.ok(mk({ id: 'souk', name: '', seeds: 'nope' }).some((p) => /theme\.seeds/.test(p)), 'seeds must be an object');
+  assert.ok(mk({ id: 'souk', name: '', seeds: { brand: 123 } }).some((p) => /seeds\.brand/.test(p)), 'a non-string colour');
+  assert.ok(mk({ id: 'souk', name: '', seeds: { blue: '#0000ff' } }).some((p) => /seeds\.blue/.test(p)), 'a colour the shop does not own');
+  assert.ok(mk({ id: 'souk', name: 'x'.repeat(25), seeds: {} }).some((p) => /theme\.name/.test(p)), 'a name that is not a name');
+  assert.ok(mk({ id: 'souk', name: '', seeds: {}, extra: 1 }).some((p) => /theme/.test(p)), 'an unknown key inside theme');
+  assert.ok(mk({ id: 'own', name: '', seeds: {} }).some((p) => /brand, money and ground/.test(p)), '"my own theme" with no colours at all');
   assert.ok(mk('souk').some((p) => /theme/.test(p)), 'theme must be an object');
   assert.deepStrictEqual(CORE.customProblems(CORE.defaultCustom()), [], 'the defaults stay clean');
 });
 
 test('setCustom merges a theme patch, and repairs a broken block on load', () => {
   let s = CORE.createShop({});
-  s = CORE.setCustom(s, { theme: { id: 'mint', tokens: { '--acc': '#ff0000' } } });
-  assert.strictEqual(s.custom.theme.id, 'mint');
-  assert.strictEqual(s.custom.theme.tokens['--acc'], '#ff0000');
-  assert.throws(() => CORE.setCustom(s, { theme: { id: 'mint', tokens: { bad: '#fff' } } }), /custom:/, 'a typo is refused');
+  s = CORE.setCustom(s, { theme: { id: 'own', name: 'Dekkanet Nour', seeds: { brand: '#ff0000', money: '#00ff00', ground: '#101318' } } });
+  assert.strictEqual(s.custom.theme.id, 'own');
+  assert.strictEqual(s.custom.theme.name, 'Dekkanet Nour');
+  assert.strictEqual(s.custom.theme.seeds.brand, '#ff0000');
+  assert.throws(() => CORE.setCustom(s, { theme: { id: 'mint', seeds: { blue: '#0000ff' } } }), /custom:/, 'a typo is refused');
+  assert.throws(() => CORE.setCustom(s, { theme: { id: 'mint', tokens: {} } }), /custom:/, 'the token era is gone: that key is not a setting');
+
   const broken = CORE.createShop({});
-  broken.custom.theme = { id: 42, tokens: 'nope' };
+  broken.custom.theme = { id: 42, name: 7, seeds: 'nope' };
   const fixed = CORE.ensureCustomState(broken);
-  assert.deepStrictEqual(fixed.custom.theme, { id: 'souk', tokens: {} }, 'an unreadable theme falls back to the default');
+  assert.deepStrictEqual(fixed.custom.theme, { id: 'souk', name: '', seeds: {} }, 'an unreadable theme falls back to the default');
+});
+
+test('a shop that picked one colour keeps it: the engine fills the rest at paint time', () => {
+  const { Themes, applied } = boot();
+  Themes.applyTheme({ id: 'own', seeds: { brand: '#ff0000' } });
+  assert.strictEqual(applied['--acc'], '#ff0000', 'the colour he chose');
+  assert.strictEqual(applied['--bg'], Themes.get('souk').tokens['--bg'], 'and the app\'s own walls behind it');
 });

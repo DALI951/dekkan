@@ -64,7 +64,7 @@ const CUSTOM_SECTIONS = {
   receipt: ['header', 'footer', 'showCashier', 'showTaxId', 'qr'],
   tabs: ['order', 'hidden'],
   lists: ['units', 'suppliers', 'refundReasons'],
-  theme: ['id', 'tokens']
+  theme: ['id', 'name', 'seeds']
 };
 
 function setCustom(state, patch) {

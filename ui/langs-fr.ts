@@ -126,6 +126,8 @@
       'settings.theme': 'Style de la boutique', 'settings.version': 'Version',
       'settings.storage': 'Espace utilisé',
       'theme.souk': 'Souk doré', 'theme.mint': 'Menthe nocturne', 'theme.royal': 'Nuit indigo',
+      'theme.own': 'Mon thème', 'theme.mine': 'le vôtre',
+      'theme.create': 'Créer mon thème', 'theme.name': 'Nom du thème', 'theme.namePh': 'ex. Dekkan Nour',
       'toast.themeOk': 'Style de la boutique changé',
       'auth.title': 'Compte Dekkan',
       'auth.sub': "Enregistrez votre boutique dans le cloud et gérez-la depuis n'importe quel appareil — un compte par boutique",

@@ -908,38 +908,49 @@
     for (let i = 0; i < copies; i++) window.print();
   }
 
-  // ----- THEMES (colors live in ui/themes.js — the app just asks) -----
+  // ----- THEMES (colors live in ui/themes.ts — the app just asks) -----
   function themes() { return window.DEK && window.DEK.Themes; }
+
+  // The card's three dots: a preset shows its own frozen preview, the shop's own
+  // theme shows the colours he actually picked (wave 7: a theme he OWNS, not a
+  // preset he edited — the presets can never be edited).
+  function ownSeeds(C) {
+    const th = (C.state && C.state.custom && C.state.custom.theme) ? C.state.custom.theme : {};
+    return (th.seeds && typeof th.seeds === 'object') ? th.seeds : {};
+  }
 
   function renderThemes(C) {
     const { $, T } = C;
     const TH = themes();
     if (!TH || !$('themeGrid')) return;
-    const cur = TH.current().id;
+    const cur = TH.currentId();
+    const mine = ownSeeds(C);
     $('themeGrid').innerHTML = TH.all().map(function (th) {
+      const dots = TH.dots(th.id, th.id === TH.OWN ? mine : null);
+      const badge = (th.id === TH.OWN && Object.keys(mine).length)
+        ? '<span class="themeBadge">' + T.t('theme.mine') + '</span>' : '';
       return '<button type="button" class="theme-sw' + (th.id === cur ? ' active' : '') + '" data-theme="' + th.id + '">'
-        + '<span class="dots">' + th.preview.map(function (c) {
+        + '<span class="dots">' + dots.map(function (c) {
           return '<i style="background:' + c + '"></i>';
         }).join('') + '</span>'
-        + '<b>' + T.t(th.nameKey)
-        + (th.id === cur && TH.isCustomized() ? '<span class="themeBadge">' + T.t('theme.customized') + '</span>' : '')
-        + '</b></button>';
+        + '<b>' + T.t(th.nameKey) + badge + '</b></button>';
     }).join('');
   }
 
-  // ----- THE SHOP'S PALETTE (wave 5) -----
+  // ----- THE SHOP'S PALETTE (wave 5, re-cut in wave 7) -----
   // Three colours, not forty-two tokens. A shopkeeper picks the colour of his brand,
   // the colour of his money and the colour of his walls; ui/themes.ts derives the
   // whole shop from those three and guarantees the result is readable. The app's own
-  // themes above are READ-ONLY presets — a shop picks one, it does not edit one
-  // (Dali, 2026-10-12: "not edit the own app themes that shouldnt be customiwale").
+  // themes above are READ-ONLY presets — a shop CHOOSES one, nobody edits one (Dali,
+  // 2026-10-12: "not edit the own app themes that shouldnt be customiwale"; and
+  // 2026-10-13: "create his own theme using any 3 colors").
   const SEED_LABEL = { brand: 'theme.seed.brand', money: 'theme.seed.money', ground: 'theme.seed.ground' };
   const SEED_HINT = { brand: 'theme.seed.brandHint', money: 'theme.seed.moneyHint', ground: 'theme.seed.groundHint' };
 
   function seedsOf(C) {
     const TH = themes();
     if (!TH || !C.themeDraft) return null;
-    return C.themeDraft.seeds || TH.seedsOf(C.themeDraft.id, C.themeDraft.tokens);
+    return TH.seedsOf(C.themeDraft.id, C.themeDraft.seeds);
   }
 
   // "#abc" -> "#aabbcc"; anything a colour picker cannot hold -> null (the picker
@@ -959,6 +970,7 @@
     const box = $('themeSeeds');
     const seeds = seedsOf(C);
     if (!TH || !box || !seeds) return;
+    if ($('themeName')) $('themeName').value = (C.themeDraft && C.themeDraft.name) || '';
     box.innerHTML = TH.SEEDS.map(function (k) {
       const v = /^#[0-9a-f]{6}$/.test(seeds[k] || '') ? seeds[k] : '#000000';
       return '<label class="seedRow">'
@@ -974,13 +986,16 @@
 
   // The shop as it will look, painted on real tokens — a money chip, a price row, the
   // button a cashier taps — instead of a list of hex codes. Picking a colour shows ITS
-  // consequences, which is the entire reason the pickers exist.
+  // consequences, which is the entire reason the pickers exist. The tokens come from
+  // the SAME derivation the shop will wear (TH.palette), never from a second copy.
   function renderSeedPreview(C) {
     const { $, T, fmt } = C;
     const { esc } = fmt;
     const el = $('themePreview');
-    if (!el || !C.themeDraft) return;
-    const t = C.themeDraft.tokens || {};
+    const TH = themes();
+    const seeds = seedsOf(C);
+    if (!el || !TH || !seeds) return;
+    const t = TH.palette(seeds);
     const v = function (k, d) { return t[k] || d; };
     el.setAttribute('style', '--p-bg:' + v('--bg', '#0e0c0a') + ';--p-panel:' + v('--panel', '#171310')
       + ';--p-line:' + v('--line', 'rgba(255,255,255,.09)') + ';--p-txt:' + v('--txt', '#f2ead9')

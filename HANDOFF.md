@@ -3,10 +3,34 @@
 > State of the work for whoever picks this up next (other device, other chat, future you).
 > Rewrite it, don't append. The body may be `Nothing pending.` — the file always exists.
 
-Last updated: 2026-10-13 — by Big Pickle (DESKTOP-OJME2E2)
+Last updated: 2026-10-14 — by Big Pickle (DESKTOP-OJME2E2) — **wave 7 is HALF DONE, read `In progress` first**
 
 ## Done (this session, newest first)
 
+- **Wave 7 — the shopkeeper builds HIS OWN theme from 3 colours, and the app's themes have no writer at all**
+  (pushed as a WIP commit labelled "wave 7 WIP"; engine/core GREEN, UI wired, tests not yet rewritten):
+  - Model: `state.custom.theme = { id: 'souk'|'mint'|'royal'|'own', name: string, seeds: {brand,money,ground} }`.
+    `seeds` are HIS three colours and survive picking a preset (a preset is a choice "for now"); `{}` = he owns none.
+    The 42 derived tokens are NEVER stored — they are derived at paint time (a derived value in a file drifts).
+  - Engine (`ui/themes.ts`): `THEMES.own` is the 4th card (`own: true`, its `tokens` are just its declared `palette({})`);
+    **presets are strictly read-only** — `applyTheme` ignores any `tokens` handed in and REPORTS them in `res.ignored`,
+    and `tokensFor(id, seeds)` is the only path to paint. New: `seeds()`, `hasOwn()`, `isCustomized()` (= hasOwn),
+    `seedBag()`/`seedsOf()` (tolerant: accepts seed names OR the tokens they drive), `dots(id, seeds)`, `preview(seeds)`,
+    `exportTheme(name, seeds)` → seeds-only JSON, `importTheme` accepts `{name,seeds}` AND converts a wave 5-6
+    `{id,tokens}` file. Cache keys `dekkan.theme` + `dekkan.themeseeds`; the old `dekkan.themetokens` is read ONCE
+    (as `{id:'own', seeds:{…}}`) so nobody's first paint regresses.
+  - Core: `defaultCustom().theme = {id:'souk', name:'', seeds:{}}`; `customProblems` refuses an extra seed BY NAME,
+    allows partial seeds, and refuses `own` with NO colours; `ensureCustomState` MIGRATES a token-era save into the
+    equivalent own theme, and turns `own` with no readable colour back into `souk`. `CUSTOM_SECTIONS.theme` is now
+    `['id','name','seeds']` — `tokens` is refused as a patch key (that is "no one can change the default themes" in code).
+  - UI: the editor is a name field + exactly 3 colour pickers; `#btnThemeEdit` = "create my theme", grid click on `own`
+    with no colours OPENS the editor instead of selecting, "back to the app theme" keeps his seeds + name.
+  - Tests: new contract `test/theme-own.test.ts` (22); `test/theme-custom.test.ts` rewritten (token-override era is dead,
+    reason in its header). Theme battery **53 pass / 0 fail** (`theme-own` + `theme-custom` + `themes` + `theme-palette`).
+- **Google is OFF the sign-in wall** (Dali, 2026-10-14: "forget about google completly its useless now") — `#btnGoogle`,
+  the `or` divider and `#gateHint` are gone from `index.html`, and `ui/app.ts` lost `googleSignIn()`, the busy branch for
+  Google and the Google labels. `ui/auth.ts` KEEPS `loginWithGoogle`/`loginWithGoogleRedirect`/`getRedirectResult`
+  (unused, still tested by `test/auth-google.test.ts`) — the transport is dormant, not deleted.
 - **Queue item 4 — the sign-in wall answers the tap, and Google has a way in** (`ui/auth.ts`, `ui/app.ts`,
   `index.html`, `css/style.css`): a blocked popup now falls back to the whole-page route (`signInWithRedirect`) and
   `init()` → `getRedirectResult()` signs the returning shopkeeper in; `auth/unauthorized-domain` is named honestly
@@ -55,8 +79,17 @@ Last updated: 2026-10-13 — by Big Pickle (DESKTOP-OJME2E2)
 
 ## In progress
 
-- **Nothing half-done in the tree.** Battery at HEAD: `npm run check` → **414 unit pass / 0 fail**, simulation 65/65,
-  i18n `en=479 ar=479`, tsc clean; full Playwright suite (PC + Phone) green.
+- **Wave 7 is HALF DONE — the app runs, the tests do not yet agree with it.**
+  - Green: `npm run build` (tsc) clean; theme battery 53/53 (`test/theme-own.test.ts` 22, `test/theme-custom.test.ts`,
+    `test/themes.test.ts`, `test/theme-palette.test.ts`).
+  - NOT yet done: `test/ui.test.ts` still asserts the token-era theme contract (`draft.tokens`, `store['dekkan.themetokens']`,
+    `saved().custom.theme.tokens`) and the Google wall (`#btnGoogle`, `#gateHint`) — those blocks (~lines 700–765 and
+    ~1060–1150) MUST be rewritten to the seeds model and to "the wall has no Google button".
+  - NOT yet done: `e2e/palette.spec.ts` (seeds editor) and `e2e/login-wall.spec.ts` (line 13 asserts `#btnGoogle` is visible
+    → now fails by design). `npm run check` therefore FAILS on the UI/e2e layer; the unit-level theme core passes.
+  - Not verified on a device yet (no deploy of wave 7): GitHub Pages runs `npm run build` in CI, and tsc is clean, so the
+    push publishes the wired UI; the stale e2e specs are the only red.
+- Previous session (waves 1–6 + item 4) battery at `5a0d86b`: 414 unit pass / 0 fail, sim 65/65, i18n `en=479 ar=479`.
 
 ## Dali's queue (asked, not yet built — in the order he raised them)
 
@@ -66,22 +99,23 @@ Last updated: 2026-10-13 — by Big Pickle (DESKTOP-OJME2E2)
 
 ## Next step
 
-1. Commit + deploy the session's work (GitHub Pages follows the push; `dekkan.web.app` needs
-   `npx firebase deploy --only hosting`).
-2. The Firebase console work below is Dali's hands — until then Google sign-in fails everywhere with `auth.err.domain`.
+1. **Finish wave 7:** rewrite `test/ui.test.ts` (theme block → seeds; delete the 4 Google-wall tests, keep "the wall has
+   email + password + local mode only"), rewrite `e2e/palette.spec.ts` + `e2e/login-wall.spec.ts`, then `npm run check`
+   → `npm run build` → full Playwright → commit → deploy. (Dali stopped the session here on purpose: "push to github and
+   push memory and stop here i will complete later".)
+2. Deploy: GitHub Pages follows the push; `dekkan.web.app` needs `npx firebase deploy --only hosting`.
 3. Wave 3 part C (PHP mirror of the `custom` checks in `api/state.php`) stays deliberately DEFERRED: no `php` runtime here
    and the values are cosmetic (the app repairs what it cannot read).
 
 ## Blocked / needs Dali (his hands — this box cannot do these)
 
-- **Firebase console:** enable **Google** as a sign-in provider and add `modali.powerpme.com`, `dekkan.web.app`,
-  `dali951.github.io` + `127.0.0.1` to **Authorized domains** — otherwise Google sign-in fails on every host.
 - **modali deploy:** `$env:DEKKAN_SFTP_PASS='…'; python scripts/deploy.py` (repo root). The password is not on this box.
 - Run the `api/schema-p0.sql` ALTER on the live host (no `php` here).
 - Set `backupKey` + `backupRunKey` in the host's `api/config.php`, add the cron call to `api/backup.php?run=…`, then do one
   real restore drill.
 - `ui/app.ts` `A_VERSION` still reads `0.19.0` while the About card shows `0.4.0` — one number needed.
 - The modali SFTP credential he pasted into a chat is stored nowhere — recommend rotating it.
+- ~~Firebase console: enable Google + authorized domains~~ — **MOOT since 2026-10-14**: Google is off the wall.
 
 ## Environment notes
 
@@ -110,4 +144,10 @@ Last updated: 2026-10-13 — by Big Pickle (DESKTOP-OJME2E2)
 - `page.pdf({preferCSSPageSize:true})` is the only honest way to test paper size; `window.print()` is a no-op in headless.
 - **Google sign-in needs the console, not code**: `signInWithRedirect`/`signInWithPopup` fail with `auth/unauthorized-domain` on any host that is not in Firebase's Authorized domains list. The code now says so (`auth.err.domain`) instead of blaming the password. `test/fake-firebase.ts` models both routes (`googleBlocked`, `domainBlocked`, `redirectUser`) — use it before a real device.
 - `scripts/seed-test.json` is intentionally untracked — leave it. `.firebase/` is gitignored (deploy cache).
+- **Themes: `tokens` is not a writer's key any more.** `state.custom.theme` carries `{id,name,seeds}`; handing `tokens`
+  to `applyTheme` is IGNORED and reported (`res.ignored`), and `setCustom(..., {theme:{tokens:{}}})` is REFUSED by the core
+  gate. A preset has no writer in the codebase — that is the "no one can change the default themes" guarantee. If you need
+  a colour to move, move one of the three seeds.
+- `test/theme-palette.test.ts` + `test/theme-own.test.ts` are the two contracts of that engine: the first proves the
+  derivation (3 colours → 42 readable tokens), the second proves whose theme it is (his vs the app's).
 - `RULES.md` is a real contract — never re-seed it from the template over the real content.

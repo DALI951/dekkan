@@ -143,13 +143,14 @@
   const TH0 = themes();
   if (TH0 && C.state.custom && C.state.custom.theme) {
     const declared = C.state.custom.theme;
-    // a choice that only ever lived in THIS browser (picked before custom.theme
-    // existed) is adopted into the shop's data instead of resetting his look
-    const deviceOnly = declared.id === TH0.DEFAULT && Object.keys(declared.tokens || {}).length === 0;
+    // a choice that only ever lived in THIS browser (picked before the theme was part
+    // of the shop's data) is adopted into the shop's data instead of resetting his look
+    const deviceOnly = !declared.name && !Object.keys(declared.seeds || {}).length && declared.id === TH0.DEFAULT;
     const cached = TH0.cachedTheme();
-    if (deviceOnly && cached.id && cached.id !== declared.id) {
-      TH0.applyTheme(cached);
-      C.state = D.setCustom(C.state, { theme: { id: cached.id, tokens: cached.tokens } });
+    if (deviceOnly && cached.id && (cached.id !== declared.id || Object.keys(cached.seeds || {}).length)) {
+      const adopted = { id: cached.id, name: '', seeds: cached.seeds || {} };
+      TH0.applyTheme(adopted);
+      C.state = D.setCustom(C.state, { theme: adopted });
       save();        // the shop's look is now the shop's DATA, not this phone's
     } else {
       TH0.applyTheme(declared);
@@ -385,6 +386,9 @@
     if (themeFile.files && themeFile.files[0]) A.themeFile(C, themeFile.files[0]);
     themeFile.value = '';   // re-picking the same file must work again
   });
+  if ($('themeName')) $('themeName').addEventListener('input', function (e) {
+    A.themeNameSet(C, (e.target && e.target.value) || '');
+  });
   $('themeSeeds').addEventListener('input', function (e) {
     var t = e.target;
     if (!t || !t.getAttribute) return;
@@ -484,14 +488,6 @@
     if (el.classList) el.classList.toggle('info', kind === 'info');
     el.classList.toggle('hidden', !msg);
   }
-  // "Google is not set up here" is a fact about the shop, not a failure: it gets
-  // its own calm line under the button instead of the red error slot.
-  function gateHint(msg) {
-    const el = $('gateHint');
-    if (!el) return;
-    el.textContent = msg || '';
-    el.classList.toggle('hidden', !msg);
-  }
   function openAccount(mode) {
     if (!$('gate')) return;
     if (mode) gateMode = mode;
@@ -506,7 +502,6 @@
     $('gate').style.display = 'none';
     $('gate').classList.add('hidden');
     gateError('');
-    gateHint('');
   }
   function showRow(id, on) {
     const el = $(id);
@@ -514,11 +509,9 @@
   }
   function fillGate() {
     const reg = gateMode === 'register';
-    gateHint('');   // a fresh look at the wall never keeps the old news
+    gateError('');
     $('gateTitle').textContent = T.t('auth.wallTitle');
     $('gateSub').textContent = T.t('auth.wallSub');
-    if ($('btnGoogleLabel')) $('btnGoogleLabel').textContent = T.t('auth.google');
-    if ($('gateOr')) $('gateOr').textContent = T.t('auth.or');
     showRow('gateNameRow', reg);
     if ($('gateName').style) $('gateName').style.display = reg ? '' : 'none';
     showRow('gatePass2Row', reg);
@@ -527,45 +520,12 @@
     $('gateSkip').textContent = T.t('auth.local');
     $('gatePass').setAttribute('autocomplete', reg ? 'new-password' : 'current-password');
   }
-  /* one busy flag for the whole wall: the email button AND the Google button.
-     Without it a second tap opens a second popup (or a second sign-in attempt). */
+  /* one busy flag for the whole wall: without it a second tap fires a second
+     sign-in attempt while the first one is still in flight. */
   function gateBusy(on) {
     on = !!on;
-    const submit = $('gateSubmit'), google = $('btnGoogle');
+    const submit = $('gateSubmit');
     if (submit) submit.disabled = on;
-    if (google) {
-      google.disabled = on;
-      if (google.setAttribute) google.setAttribute('aria-busy', on ? 'true' : 'false');
-      if (google.classList) google.classList.toggle('busy', on);
-    }
-  }
-
-  // ---------- Sign in with Google (Firebase Auth opens the Google popup) ----------
-  function googleSignIn() {
-    if ($('btnGoogle') && $('btnGoogle').disabled) return;   // already leaving
-    gateError('');
-    gateHint('');
-    gateBusy(true);
-    AUTH.loginWithGoogle().then(function (u) {
-      gateBusy(false);
-      if (!u) { gateError(T.t('auth.err.google')); return; }
-      setMode('');
-      hideGate();
-      toast(T.t('auth.welcome'));
-      render();
-      return pullCloud();
-    }).catch(function (e) {
-      const code = (e && e.code) || 'auth.err.google';
-      if (code === 'auth.err.googleRedirect') {
-        /* the page is LEAVING for Google — it is not an error, so it must not
-           wear red, and the button stays busy (the document is on its way out) */
-        gateError(T.t('auth.err.googleRedirect'), 'info');
-        return;
-      }
-      gateBusy(false);
-      gateError(T.t(code));
-      if (code === 'auth.err.google') gateHint(T.t('auth.googleNotSet'));
-    });
   }
 
   // how much this device actually has to lose: money already moved in it
@@ -688,8 +648,6 @@
     toast(T.t('auth.localOn'));
     render();
   });
-  const btnGoogle = $('btnGoogle');
-  if (btnGoogle) btnGoogle.addEventListener('click', googleSignIn);
   const btnAccountOpen = $('btnAccountOpen');
   if (btnAccountOpen) btnAccountOpen.addEventListener('click', function () { openAccount(); });
   // show / hide the password — you cannot check 6 characters you cannot see

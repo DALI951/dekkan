@@ -648,30 +648,26 @@
     withPin(C, T.t('pin.confirm'), apply);
   }
 
-  // ---------- wave 2: the shop's own colours ----------
+  // ---------- the shop's OWN theme (wave 7) ----------
   // NOTHING here paints a colour: ui/themes.ts validates and paints, and the state
-  // keeps the choice. These functions only carry the shopkeeper's intent from the
-  // screen to state.custom.theme and back — which is why a new token needs no code.
-  function themeEffective(TH, id, overrides) {
-    const t = Object.assign({}, TH.get(id).tokens);
-    Object.keys(overrides || {}).forEach(function (k) { if (t[k] !== undefined) t[k] = overrides[k]; });
-    return t;
+  // keeps the choice. This layer only carries the shopkeeper's intent from the screen
+  // to state.custom.theme and back: WHICH theme the shop wears, the NAME he gave his
+  // own theme, and his THREE colours. The app's own themes have no writer at all —
+  // that is what "no one can change the default themes" means in code.
+  function stateTheme(C) {
+    const th = (C.state && C.state.custom && C.state.custom.theme) ? C.state.custom.theme : {};
+    return { id: th.id, name: typeof th.name === 'string' ? th.name : '', seeds: (th.seeds && typeof th.seeds === 'object') ? th.seeds : {} };
   }
-  // what the state actually needs to keep: only what DIFFERS from the base preset,
-  // so a shop that tweaks two colours still inherits every future fix to its base
-  function themeDiff(TH, id, tokens) {
-    const base = TH.get(id) ? TH.get(id).tokens : {};
-    const out = {};
-    Object.keys(tokens || {}).forEach(function (k) { if (base[k] !== tokens[k]) out[k] = tokens[k]; });
-    return out;
-  }
+
+  // Opening the editor means "make MY theme": the draft starts from the colours he
+  // already owns, or from the app's own three as a starting point. The screen is not
+  // repainted until he saves — a preview is not a choice.
   function themeOpen(C) {
     const P = DEK.pages;
     const { $ } = C;
     const TH = C.themes();
-    const id = TH.currentId();
-    const tokens = themeEffective(TH, id, TH.overrides());
-    C.themeDraft = { id: id, tokens: tokens, seeds: TH.seedsOf(id, TH.overrides()) };
+    const th = stateTheme(C);
+    C.themeDraft = { id: TH.OWN, name: th.name, seeds: TH.seedsOf(TH.OWN, th.seeds) };
     $('themeJson').classList.add('hidden');
     $('themeEditor').classList.remove('hidden');
     P.renderThemeEditor(C);
@@ -686,33 +682,39 @@
     P.renderThemes(C);
   }
 
-  // One picker moves one of the shop's three colours, and the ENGINE builds the whole
-  // shop around it: the same three colours always give the same forty-two tokens, and
-  // every one of them is guaranteed readable against the wall he chose.
+  // One picker moves one of his three colours, and the ENGINE builds the whole shop
+  // around it: the same three colours always give the same forty-two tokens, and every
+  // one of them is guaranteed readable against the wall HE chose. Any colour he can
+  // pick is allowed — what makes it readable is the engine's job, not a restriction.
   function themeSeedPick(C, which, val) {
     const P = DEK.pages;
     const TH = C.themes();
     if (!C.themeDraft || !TH || TH.SEEDS.indexOf(which) === -1) return;
     const seeds = Object.assign({}, C.themeDraft.seeds);
-    seeds[which] = val;
+    seeds[which] = String(val == null ? '' : val).trim().toLowerCase();
     C.themeDraft.seeds = seeds;
-    C.themeDraft.tokens = TH.palette(seeds);
-    TH.preview(C.themeDraft.tokens);   // live and unsaved; Save is what keeps it
+    TH.preview(seeds);   // live and unsaved; Save is what keeps it
     P.renderThemeEditor(C);
   }
+
+  // the name is part of his theme, and it is written only on Save
+  function themeNameSet(C, value) {
+    if (!C.themeDraft) return;
+    C.themeDraft.name = String(value == null ? '' : value).slice(0, 24);
+  }
+
   function themeSave(C) {
     const P = DEK.pages;
     const { $, D, T, save, toast } = C;
     const TH = C.themes();
     if (!C.themeDraft) return;
-    const diff = themeDiff(TH, C.themeDraft.id, C.themeDraft.tokens);
-    const split = TH.checkTokens(diff);
-    if (split.ignored.length) {   // a typo is refused, by name, instead of silently dropped
-      P.themeMsg(C, T.t('theme.badColor') + split.ignored.join(', '), 'bad');
+    const seeds = TH.seedBag(C.themeDraft.seeds);
+    if (Object.keys(seeds).length !== TH.SEEDS.length) {   // three colours are what a theme IS
+      P.themeMsg(C, T.t('theme.badColor') + TH.SEEDS.join(', '), 'bad');
       return;
     }
     try {
-      C.state = D.setCustom(C.state, { theme: { id: C.themeDraft.id, tokens: split.good } });
+      C.state = D.setCustom(C.state, { theme: { id: TH.OWN, name: C.themeDraft.name || '', seeds: seeds } });
     } catch (e) {
       P.themeMsg(C, String(e && e.message ? e.message : e), 'bad');
       return;
@@ -724,30 +726,39 @@
     P.renderThemes(C);
     toast(T.t('theme.saved'));
   }
+
+  // Back to an app theme — but his own theme stays his: the three colours and the name
+  // are kept, so the next tap on "my theme" brings his shop back, colour for colour.
   function themeReset(C) {
     const P = DEK.pages;
     const { $, D, T, save, toast } = C;
     const TH = C.themes();
-    const id = TH.currentId();
-    C.state = D.setCustom(C.state, { theme: { id: id, tokens: {} } });
+    const th = stateTheme(C);
+    C.state = D.setCustom(C.state, { theme: { id: TH.DEFAULT, name: th.name, seeds: th.seeds } });
     save();
     TH.applyTheme(C.state.custom.theme);
-    if (C.themeDraft && $('themeEditor') && !$('themeEditor').classList.contains('hidden')) {
-      C.themeDraft = { id: id, tokens: Object.assign({}, TH.get(id).tokens), seeds: TH.seedsOf(id, {}) };
-      P.renderThemeEditor(C);
+    if (C.themeDraft) {
+      C.themeDraft = { id: TH.OWN, name: th.name, seeds: TH.seedsOf(TH.OWN, th.seeds) };
+      if ($('themeEditor') && !$('themeEditor').classList.contains('hidden')) P.renderThemeEditor(C);
     }
     P.renderThemes(C);
     toast(T.t('theme.resetDone'));
   }
+
+  // Sharing a theme = sharing HIS three colours (never 42 derived tokens: a derived
+  // value in a file is a derived value that will drift).
   function themeExport(C) {
     const P = DEK.pages;
     const { $, T } = C;
     const TH = C.themes();
-    const draft = C.themeDraft || { id: TH.currentId(), tokens: TH.overrides() };
+    const th = stateTheme(C);
     $('themeJson').classList.remove('hidden');
-    $('themeJsonText').value = TH.exportTheme(draft);
+    $('themeJsonText').value = TH.exportTheme(th.name, th.seeds);
     P.themeMsg(C, T.t('theme.exported'), 'ok');
   }
+
+  // A pasted theme becomes the shop's OWN theme: it can never overwrite an app theme,
+  // which is why the importer speaks in three colours and not in tokens.
   function themeApplyJson(C) {
     const P = DEK.pages;
     const { $, D, T, save, toast } = C;
@@ -757,16 +768,15 @@
       P.themeMsg(C, T.t('theme.badJson') + res.problems.join(' · '), 'bad');
       return;
     }
-    const diff = themeDiff(TH, res.theme.id, res.theme.tokens);
     try {
-      C.state = D.setCustom(C.state, { theme: { id: res.theme.id, tokens: diff } });
+      C.state = D.setCustom(C.state, { theme: { id: TH.OWN, name: res.name || '', seeds: res.seeds } });
     } catch (e) {
       P.themeMsg(C, String(e && e.message ? e.message : e), 'bad');
       return;
     }
     save();
     TH.applyTheme(C.state.custom.theme);
-    C.themeDraft = { id: res.theme.id, tokens: themeEffective(TH, res.theme.id, diff), seeds: TH.seedsOf(res.theme.id, diff) };
+    C.themeDraft = { id: TH.OWN, name: res.name || '', seeds: res.seeds };
     if ($('themeEditor') && !$('themeEditor').classList.contains('hidden')) P.renderThemeEditor(C);
     P.renderThemes(C);
     P.themeMsg(C, T.t('theme.applied'), 'ok');
@@ -923,8 +933,15 @@
     const sw = ev.target.closest('[data-theme]');
     if (sw) {
       const id = sw.getAttribute('data-theme');
+      // "my theme" with no colours yet has nothing to select: the tap opens the
+      // editor, which is the only useful thing that card can mean.
+      if (TH && id === TH.OWN && !Object.keys(TH.seedBag(stateTheme(C).seeds)).length) {
+        themeOpen(C);
+        return;
+      }
       if (TH && TH.set(id)) {
-        C.state = D.setCustom(C.state, { theme: { id: id, tokens: {} } });   // a preset pick is a DECLARED choice, not a device whim
+        const keep = stateTheme(C);   // a preset is chosen FOR NOW: his own three colours stay his
+        C.state = D.setCustom(C.state, { theme: { id: id, name: keep.name, seeds: keep.seeds } });
         save();
         P.renderThemes(C);
         toast(T.t('toast.themeOk'));

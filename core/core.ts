@@ -298,6 +298,14 @@ function ensureDocState(state) {
 //     out-of-range value throws and changes NOTHING.
 const CUSTOM_TABS = ['sell', 'stock', 'debts', 'clients', 'report', 'employees', 'monthly', 'cashbox', 'settings'];
 const CUSTOM_BRAND_KEYS = ['tagline', 'address', 'phone', 'taxId', 'logoUrl'];
+// The three colours a shop's OWN theme is built from (wave 7). The names are the
+// shopkeeper's — his brand, his money, his walls — and ui/themes.ts derives every
+// other token from them. Core owns only the SHAPE here; what a colour looks like on
+// screen is the engine's job.
+const CUSTOM_THEME_SEEDS = ['brand', 'money', 'ground'];
+const CUSTOM_THEME_SEED_TOKEN = { brand: '--acc', money: '--coin2', ground: '--bg' };
+const CUSTOM_THEME_NAME_MAX = 24;
+const CUSTOM_HEX = /^#[0-9a-f]{6}$/i;
 const CUSTOM_THOUSANDS = ['', ' ', ',', '.'];
 const CUSTOM_DECIMALS_MAX = 3;   // millimes: TND has 3, most currencies 2, some 0
 // The date formats a shop can put on its paper. ui/fmt.ts keeps the same list (it
@@ -322,7 +330,7 @@ function defaultCustom() {
     receipt: { header: '', footer: '', showCashier: true, showTaxId: false, qr: false },
     tabs: { order: CUSTOM_TABS.slice(), hidden: [] },
     lists: { units: DEFAULT_UNITS.slice(), suppliers: [], refundReasons: [] },
-    theme: { id: 'souk', tokens: {} },
+    theme: { id: 'souk', name: '', seeds: {} },
     docLanguage: ''
   };
 }
@@ -348,10 +356,12 @@ function listProblems(path, value, spec) {
 
 // Everything wrong with a custom block, most-wrong-first. The gate reports the
 // first problem, so a state can never be half-customized on a shopkeeper's phone.
-/* theme: a base theme id + the shop's own color overrides. Core validates the
-   SHAPE (presentation validity — is this really a CSS color? — is the UI's job
-   in ui/themes.ts, which falls back to the base color for a value it cannot
-   read). What core refuses here is junk that could not be a theme at all. */
+/* theme: which theme the shop wears, plus HIS own theme — a name and THREE colours.
+   Wave 5-6 kept a shop's colours as token overrides on top of an app theme, which
+   made the app's own themes editable; wave 7 reversed that (Dali, 2026-10-13), so
+   the settings here are a slug, a short name, and brand/money/ground. Core validates
+   the SHAPE and refuses junk by name; the engine derives every other colour (and what
+   an unreadable-but-well-formed value looks like on screen) in ui/themes.ts. */
 function customProblems(c) {
   const out = [];
   if (!c || typeof c !== 'object' || Array.isArray(c)) return ['custom must be an object'];
@@ -440,17 +450,26 @@ function customProblems(c) {
   const th = c.theme;
   if (!th || typeof th !== 'object' || Array.isArray(th)) out.push('theme must be an object');
   else {
-    const extraKeys = Object.keys(th).filter(k => k !== 'id' && k !== 'tokens');
+    const extraKeys = Object.keys(th).filter(k => k !== 'id' && k !== 'name' && k !== 'seeds');
     if (extraKeys.length) out.push('theme has an unknown setting: ' + extraKeys[0]);
     if (typeof th.id !== 'string' || !/^[a-z0-9-]{2,24}$/.test(th.id)) out.push('theme.id must be a short slug (a-z, 0-9, -)');
-    if (!th.tokens || typeof th.tokens !== 'object' || Array.isArray(th.tokens)) out.push('theme.tokens must be an object');
+    if (typeof th.name !== 'string') out.push('theme.name must be text (max ' + CUSTOM_THEME_NAME_MAX + ')');
+    else if (th.name.length > CUSTOM_THEME_NAME_MAX) out.push('theme.name is too long (max ' + CUSTOM_THEME_NAME_MAX + ')');
+    if (!th.seeds || typeof th.seeds !== 'object' || Array.isArray(th.seeds)) out.push('theme.seeds must be an object');
     else {
-      const keys = Object.keys(th.tokens);
-      if (keys.length > 80) out.push('theme.tokens has too many entries (' + keys.length + ')');
+      const keys = Object.keys(th.seeds);
       for (const k of keys) {
-        if (k.indexOf('--') !== 0) { out.push('theme token "' + k + '" must start with -- (it is a CSS custom property)'); break; }
-        const v = th.tokens[k];
-        if (typeof v !== 'string' || !v.trim() || v.length > 64) { out.push('theme.tokens.' + k + ' must be a non-empty string (max 64)'); break; }
+        if (CUSTOM_THEME_SEEDS.indexOf(k) === -1) { out.push('seeds.' + k + ' is not a colour the shop owns'); break; }
+        if (typeof th.seeds[k] !== 'string' || !CUSTOM_HEX.test(th.seeds[k].trim())) {
+          out.push('seeds.' + k + ' must be a #rrggbb colour');
+          break;
+        }
+      }
+      // A shop may pick one colour and keep the app's own for the other two: the
+      // engine fills what is missing at paint time, so a partial own theme is
+      // legitimate DATA (and never a reason to refuse a shop's whole state).
+      if (th.id === 'own' && !keys.length) {
+        out.push('theme.seeds must carry brand, money and ground for your own theme');
       }
     }
   }
@@ -517,15 +536,20 @@ function ensureCustomState(state) {
   if (typeof raw.docLanguage === 'string' && raw.docLanguage.length <= 8) c.docLanguage = raw.docLanguage;
 
   const rt = (raw.theme && typeof raw.theme === 'object' && !Array.isArray(raw.theme)) ? raw.theme : {};
-  c.theme = { id: def.theme.id, tokens: {} };
+  c.theme = { id: def.theme.id, name: '', seeds: {} };
   if (typeof rt.id === 'string' && /^[a-z0-9-]{2,24}$/.test(rt.id)) c.theme.id = rt.id;
-  if (rt.tokens && typeof rt.tokens === 'object' && !Array.isArray(rt.tokens)) {
-    Object.keys(rt.tokens).forEach(k => {
-      const v = rt.tokens[k];
-      if (k.indexOf('--') === 0 && typeof v === 'string' && v.trim() && v.length <= 64) c.theme.tokens[k] = v;
-    });
-  }
-
+  if (typeof rt.name === 'string' && rt.name.length <= CUSTOM_THEME_NAME_MAX) c.theme.name = rt.name;
+  const wanted = (rt.seeds && typeof rt.seeds === 'object' && !Array.isArray(rt.seeds)) ? rt.seeds : {};
+  const legacy = (rt.tokens && typeof rt.tokens === 'object' && !Array.isArray(rt.tokens)) ? rt.tokens : {};
+  CUSTOM_THEME_SEEDS.forEach(k => {
+    const fromSeeds = typeof wanted[k] === 'string' ? wanted[k].trim() : '';
+    const fromTokens = typeof legacy[CUSTOM_THEME_SEED_TOKEN[k]] === 'string' ? String(legacy[CUSTOM_THEME_SEED_TOKEN[k]]).trim() : '';
+    const hex = CUSTOM_HEX.test(fromSeeds) ? fromSeeds.toLowerCase() : (CUSTOM_HEX.test(fromTokens) ? fromTokens.toLowerCase() : null);
+    if (hex) c.theme.seeds[k] = hex;
+  });
+  // A save from the token era IS a shop of its own: those overrides become his own
+  // theme, so the look he has is the look he keeps (and the preset stays pristine).
+  if (Object.keys(c.theme.seeds).length && Object.keys(legacy).length && !Object.keys(wanted).length) c.theme.id = 'own';
   customProblems(c).forEach(msg => {
     const key = msg.split(' ')[0];
     if (/^money\./.test(key)) c.money[key.slice(6)] = def.money[key.slice(6)];
@@ -540,9 +564,14 @@ function ensureCustomState(state) {
       if (def.lists[name]) c.lists[name] = def.lists[name].slice();
       else delete c.lists[name];
     }
-    else if (/^theme/.test(msg)) c.theme = { id: def.theme.id, tokens: {} };
+    else if (/^theme/.test(msg)) c.theme = { id: def.theme.id, name: '', seeds: {} };
     else if (/^docLanguage/.test(msg)) c.docLanguage = def.docLanguage;
   });
+  // an "own" theme that declares NO colour at all is a theme that does not exist:
+  // the shop opens on the app's own theme instead of pretending it owns one
+  if (c.theme.id === 'own' && !Object.keys(c.theme.seeds).length) {
+    c.theme = { id: def.theme.id, name: c.theme.name, seeds: {} };
+  }
   state.custom = c;
   return state;
 }

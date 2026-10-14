@@ -9,9 +9,11 @@
   else root.DEK = Object.assign(root.DEK || {}, factory());
 })(typeof self !== 'undefined' ? self : this, function () {
 
-  var STORE_KEY = 'dekkan.theme';       // the chosen BASE theme id (no-flash cache)
-  var TOKENS_KEY = 'dekkan.themetokens'; // its overrides, so the head script can paint the shop's own colors
+  var STORE_KEY = 'dekkan.theme';             // the chosen theme id (no-flash cache)
+  var SEEDS_KEY = 'dekkan.themeseeds';        // HIS three colours, so the head script paints before the app boots
+  var TOKENS_KEY = 'dekkan.themetokens';      // wave 5-6 cache (token overrides): read once, then forgotten
   var DEFAULT = 'souk';
+  var OWN = 'own';                            // the id of the shop's OWN theme (the 4th card)
 
   // every theme MUST define exactly these tokens — checked by test/themes.test.js
   var BASE = [
@@ -107,7 +109,7 @@
   };
 
   var currentId = DEFAULT;
-  var currentOverrides = {};   // the shop's own colors ON TOP of the base theme
+  var currentSeeds = {};       // HIS own theme: three colours, or {} while he owns none
 
   // ---------- what a color value is allowed to be (same rule as test/themes.test.ts) ----------
   var CSS_COLOR = /^(#[0-9a-fA-F]{3,8}|rgba?\([^)]*\)|hsla?\([^)]*\)|transparent|currentColor)$/;
@@ -171,11 +173,37 @@
     return { good: good, ignored: ignored };
   }
 
-  function remember(id, overrides) {
+  // ---------- the three colours a shopkeeper pick: brand, money, walls ----------
+  // ONE place decides what a usable seed is (the same rule test/theme-own.test.ts
+  // enforces): a lowercase #rrggbb, or nothing at all. A seed bag may also arrive
+  // with the token names it drives (--acc/--coin2/--bg) — that is how a save from
+  // the token era (wave 5-6) is read without keeping that era alive.
+  function obj(v) { return (v && typeof v === 'object' && !Array.isArray(v)) ? v : {}; }
+
+  function seedBag(v) {
+    var raw = obj(v), out = {};
+    SEEDS.forEach(function (k) {
+      var h = normHex(raw[k]) || normHex(raw[SEED_TOKEN[k]]);
+      if (h) out[k] = h;
+    });
+    return out;
+  }
+
+  // What a theme actually paints: a preset paints its own frozen tokens (never one
+  // pixel of it can be moved from the outside), the shop's own theme is DERIVED
+  // from his three colours, deterministically.
+  function tokensFor(id, seeds) {
+    if (id === OWN) return palette(seeds);
+    var th = THEMES[id] || THEMES[DEFAULT];
+    return th.tokens;
+  }
+
+  function remember(id, seeds) {
     if (typeof localStorage === 'undefined') return;
     try {
       localStorage.setItem(STORE_KEY, id);
-      localStorage.setItem(TOKENS_KEY, JSON.stringify(overrides || {}));
+      localStorage.setItem(SEEDS_KEY, JSON.stringify(seeds || {}));
+      localStorage.removeItem(TOKENS_KEY);
     } catch (e) { /* private mode: the theme still applies for this session */ }
   }
 
@@ -183,40 +211,48 @@
   // that predates custom.theme). Read-only: the state stays the authority, and the
   // boot adopts a device-only choice instead of resetting the shop's look.
   function cachedTheme() {
-    var id = null, toks = null;
+    var id = null, seedsRaw = null, toksRaw = null;
     if (typeof localStorage !== 'undefined') {
-      try { id = localStorage.getItem(STORE_KEY); toks = localStorage.getItem(TOKENS_KEY); } catch (e) {}
-    }
-    var overrides = {};
-    if (toks) {
       try {
-        var parsed = JSON.parse(toks);
-        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) overrides = parsed;
-      } catch (e) { overrides = {}; }
+        id = localStorage.getItem(STORE_KEY);
+        seedsRaw = localStorage.getItem(SEEDS_KEY);
+        toksRaw = localStorage.getItem(TOKENS_KEY);
+      } catch (e) {}
     }
-    return { id: THEMES[id] ? id : null, tokens: overrides };
+    var seeds = seedBag(parseJson(seedsRaw));
+    if (!Object.keys(seeds).length) {
+      // a cache written by wave 5-6: the shop's colours were token overrides. The
+      // same three colours come back out, so the first paint is still HIS shop.
+      var legacy = seedBag(parseJson(toksRaw));
+      if (Object.keys(legacy).length) { return { id: OWN, seeds: seedsOf(OWN, legacy) }; }
+    }
+    return { id: THEMES[id] ? id : null, seeds: seeds };
   }
 
-  // Read back what the shop declared: base theme + its own colors.
-  // An override that cannot be read is IGNORED and REPORTED — a phone must never
-  // open into an unreadable screen because of one bad value.
-  function applyTheme(theme) {
-    var wanted = (theme && typeof theme === 'object' && !Array.isArray(theme)) ? theme : {};
-    var id = THEMES[wanted.id] ? wanted.id : DEFAULT;
-    paint(THEMES[id].tokens);            // the base first...
-    currentId = id;
+  function parseJson(text) {
+    if (!text) return null;
+    try { return JSON.parse(text); } catch (e) { return null; }
+  }
 
-    var raw = (wanted.tokens && typeof wanted.tokens === 'object' && !Array.isArray(wanted.tokens)) ? wanted.tokens : {};
-    var split = checkTokens(raw);
-    paint(split.good);                    // ...then the shop's own colors
-    currentOverrides = split.good;
-    remember(id, split.good);
-    return { id: id, overrides: Object.keys(split.good).length, ignored: split.ignored };
+  // Read back what the shop declared: which theme, and HIS three colours.
+  // A value that cannot be read is IGNORED and REPORTED — a phone must never open
+  // into an unreadable screen because of one bad value.
+  function applyTheme(theme) {
+    var wanted = obj(theme);
+    var id = THEMES[wanted.id] ? wanted.id : DEFAULT;
+    // picking a preset KEEPS his own theme: a theme he made is his, not the preset's
+    var seeds = Object.assign({}, currentSeeds, seedBag(wanted.seeds));
+    paint(tokensFor(id, seeds));
+    currentId = id;
+    currentSeeds = seeds;
+    var ignored = Object.keys(obj(wanted.tokens));
+    remember(id, seeds);
+    return { id: id, seeds: Object.assign({}, seeds), ignored: ignored };
   }
 
   function set(id) {
     if (!THEMES[id]) return false;
-    applyTheme({ id: id, tokens: {} });   // picking a preset drops the shop's tweaks (they can re-tweak)
+    applyTheme({ id: id, seeds: currentSeeds });
     if (typeof document !== 'undefined' && typeof CustomEvent !== 'undefined') {
       document.dispatchEvent(new CustomEvent('dekkan:theme', { detail: { id: id } }));
     }
@@ -225,48 +261,68 @@
 
   function restore() {
     var saved = cachedTheme();
-    applyTheme({ id: saved.id, tokens: saved.tokens });
+    applyTheme({ id: saved.id, seeds: saved.seeds });
     return currentId;
   }
 
   // ---------- the editor's live preview (no save until the shopkeeper says so) ----------
-  function preview(tokens) {
-    var good = checkTokens(tokens).good;
-    paint(good);
-    return Object.keys(good).length;
+  function preview(seeds) {
+    var bag = Object.assign({}, currentSeeds, seedBag(seeds));
+    var tokens = palette(bag);
+    paint(tokens);
+    return Object.keys(tokens).length;
   }
 
   function revert() {
-    applyTheme({ id: currentId, tokens: currentOverrides });
+    applyTheme({ id: currentId, seeds: currentSeeds });
     return currentId;
   }
 
   // ---------- export / import: a theme is a file a shopkeeper can share ----------
-  function exportTheme(theme) {
-    var wanted = (theme && typeof theme === 'object' && !Array.isArray(theme)) ? theme : { id: currentId, tokens: currentOverrides };
-    var id = THEMES[wanted.id] ? wanted.id : currentId;
-    var tokens = {};
-    BASE.forEach(function (k) { tokens[k] = THEMES[id].tokens[k]; });   // stand-alone: the WHOLE set
-    var ov = (wanted.tokens && typeof wanted.tokens === 'object' && !Array.isArray(wanted.tokens)) ? wanted.tokens : {};
-    Object.keys(ov).forEach(function (k) { if (BASE.indexOf(k) !== -1 && isColor(k, ov[k])) tokens[k] = ov[k]; });
-    return JSON.stringify({ name: 'Dekkan ' + id, id: id, tokens: tokens }, null, 2);
+  // What travels is HIS three colours and the name he gave them — never the 42
+  // derived tokens (a derived value in a file is a derived value that will drift).
+  function ownSeeds() {
+    var bag = seedBag(currentSeeds);
+    return Object.keys(bag).length ? seedsOf(OWN, bag) : seedsOf(OWN, null);
   }
 
-  // Untrusted text in, either a usable override set or the reasons it was refused.
+  function exportTheme(name, seeds) {
+    if (name && typeof name === 'object') { seeds = name.seeds; name = name.name; }
+    var given = seedBag(seeds);
+    var out = Object.keys(given).length ? seedsOf(OWN, given) : ownSeeds();
+    return JSON.stringify({ name: String(name == null ? '' : name).trim() || 'Dekkan', seeds: out }, null, 2);
+  }
+
+  // Untrusted text in, either his three colours or the reasons it was refused.
   // NEVER applies anything by itself: the caller decides (the screen shows the reasons).
   function importTheme(text) {
-    var raw;
-    try { raw = JSON.parse(String(text)); } catch (e) { return { ok: false, problems: ['that is not valid JSON'] }; }
+    var raw = parseJson(text);
+    if (raw === null) return { ok: false, problems: ['that is not valid JSON'] };
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return { ok: false, problems: ['a theme must be a JSON object'] };
-    if (!raw.id || !THEMES[String(raw.id)]) return { ok: false, problems: ['unknown base theme: ' + String(raw.id)] };
-    if (!raw.tokens || typeof raw.tokens !== 'object' || Array.isArray(raw.tokens)) return { ok: false, problems: ['theme.tokens must be an object'] };
-    var bad = [];
-    Object.keys(raw.tokens).forEach(function (k) {
-      if (BASE.indexOf(k) === -1) bad.push('unknown token ' + k);
-      else if (!isColor(k, raw.tokens[k])) bad.push('token ' + k + ' is not a CSS color: ' + String(raw.tokens[k]).slice(0, 24));
-    });
-    if (bad.length) return { ok: false, problems: bad };
-    return { ok: true, theme: { id: String(raw.id), tokens: Object.assign({}, raw.tokens) }, name: typeof raw.name === 'string' ? raw.name : '' };
+    var name = typeof raw.name === 'string' ? raw.name.slice(0, 24) : '';
+    if (raw.seeds !== undefined) {
+      if (!obj(raw.seeds) || Array.isArray(raw.seeds)) return { ok: false, problems: ['seeds must be the three colours of the shop'] };
+      var seeds = {}, bad = [];
+      Object.keys(raw.seeds).forEach(function (k) {
+        if (SEEDS.indexOf(k) === -1) { bad.push('seeds.' + k + ' is not a colour the shop owns'); return; }
+        var h = normHex(raw.seeds[k]);
+        if (!h) { bad.push('seeds.' + k + ' must be a #rrggbb colour'); return; }
+        seeds[k] = h;
+      });
+      SEEDS.forEach(function (k) { if (!seeds[k]) bad.push('seeds.' + k + ' must be a #rrggbb colour'); });
+      if (bad.length) return { ok: false, problems: bad };
+      return { ok: true, name: name, seeds: seeds };
+    }
+    if (raw.tokens !== undefined) {
+      // a file from the token era (wave 5-6): the same three colours come out of it
+      if (!obj(raw.tokens)) return { ok: false, problems: ['theme.tokens must be an object'] };
+      var tok = checkTokens(raw.tokens);
+      if (tok.ignored.length) return { ok: false, problems: tok.ignored.map(function (k) { return 'token ' + k + ' is not a colour this theme can use'; }) };
+      if (!Object.keys(tok.good).length) return { ok: false, problems: ['seeds are required (brand, money, ground)'] };
+      var id = THEMES[raw.id] ? raw.id : DEFAULT;
+      return { ok: true, name: name, seeds: seedsOf(id, tok.good) };
+    }
+    return { ok: false, problems: ['seeds are required (brand, money, ground)'] };
   }
 
 
@@ -410,20 +466,42 @@
     };
   }
 
-  // The three colours a token set was built from: what the pickers must show, and
-  // what a shop with no palette of its own inherits from its base theme.
-  function seedsOf(id, tokens) {
+  // ---------- the registry ----------
+  // The shop's OWN theme sits in the same list as the presets, so the Settings grid
+  // is one loop. It is the only entry flagged `own`, and it is the only one whose
+  // colours are derived at paint time: its `tokens` here are just its declared
+  // default (the app's own palette), which is what makes it a valid theme object.
+  THEMES[OWN] = {
+    id: OWN, own: true, nameKey: 'theme.own',
+    preview: ['#171310', '#e8b04b', '#f8d184'],
+    tokens: palette({})
+  };
+
+  // The three dots a theme card shows: a preset's own preview, or - for the shop's
+  // own theme - the three colours he actually picked.
+  function dots(id, seeds) {
+    if (id !== OWN) return (THEMES[id] || THEMES[DEFAULT]).preview.slice();
+    var P = palette(seeds);
+    return [P['--panel'], P['--acc'], P['--coin1']];
+  }
+
+  // The three colours a theme is built from: what the pickers must show, and what a
+  // theme with no colours of its own inherits from the app. Accepts either the seed
+  // names (brand/money/ground) or the tokens they drive (--acc/--coin2/--bg), so a
+  // save from the token era reads back as the same three colours.
+  function seedsOf(id, given) {
     var th = THEMES[id] || THEMES[DEFAULT];
-    var raw = (tokens && typeof tokens === 'object' && !Array.isArray(tokens)) ? tokens : {};
+    var raw = obj(given);
     var out = {};
     SEEDS.forEach(function (k) {
-      out[k] = normHex(raw[SEED_TOKEN[k]]) || normHex(th.tokens[SEED_TOKEN[k]]);
+      out[k] = normHex(raw[k]) || normHex(raw[SEED_TOKEN[k]]) || normHex(th.tokens[SEED_TOKEN[k]]);
     });
     return out;
   }
 
   var Themes = {
     DEFAULT: DEFAULT,
+    OWN: OWN,
     BASE: BASE,
     baseTokens: function () { return BASE.slice(); },
     problems: problems,
@@ -435,9 +513,11 @@
     get: function (id) { return THEMES[id] || null; },
     current: function () { return THEMES[currentId]; },
     currentId: function () { return currentId; },
-    // the shop's OWN colors (never the base's) — what the editor loads
-    overrides: function () { return Object.assign({}, currentOverrides); },
-    isCustomized: function () { return Object.keys(currentOverrides).length > 0; },
+    // HIS own theme: three colours, or {} while he owns none. `isCustomized` is the
+    // old name for the same question (does this shop wear colours of its own).
+    seeds: function () { return Object.assign({}, currentSeeds); },
+    hasOwn: function () { return Object.keys(currentSeeds).length > 0; },
+    isCustomized: function () { return Object.keys(currentSeeds).length > 0; },
     set: set,
     applyTheme: applyTheme,
     restore: restore,
@@ -446,10 +526,12 @@
     revert: revert,
     exportTheme: exportTheme,
     importTheme: importTheme,
+    dots: dots,
     SEEDS: SEEDS,
     SEED_TOKEN: SEED_TOKEN,
     palette: palette,
     seedsOf: seedsOf,
+    seedBag: seedBag,
     isHex6: function (v) { return !!normHex(v); },
     shade: shade,
     mix: mix,

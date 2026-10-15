@@ -64,7 +64,12 @@ Last updated: 2026-10-15 — by Big Pickle (DESKTOP-OJME2E2) — **wave 7 is COM
 
 ## In progress
 
-- Nothing. Wave 7 closed on 2026-10-15.
+- **Wave 7 deploy run (2026-10-15, DESKTOP-OJME2E2).** `npm run check` → 429 unit / 0 fail, sim 65/65, i18n `en=484 ar=484`,
+  tsc clean; full Playwright battery launched DETACHED to `.e2e-full.out.txt` (246 tests × 1 worker ≈ 16 min) —
+  **its result is the only thing still open.** Already done in the same run: `dekkan.web.app` DEPLOYED and verified live
+  (`index.html` 43 562 B with no `btnGoogle` and `#appVersion` = 0.19.0, `ui/themes.js` carries `dekkan.themeseeds`,
+  `ui/app.js` has no `googleSignIn`), and the two loose ends closed (`SW_VERSION` **v48**; the About card's static number
+  now reads 0.19.0 like `A_VERSION`).
 
 ## Dali's queue (asked, not yet built — in the order he raised them)
 
@@ -74,8 +79,8 @@ Last updated: 2026-10-15 — by Big Pickle (DESKTOP-OJME2E2) — **wave 7 is COM
 
 ## Next step
 
-1. Deploy wave 7: GitHub Pages follows the push; `dekkan.web.app` needs `npx firebase deploy --only hosting`; modali needs
-   Dali's SFTP password.
+1. Read `.e2e-full.out.txt`: if the full battery is green, wave 7 is shipped everywhere except modali (his SFTP password).
+   If a spec fails, it is a real bug — fix the CODE, never the assertion (see `test/ui.test.ts` wiring guard).
 2. Wave 3 part C (PHP mirror of the `custom` checks in `api/state.php`) stays deliberately DEFERRED: no `php` runtime here
    and the values are cosmetic (the app repairs what it cannot read).
 
@@ -85,7 +90,6 @@ Last updated: 2026-10-15 — by Big Pickle (DESKTOP-OJME2E2) — **wave 7 is COM
 - Run the `api/schema-p0.sql` ALTER on the live host (no `php` here).
 - Set `backupKey` + `backupRunKey` in the host's `api/config.php`, add the cron call to `api/backup.php?run=…`, then do one
   real restore drill.
-- `ui/app.ts` `A_VERSION` still reads `0.19.0` while the About card shows `0.4.0` — one number needed.
 - The modali SFTP credential he pasted into a chat is stored nowhere — recommend rotating it.
 
 ## Environment notes
@@ -124,6 +128,8 @@ Last updated: 2026-10-15 — by Big Pickle (DESKTOP-OJME2E2) — **wave 7 is COM
   to `applyTheme` is IGNORED and reported (`res.ignored`), and `setCustom(..., {theme:{tokens:{}}})` is REFUSED by the core
   gate. A preset has no writer in the codebase — that is the "no one can change the default themes" guarantee. If you need
   a colour to move, move one of the three seeds.
+- **The app's version lives in ONE place: `A_VERSION` in `ui/app.ts`** (rendered into `#appVersion`). The static text in
+  `index.html` is only what a screenshot-before-JS shows — keep it equal to `A_VERSION` instead of letting it rot.
 - `test/theme-palette.test.ts` + `test/theme-own.test.ts` are the two contracts of that engine: the first proves the
   derivation (3 colours → 42 readable tokens), the second proves whose theme it is (his vs the app's).
 - `RULES.md` is a real contract — never re-seed it from the template over the real content.

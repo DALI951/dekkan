@@ -64,12 +64,16 @@ Last updated: 2026-10-15 — by Big Pickle (DESKTOP-OJME2E2) — **wave 7 is COM
 
 ## In progress
 
-- **Wave 7 deploy run (2026-10-15, DESKTOP-OJME2E2).** `npm run check` → 429 unit / 0 fail, sim 65/65, i18n `en=484 ar=484`,
-  tsc clean; full Playwright battery launched DETACHED to `.e2e-full.out.txt` (246 tests × 1 worker ≈ 16 min) —
-  **its result is the only thing still open.** Already done in the same run: `dekkan.web.app` DEPLOYED and verified live
-  (`index.html` 43 562 B with no `btnGoogle` and `#appVersion` = 0.19.0, `ui/themes.js` carries `dekkan.themeseeds`,
-  `ui/app.js` has no `googleSignIn`), and the two loose ends closed (`SW_VERSION` **v48**; the About card's static number
-  now reads 0.19.0 like `A_VERSION`).
+- Nothing. **Wave 7 is shipped and verified** (2026-10-15, DESKTOP-OJME2E2):
+  - `npm run check` → **429 unit / 0 fail**, sim 65/65, i18n `en=484 ar=484`, tsc clean.
+  - **Full Playwright battery (PC + Phone) → 243 passed / 3 skipped / 0 failed, exit 0 (11.5 m)** — run clean, with nothing
+    else touching the box (the first attempt "failed" 2 Phone specs purely from CPU contention; see Watch out).
+  - **`dekkan.web.app` deployed and verified live** by fetching the real files (`index.html` has no `btnGoogle` and
+    `#appVersion` = 0.19.0, `ui/themes.js` carries `dekkan.themeseeds`, `ui/app.js` has no `googleSignIn`);
+    **GitHub Pages** live too (`deploy pages` CI green on `f338ed6`, `aec77ca`, `f88fa6b`).
+  - Closed the two loose ends in the same run: `SW_VERSION` **v48** (the wave-7 shell must refresh an installed phone) and
+    the About card's static number now equals `A_VERSION` (0.19.0 — one number, not two).
+- The only host NOT updated is **modali** (needs Dali's SFTP password) — see Blocked.
 
 ## Dali's queue (asked, not yet built — in the order he raised them)
 
@@ -79,8 +83,8 @@ Last updated: 2026-10-15 — by Big Pickle (DESKTOP-OJME2E2) — **wave 7 is COM
 
 ## Next step
 
-1. Read `.e2e-full.out.txt`: if the full battery is green, wave 7 is shipped everywhere except modali (his SFTP password).
-   If a spec fails, it is a real bug — fix the CODE, never the assertion (see `test/ui.test.ts` wiring guard).
+1. Nothing is owed on the code: wave 7 is green and live on Firebase + GitHub Pages. Deploy modali when Dali can paste
+   `DEKKAN_SFTP_PASS` (`$env:DEKKAN_SFTP_PASS='…'; python scripts/deploy.py`) so all three hosts match.
 2. Wave 3 part C (PHP mirror of the `custom` checks in `api/state.php`) stays deliberately DEFERRED: no `php` runtime here
    and the values are cosmetic (the app repairs what it cannot read).
 
@@ -102,7 +106,10 @@ Last updated: 2026-10-15 — by Big Pickle (DESKTOP-OJME2E2) — **wave 7 is COM
 - Inline `node -e` with quotes gets mangled by PowerShell 5.1 — write a temp script under
   `C:\Users\Dali\AppData\Local\Temp\opencode\` instead.
 - The full e2e battery is 246 tests × 1 worker ≈ 16 min: if the tool session gets restarted mid-run, launch it DETACHED
-  (`Start-Process cmd.exe /c … > file`) so it survives.
+  (`Start-Process cmd.exe /c … > file`) so it survives. **Do NOT run anything else heavy on this box while it runs**
+  (a deploy, `npm run check`, another browser): with `workers: 1` a starved machine turns `page.goto` into a 45 s
+  "waiting until load" TIMEOUT, which looks exactly like a real bug. Proven 2026-10-15: 2 Phone specs "failed" that way
+  while the Firebase deploy ran, and the same two specs alone were 9/9 green.
 
 ## Watch out
 

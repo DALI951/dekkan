@@ -15,4 +15,4 @@ playwright-report/
 
 # agent scratch (playwright run logs): local only, never part of the app
 *.out.txt
-.e2e-start.txt
+.e2e-*.txt

@@ -709,59 +709,65 @@ test('no saved session and not local: the login wall is up on boot', async () =>
   assert.ok(ui.T.t('auth.local').length > 0, 'the local option is translated');
 });
 
-test('the wall offers BOTH ways in: Google and local', async () => {
+test('the wall offers email + password and local mode — the Google button is GONE', async () => {
   const ui = boot();
   await ui.settle();
-  assert.ok(ui.$('btnGoogle'), 'a Google sign-in button is on the wall');
-  assert.strictEqual(ui.$('btnGoogleLabel').textContent, ui.T.t('auth.google'));
   assert.strictEqual(ui.$('gateSkip').textContent, ui.T.t('auth.local'));
+  assert.ok(ui.$('gateSubmit').textContent.length > 0, 'the email/password button is there');
+  /* the wall's markup is not parsed by this stub DOM (getElementById invents an
+     element on demand), so the absence of Google is asserted where it is written:
+     index.html. `googleSignIn` is gone from ui/app.ts too, and the dormant
+     transport is still unit-tested in test/auth-google.test.ts. */
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  assert.ok(html.indexOf('btnGoogle') === -1, 'no Google button in the shipped wall');
+  assert.ok(html.indexOf('gateHint') === -1, 'no Google hint either');
+  assert.ok(html.indexOf('id="gateForm"') !== -1 && html.indexOf('id="gateSkip"') !== -1, 'the two ways in that stayed');
 });
 
 // ---------- THE WALL HAS TO ANSWER THE TAP (2026-10-13) ----------
 /* "google sign in dont work" was two complaints in one: nothing visibly
    happened while it tried, and when it did fail the wall said nothing useful.
    A wall that neither shows it heard you nor tells you what to do next is a
-   dead end for a shopkeeper standing at the counter. */
+   dead end for a shopkeeper standing at the counter. Google is off the wall
+   since wave 7 (2026-10-14) — the tap-answers rule now has ONE button to keep
+   honest, and it must still hold: one sign-in at a time, and a named error. */
 
-test('the wall locks BOTH buttons while a Google sign-in is in flight', async () => {
-  const ui = boot(null, null, { fb: { allowGoogle: true } });
+test('the wall locks its button while a sign-in is in flight, then names the trouble', async () => {
+  const ui = boot();                        // no Firebase on this device
   await ui.settle();
-  ui.$('btnGoogle').fire('click');
-  assert.strictEqual(ui.$('btnGoogle').disabled, true, 'the Google button cannot be tapped twice');
-  assert.ok(ui.$('btnGoogle').classList.contains('busy'), 'and it shows it is working');
-  assert.strictEqual(ui.$('gateSubmit').disabled, true, 'the email button waits too — one sign-in at a time');
+  ui.$('gateEmail').value = 'boss@shop.tn';
+  ui.$('gatePass').value = 'secret1';
+  ui.$('gateForm').fire('submit', { preventDefault() {} });
+  assert.strictEqual(ui.$('gateSubmit').disabled, true, 'a second tap cannot fire a second sign-in');
   await ui.settle();
-  assert.strictEqual(ui.$('gate').style.display, 'none', 'a real sign-in still opens the till');
+  assert.strictEqual(ui.$('gateSubmit').disabled, false, 'the button comes back when the attempt is over');
+  assert.strictEqual(ui.$('gateError').textContent, ui.T.t('auth.err.server'), 'and the wall says what went wrong');
+  assert.ok(!ui.$('gateError').classList.contains('hidden'), 'the message is actually on screen');
 });
 
-test('a Google sign-in that leaves the page says so calmly, in no error red', async () => {
-  const ui = boot(null, null, { fb: { googleBlocked: true } });
+test('a register attempt with two different passwords never reaches the network', async () => {
+  const ui = boot();
   await ui.settle();
-  ui.$('btnGoogle').fire('click');
-  await ui.settle();
-  assert.strictEqual(ui.$('gateError').textContent, ui.T.t('auth.err.googleRedirect'), 'the wall names what is happening');
-  assert.ok(ui.$('gateError').classList.contains('info'), 'and it is NOT dressed as a failure');
-  assert.strictEqual(ui.$('btnGoogle').disabled, true, 'the button stays locked: the page is on its way out');
-});
-
-test('Google not set up here points at the way that DOES work', async () => {
-  const ui = boot(null, null, { fb: {} }); // provider off -> operation-not-allowed
-  await ui.settle();
-  ui.$('btnGoogle').fire('click');
-  await ui.settle();
-  assert.strictEqual(ui.$('gateError').textContent, ui.T.t('auth.err.google'));
-  assert.strictEqual(ui.$('gateHint').textContent, ui.T.t('auth.googleNotSet'), 'the honest hint under the button');
-  assert.ok(!ui.$('gateHint').classList.contains('hidden'), 'and it is actually visible');
-  assert.strictEqual(ui.$('btnGoogle').disabled, false, 'the button is usable again');
+  ui.$('gateSwitch').fire('click');          // login -> register
+  ui.$('gateName').value = 'Hedi Shop';
+  ui.$('gateEmail').value = 'boss@shop.tn';
+  ui.$('gatePass').value = 'secret1';
+  ui.$('gatePass2').value = 'secret2';
+  ui.$('gateForm').fire('submit', { preventDefault() {} });
+  assert.strictEqual(ui.$('gateError').textContent, ui.T.t('auth.err.passMismatch'));
+  assert.ok(!ui.$('gateSubmit').disabled, 'nothing was sent, so nothing is busy');
 });
 
 test('changing mode on the wall clears stale news', async () => {
-  const ui = boot(null, null, { fb: {} });
+  const ui = boot();
   await ui.settle();
-  ui.$('btnGoogle').fire('click');
+  ui.$('gateEmail').value = 'boss@shop.tn';
+  ui.$('gatePass').value = 'secret1';
+  ui.$('gateForm').fire('submit', { preventDefault() {} });
   await ui.settle();
+  assert.ok(ui.$('gateError').textContent.length > 0, 'there is news from the failed attempt');
   ui.$('gateSwitch').fire('click');
-  assert.strictEqual(ui.$('gateHint').textContent, '', 'no leftover hint from the other mode');
+  assert.strictEqual(ui.$('gateError').textContent, '', 'no leftover error from the other mode');
 });
 
 test('choosing "local only" on the wall opens the till and remembers the choice', async () => {
@@ -1066,18 +1072,19 @@ test('a stale draft (deleted product / over-stock qty) is pruned on restore', ()
 });
 
 test('the shop\'s declared theme paints — the browser cache never overrules the state', () => {
-  const core = require(path.join(ROOT, 'core', 'dekkan-core.ts'));
   const ui = boot(
-    (c, s) => c.setCustom(s, { theme: { id: 'mint', tokens: { '--acc': '#ff0000' } } }),
+    (c, s) => c.setCustom(s, { theme: { id: 'mint' } }),
     (store) => {
       store['dekkan.theme'] = 'royal';
       store['dekkan.themetokens'] = JSON.stringify({ '--acc': '#00ff00' });
     }
   );
   const TH = ui.sandbox.DEK.Themes;
-  assert.strictEqual(ui.rootStyle['--bg'], TH.get('mint').tokens['--bg'], 'the state\'s base theme painted');
-  assert.strictEqual(ui.rootStyle['--acc'], '#ff0000', 'with the state\'s own colour, not the stale cached one');
+  assert.strictEqual(ui.rootStyle['--bg'], TH.get('mint').tokens['--bg'], 'the state\'s theme painted');
+  assert.strictEqual(ui.rootStyle['--acc'], TH.get('mint').tokens['--acc'], 'never the colour a stale cache remembered');
   assert.strictEqual(TH.currentId(), 'mint', 'and the screen agrees on which theme is on');
+  assert.strictEqual(TH.hasOwn(), false, 'a preset is not a theme of his own');
+  assert.strictEqual(ui.store['dekkan.theme'], 'mint', 'and the cache was corrected to what the shop declared');
 });
 
 test('the palette screen offers THREE colours and no token editor at all (the vm harness catches a broken render)', () => {
@@ -1097,41 +1104,57 @@ test('the palette screen offers THREE colours and no token editor at all (the vm
   assert.strictEqual(ui.sandbox.DEK.Themes.currentId(), 'souk', 'and closing it changes nothing either');
 });
 
-test('one colour in, the WHOLE shop out — and Save keeps it, reopening shows it back', () => {
+test('one colour in, the WHOLE shop out — and Save keeps his THREE colours, not 42 tokens', () => {
   const ui = boot();
   ui.goto('#/settings');
   const C = ui.sandbox.DEK.app;
   const A = ui.sandbox.DEK.actions;
+  const TH = ui.sandbox.DEK.Themes;
   A.themeOpen(C);
   A.themeSeedPick(C, 'brand', '#ff0000');
   const draft = C.themeDraft;
   assert.strictEqual(draft.seeds.brand, '#ff0000', 'the picker he touched holds his colour');
-  assert.strictEqual(draft.tokens['--acc'], '#ff0000', 'the accent IS the colour he picked');
-  assert.strictEqual(Object.keys(draft.tokens).length, 42, 'and the whole shop came with it');
-  assert.ok(draft.tokens['--acc2'] && draft.tokens['--acc2'] !== '#ff0000', 'the rest of the accent family was derived');
-  assert.ok(draft.tokens['--bg'] !== undefined, 'walls included');
+  assert.strictEqual(draft.tokens, undefined, 'the draft is three colours, not a bag of tokens');
   assert.strictEqual(ui.rootStyle['--acc'], '#ff0000', 'and it is already painted: picking is live');
+  const bag = TH.palette(TH.seedBag(draft.seeds));
+  assert.strictEqual(Object.keys(ui.rootStyle).length, TH.baseTokens().length, 'the whole shop came with it');
+  assert.ok(bag['--acc2'] && bag['--acc2'] !== '#ff0000', 'the rest of the accent family was derived');
+  assert.strictEqual(ui.rootStyle['--bg'], bag['--bg'], 'walls included');
   A.themeSave(C);
-  assert.strictEqual(ui.saved().custom.theme.tokens['--acc'], '#ff0000', 'Save writes the shop\'s colours to the data');
-  assert.ok(ui.saved().custom.theme.tokens['--acc2'] !== undefined, 'the derived family he saw on screen is what got saved');
+  const saved = ui.saved().custom.theme;
+  assert.deepStrictEqual(Object.keys(saved).sort(), ['id', 'name', 'seeds'], 'Save writes the colours — never the derived tokens');
+  assert.strictEqual(saved.id, TH.OWN, 'it is HIS theme now');
+  assert.strictEqual(saved.seeds.brand, '#ff0000', 'with the colour he picked');
   A.themeOpen(C);
   assert.ok(ui.$('themeSeeds').innerHTML.indexOf('value="#ff0000"') !== -1, 'and reopening shows him his own colour again');
   assert.ok(ui.$('themeSeeds').innerHTML.indexOf('data-seed="brand"') !== -1, 'on the picker he chose it with');
   A.themeClose(C);
+  assert.strictEqual(TH.currentId(), TH.OWN, 'closing the editor keeps HIS saved theme on');
 });
 
-/* a device that picked Indigo Night (+ a colour tweak) before custom.theme existed:
-   the state is pristine, the cache is not — the shop's look must survive the upgrade */
+/* a device that picked Indigo Night before custom.theme existed: the state is
+   pristine, the cache is not — the shop's look must survive the upgrade */
 test('a device-only theme choice is ADOPTED into the shop\'s data, not silently wiped', () => {
+  const ui = boot(undefined, (store) => { store['dekkan.theme'] = 'royal'; });
+  const TH = ui.sandbox.DEK.Themes;
+  assert.strictEqual(ui.rootStyle['--bg'], TH.get('royal').tokens['--bg'], 'the old choice still paints');
+  assert.strictEqual(ui.saved().custom.theme.id, 'royal', 'and it became the shop\'s own theme');
+  assert.strictEqual(ui.store['dekkan.theme'], 'royal', 'the cache agrees with the data after the adoption');
+});
+
+/* a waves 5-6 cache held TOKEN overrides, never three colours: the same shop
+   must come back — so the tokens are read ONCE and converted to his seeds */
+test('a wave 5-6 token cache becomes the shop\'s OWN three colours', () => {
   const ui = boot(undefined, (store) => {
     store['dekkan.theme'] = 'royal';
     store['dekkan.themetokens'] = JSON.stringify({ '--acc': '#ff0000' });
   });
   const TH = ui.sandbox.DEK.Themes;
-  assert.strictEqual(ui.rootStyle['--bg'], TH.get('royal').tokens['--bg'], 'the old choice still paints');
-  assert.strictEqual(ui.rootStyle['--acc'], '#ff0000', 'with its tweak');
-  assert.strictEqual(ui.saved().custom.theme.id, 'royal', 'and it became the shop\'s own theme');
-  assert.strictEqual(ui.saved().custom.theme.tokens['--acc'], '#ff0000', 'tweak included');
+  const theme = ui.saved().custom.theme;
+  assert.strictEqual(ui.rootStyle['--acc'], '#ff0000', 'the colour he had chosen survived the upgrade');
+  assert.strictEqual(theme.id, TH.OWN, 'converted to a theme of his own, not kept as a preset with overrides');
+  assert.strictEqual(theme.seeds.brand, '#ff0000', 'the colour is now data he owns');
+  assert.strictEqual(ui.rootStyle['--bg'], TH.palette(theme.seeds)['--bg'], 'and the rest of the shop derives from it');
 });
 
 test('a save from before custom themes opens on the default theme, with no error', () => {
@@ -1143,4 +1166,31 @@ test('a save from before custom themes opens on the default theme, with no error
   const TH = ui.sandbox.DEK.Themes;
   assert.strictEqual(TH.currentId(), TH.DEFAULT, 'an old save paints the default theme');
   assert.strictEqual(ui.rootStyle['--bg'], TH.get(TH.DEFAULT).tokens['--bg'], 'and the screen is themed, not blank');
+});
+
+/* ---------- the wiring guard (wave 7 slip, 2026-10-14) ----------
+   ui/app.ts wires the page in ONE place: `$('btnX').addEventListener(… A.doSomething(C))`.
+   Nothing checks those names, so a function that is DEFINED and CALLED but left out of
+   the module's export map throws only when a shopkeeper taps it — exactly what happened
+   to `themeNameSet` (typing a theme name died with "A.themeNameSet is not a function",
+   caught by e2e/palette.spec.ts). This test closes the class: every action the wiring
+   calls must exist on the loaded module, and every name the module exports must be a
+   function (never a half-renamed undefined). */
+test('every action ui/app.ts calls is exported — a name left out of the map is a dead button', () => {
+  const ui = boot();
+  const appSrc = fs.readFileSync(path.join(ROOT, 'ui', 'app.ts'), 'utf8');
+  const actSrc = fs.readFileSync(path.join(ROOT, 'ui', 'actions.ts'), 'utf8');
+  const exported = ui.sandbox.DEK.actions;
+  const nonFns = Object.keys(exported).filter((k) => typeof exported[k] !== 'function');
+  assert.deepStrictEqual(nonFns, [], 'an exported action is always a function');
+  const defined = new Set();
+  const reDef = /^\s{2}function ([A-Za-z_$][\w$]*)/gm;
+  let m;
+  while ((m = reDef.exec(actSrc))) defined.add(m[1]);
+  const called = new Set();
+  const reCall = /\bA\.([A-Za-z_$][\w$]*)\s*\(/g;
+  while ((m = reCall.exec(appSrc))) called.add(m[1]);
+  const broken = [...called].filter((k) => defined.has(k) && typeof exported[k] !== 'function');
+  assert.deepStrictEqual(broken, [], 'no action the page wires is missing from the export map');
+  assert.ok(called.size > 30, 'the wiring really does call a pile of actions (this test cannot pass vacuously)');
 });

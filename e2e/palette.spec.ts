@@ -1,19 +1,24 @@
-/* DEKKAN E2E — wave 5: the shop's palette (Settings > Shop look).
+/* DEKKAN E2E — the shop's PALETTE (Settings > shop look). Re-cut for wave 7.
  *
- * Wave 2 let a shopkeeper edit all 42 tokens, one by one. Wave 5 asks three
- * questions instead — the colour of his brand, of his money, and of his walls —
- * and derives the whole shop from them, guaranteeing it stays readable.
+ * Wave 2 let a shopkeeper edit all 42 tokens, one by one. Wave 5 asked three
+ * questions instead — the colour of his brand, of his money, and of his walls.
+ * Wave 7 finished the thought (Dali, 2026-10-13: "i want the user to be able to
+ * create his own theme using any 3 colors and no one can be able to change the
+ * default themes"): his three colours ARE the theme, the 42 tokens are DERIVED
+ * at paint time and never stored, and the app's own themes have no writer.
  *
  * What is proven here, in a real browser:
- *   three pickers and a live preview (no token rows anywhere) ·
+ *   three pickers + a name + a live preview (no token rows anywhere) ·
  *   one colour repaints the whole shop before it is saved · Cancel keeps nothing ·
- *   Save keeps it in the SHOP's data and it survives a reload ·
- *   a light wall flips the shop to dark text · text is readable whatever he picks ·
- *   the app's own themes are presets he can CHOOSE but never edit ·
- *   and the theme is still a shareable file (export / paste / refuse nonsense by name).
+ *   Save keeps his THREE colours in the SHOP's data, and it survives a reload ·
+ *   nothing derived is ever written to the data (a preset stays fixable) ·
+ *   "back to the app theme" keeps HIS colours for the next time ·
+ *   the app's themes are presets he can CHOOSE but never edit ·
+ *   and a theme is still a file: export three colours, paste them back, refuse
+ *   nonsense by name (a wave 5-6 token file still converts).
  *
- * The engine contract lives in test/theme-palette.test.ts; this file proves the
- * screen is wired to it.
+ * The engine contract lives in test/theme-palette.test.ts + test/theme-own.test.ts;
+ * this file proves the screen is wired to it.
  */
 'use strict';
 const { test, expect } = require('@playwright/test');
@@ -58,9 +63,12 @@ const ratio = (page, a, b) => page.evaluate(([x, y]) => {
   return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
 }, [a, b]);
 
+/* a shop that never picked colours of its own: the default preset, no seeds.
+   On a brand-new browser the state blob may not have been written yet (nothing
+   has changed the shop), so an absent theme counts as "kept nothing". */
 async function expectNoThemeKept(page) {
   const s = await savedTheme(page);
-  if (s !== null) expect(s).toEqual({ id: 'souk', tokens: {} });
+  if (s !== null) expect(s).toEqual({ id: 'souk', name: '', seeds: {} });
 }
 
 async function openPalette(page) {
@@ -69,12 +77,13 @@ async function openPalette(page) {
   await expect(page.locator('#themeEditor')).toBeVisible();
 }
 
-test('the palette screen offers THREE colours and a live preview of his own shop', async ({ page }) => {
+test('the palette screen offers THREE colours, a name, and a live preview of his own shop', async ({ page }) => {
   await openPalette(page);
   await expect(page.locator('#themeSeeds input[data-seed]')).toHaveCount(3);
   await expect(page.locator('#themeSeeds input[data-seed="brand"]')).toBeVisible();
   await expect(page.locator('#themeSeeds input[data-seed="money"]')).toBeVisible();
   await expect(page.locator('#themeSeeds input[data-seed="ground"]')).toBeVisible();
+  await expect(page.locator('#themeName')).toBeVisible();       // his theme has HIS name
 
   await expect(page.locator('#themePreview')).toBeVisible();
   await expect(page.locator('#themePreview .pvCoin')).toBeVisible();
@@ -82,7 +91,6 @@ test('the palette screen offers THREE colours and a live preview of his own shop
 
   await expect(page.locator('[data-tok]')).toHaveCount(0);      // no token editing anywhere
   await expect(page.locator('#themeGroups')).toHaveCount(0);
-  await expect(page.locator('#themeBase')).toHaveCount(0);
 });
 
 test('one colour repaints the WHOLE shop live, and Cancel keeps nothing', async ({ page }) => {
@@ -94,7 +102,7 @@ test('one colour repaints the WHOLE shop live, and Cancel keeps nothing', async 
   expect(await cssVar(page, '--acc')).toBe('#ff0000');          // live, unsaved
   const derived = await cssVar(page, '--acc2');
   expect(derived).not.toBe('#ff0000');                          // the family was derived, not copied
-  expect(await cssVar(page, '--bg')).toBe(beforeBg);            // and only what he touched moved
+  expect(await cssVar(page, '--bg')).toBe(beforeBg);            // the wall he did not touch did not move
 
   const preview = await page.locator('#themePreview .pvBtn').evaluate(
     (el) => getComputedStyle(el).backgroundColor);
@@ -114,8 +122,7 @@ test('a light wall flips the shop to dark ink — the engine decides, not the sh
   expect(bg).toBe('#f4ecdd');
   const r = await ratio(page, txt, bg);
   expect(r).toBeGreaterThanOrEqual(7);                          // a wall this light gets AA+ text
-  expect(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--acc').trim()))
-    .not.toBe('');
+  expect(txt).not.toBe('#f2ead9');                              // dark ink, not the dark theme's cream
 });
 
 test('whatever three colours he picks, the shop stays readable', async ({ page }) => {
@@ -141,15 +148,18 @@ test('whatever three colours he picks, the shop stays readable', async ({ page }
   await page.locator('#btnThemeCancel').click();
 });
 
-test('Save keeps the shop\'s palette in its DATA — it survives a reload and comes back on the pickers', async ({ page }) => {
+test('Save keeps his THREE colours in the shop\'s DATA — they survive a reload and come back on the pickers', async ({ page }) => {
   await openPalette(page);
+  await page.locator('#themeName').fill('Dekkan Nour');
   await pick(page, 'brand', '#ff0000');
   await page.locator('#btnThemeSave').click();
   await expect(page.locator('#themeEditor')).toBeHidden();
 
   const saved = await savedTheme(page);
-  expect(saved.id).toBe('souk');
-  expect(saved.tokens['--acc']).toBe('#ff0000');
+  expect(saved.id).toBe('own');                                 // HIS theme, not a preset
+  expect(saved.name).toBe('Dekkan Nour');
+  expect(saved.seeds.brand).toBe('#ff0000');
+  expect(Object.keys(saved.seeds).sort()).toEqual(['brand', 'ground', 'money']);
 
   await page.reload();
   await page.waitForLoadState('domcontentloaded');
@@ -158,33 +168,45 @@ test('Save keeps the shop\'s palette in its DATA — it survives a reload and co
   await gotoTab(page, '#/settings');
   await page.locator('#btnThemeEdit').click();
   expect(await seedValue(page, 'brand')).toBe('#ff0000');       // he sees his own colour again
+  await expect(page.locator('#themeName')).toHaveValue('Dekkan Nour');
   await page.locator('#btnThemeCancel').click();
 });
 
-test('Save stores only what DIFFERS from the preset, so the preset can still be fixed later', async ({ page }) => {
+test('NOTHING derived is saved: the 42 tokens stay the engine\'s business, so a preset stays fixable', async ({ page }) => {
   await openPalette(page);
-  const presetAcc2 = await cssVar(page, '--acc2');
+  const onScreen = await cssVar(page, '--acc2');                // a DERIVED accent tone
   await pick(page, 'brand', '#ff0000');
   await page.locator('#btnThemeSave').click();
+
   const saved = await savedTheme(page);
-  expect(saved.tokens['--acc']).toBe('#ff0000');
-  expect(Object.keys(saved.tokens).length).toBeLessThan(42);    // a diff, not a frozen copy
-  expect(saved.tokens['--acc2']).not.toBe(presetAcc2);
+  expect(saved.tokens).toBeUndefined();                         // a derived value in a file is a lie waiting to drift
+  expect(Object.keys(saved)).toHaveLength(3);                   // id, name, seeds — nothing else
+  expect(Object.keys(saved.seeds)).toHaveLength(3);             // three colours, not forty-two
+  expect(Object.values(saved.seeds)).not.toContain(onScreen);
+  expect(await cssVar(page, '--acc2')).not.toBe('#ff0000');     // and the derivation still happened on screen
 });
 
-test('Reset colours gives the preset back (and forgets the palette for good)', async ({ page }) => {
+test('"back to the app theme" gives the preset back AND keeps his colours for next time', async ({ page }) => {
   await openPalette(page);
-  const original = await cssVar(page, '--acc');
+  const presetAcc = await cssVar(page, '--acc');
   await pick(page, 'brand', '#ff0000');
   await page.locator('#btnThemeSave').click();
+  expect(await cssVar(page, '--acc')).toBe('#ff0000');
 
   await page.locator('#btnThemeReset').click();
   await expect(page.locator('#toast')).toContainText(/preset/i);
-  expect(await cssVar(page, '--acc')).toBe(original);
-  expect(await savedTheme(page)).toEqual({ id: 'souk', tokens: {} });
+  expect(await cssVar(page, '--acc')).toBe(presetAcc);          // the app's theme is back
+
+  const saved = await savedTheme(page);
+  expect(saved.id).toBe('souk');                                // he CHOSE the app's theme for now
+  expect(saved.seeds.brand).toBe('#ff0000');                    // and his own colours are still his
+
+  await page.locator('#btnThemeEdit').click();
+  expect(await seedValue(page, 'brand')).toBe('#ff0000');       // one tap on "my theme" brings his shop back
+  await page.locator('#btnThemeCancel').click();
 });
 
-test('the app\'s own themes are presets: he can CHOOSE one, never edit one', async ({ page }) => {
+test('the app\'s own themes are presets: he can CHOOSE one, never edit one — and choosing keeps his colours', async ({ page }) => {
   await open(page, '#/settings');
   await page.locator('#themeGrid [data-theme="mint"]').click();
 
@@ -194,43 +216,71 @@ test('the app\'s own themes are presets: he can CHOOSE one, never edit one', asy
 
   const saved = await savedTheme(page);
   expect(saved.id).toBe('mint');                                // choosing it DECLARED it
+  expect(saved.tokens).toBeUndefined();                         // and wrote nothing into a preset
 
   await page.locator('#btnThemeEdit').click();
   await expect(page.locator('[data-tok]')).toHaveCount(0);      // still nothing to edit
   await page.locator('#btnThemeCancel').click();
+
+  /* his own colours, then a preset on top: the preset is what the shop wears,
+     but his three colours must be waiting when he comes back to them */
+  await page.locator('#btnThemeEdit').click();
+  await pick(page, 'brand', '#ff0000');
+  await page.locator('#btnThemeSave').click();
+  await page.locator('#themeGrid [data-theme="mint"]').click();
+  expect(await cssVar(page, '--acc')).toBe('#2fce8a');           // mint's accent is not his red
+  await page.locator('#btnThemeEdit').click();
+  expect(await seedValue(page, 'brand')).toBe('#ff0000');       // his colours survived
+  await page.locator('#btnThemeCancel').click();
 });
 
-test('Export writes a stand-alone palette JSON (the whole derived token set)', async ({ page }) => {
+test('Export writes a stand-alone palette file: his name and THREE colours, never the tokens', async ({ page }) => {
   await openPalette(page);
+  await page.locator('#themeName').fill('Dekkan Nour');
   await pick(page, 'brand', '#ff0000');
   await page.locator('#btnThemeSave').click();
   await page.locator('#btnThemeShare').click();
   await page.locator('#btnThemeExport').click();
 
   const json = JSON.parse(await page.locator('#themeJsonText').inputValue());
-  expect(json.id).toBe('souk');
-  expect(json.tokens['--acc']).toBe('#ff0000');
-  expect(Object.keys(json.tokens)).toHaveLength(42);            // stands alone
+  expect(json.name).toBe('Dekkan Nour');
+  expect(Object.keys(json.seeds).sort()).toEqual(['brand', 'ground', 'money']);
+  expect(json.seeds.brand).toBe('#ff0000');
+  expect(json.tokens).toBeUndefined();                          // a shared theme is 3 colours and a name
 });
 
-test('a pasted palette JSON is applied AND kept (a theme is a file you can share)', async ({ page }) => {
+test('a pasted theme becomes HIS theme — both the new 3-colour file and a wave 5-6 token file', async ({ page }) => {
   await open(page, '#/settings');
   await page.locator('#btnThemeShare').click();
-  await page.locator('#themeJsonText').fill(JSON.stringify({ id: 'royal', tokens: { '--acc': '#00ff00' } }));
+  await page.locator('#themeJsonText').fill(JSON.stringify({
+    name: 'Dekkan Nour', seeds: { brand: '#00ff00', money: '#ffcc00', ground: '#101010' }
+  }));
   await page.locator('#btnThemeApply').click();
 
   expect(await cssVar(page, '--acc')).toBe('#00ff00');
+  expect(await cssVar(page, '--bg')).toBe('#101010');
   const saved = await savedTheme(page);
-  expect(saved.id).toBe('royal');
-  expect(saved.tokens['--acc']).toBe('#00ff00');
+  expect(saved.id).toBe('own');
+  expect(saved.name).toBe('Dekkan Nour');
+  expect(saved.tokens).toBeUndefined();                         // a shared preset can never be overwritten
 
   await page.locator('#btnThemeEdit').click();
   expect(await seedValue(page, 'brand')).toBe('#00ff00');       // the pickers tell the truth about it
   await page.locator('#btnThemeCancel').click();
 
+  /* an old token-era file (wave 5-6) is converted, not refused: the same three
+     colours come out of the tokens it used to drive */
+  await page.locator('#btnThemeShare').click();                 // opening the editor closed this panel
+  await page.locator('#themeJsonText').fill(JSON.stringify({ id: 'royal', tokens: { '--acc': '#cc9a3f' } }));
+  await page.locator('#btnThemeApply').click();
+  expect(await cssVar(page, '--acc')).toBe('#cc9a3f');
+  const converted = await savedTheme(page);
+  expect(converted.id).toBe('own');
+  expect(converted.seeds.brand).toBe('#cc9a3f');
+
   await page.reload();
   await page.waitForLoadState('domcontentloaded');
-  expect(await cssVar(page, '--acc')).toBe('#00ff00');
+  expect(await cssVar(page, '--acc')).toBe('#cc9a3f');
 });
 
 test('nonsense JSON is refused, with the reason, and changes nothing', async ({ page }) => {
@@ -242,13 +292,15 @@ test('nonsense JSON is refused, with the reason, and changes nothing', async ({ 
   await page.locator('#btnThemeApply').click();
   await expect(page.locator('#themeMsg')).toContainText(/json/i);
 
-  await page.locator('#themeJsonText').fill(JSON.stringify({ id: 'no-such-theme', tokens: {} }));
+  await page.locator('#themeJsonText').fill(JSON.stringify({ name: 'Nothing to wear' }));
   await page.locator('#btnThemeApply').click();
-  await expect(page.locator('#themeMsg')).toContainText(/no-such-theme/);
+  await expect(page.locator('#themeMsg')).toContainText(/seeds are required/);
 
-  await page.locator('#themeJsonText').fill(JSON.stringify({ id: 'souk', tokens: { '--acc': 'gold-ish' } }));
+  await page.locator('#themeJsonText').fill(JSON.stringify({
+    seeds: { brand: 'gold-ish', money: '#00ff00', ground: '#000000', party: '#ffffff' }
+  }));
   await page.locator('#btnThemeApply').click();
-  await expect(page.locator('#themeMsg')).toContainText('--acc');
+  await expect(page.locator('#themeMsg')).toContainText('brand');
 
   expect(await cssVar(page, '--acc')).toBe(before);
   await expectNoThemeKept(page);
@@ -260,5 +312,5 @@ test('the palette is the SHOP\'s, not the device\'s: it lands in the shop\'s dat
   await page.locator('#btnThemeSave').click();
   await gotoTab(page, '#/settings');
   const raw = await page.evaluate(() => localStorage.getItem('dekkan.v1'));
-  expect(JSON.parse(raw).custom.theme.tokens['--coin2']).toBe('#00d0ff');
+  expect(JSON.parse(raw).custom.theme.seeds.money).toBe('#00d0ff');
 });

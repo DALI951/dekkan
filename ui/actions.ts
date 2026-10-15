@@ -1093,7 +1093,7 @@ $('pName').value = p.name; $('pBuy').value = p.buy; $('pSell').value = p.sell;
     openShopGate: openShopGate, hideShopGate: hideShopGate, shopEnter: shopEnter,
     shopLock: shopLock, shopUnlock: shopUnlock, restoreSession: restoreSession, setSession: setSession,
     themeOpen: themeOpen, themeClose: themeClose, themeSeedPick: themeSeedPick,
-    themeSave: themeSave, themeReset: themeReset, themeExport: themeExport, themeApplyJson: themeApplyJson,
+    themeNameSet: themeNameSet, themeSave: themeSave, themeReset: themeReset, themeExport: themeExport, themeApplyJson: themeApplyJson,
     themeCopy: themeCopy, themeDownload: themeDownload, themeFile: themeFile,
     docOpen: docOpen, docClose: docClose, docInput: docInput, docSave: docSave, docReset: docReset,
     listAdd: listAdd, listDel: listDel
